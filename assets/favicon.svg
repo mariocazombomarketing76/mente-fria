@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Mente Fria">
+  <title>Mente Fria</title>
+  <!--
+    Favicon da Mente Fria — floco de neve vectorial em ciano, sobre o tile escuro
+    com a borda da marca.
+
+    Afinado para o separador do navegador (16 px), com medição de legibilidade:
+      • 6 braços com traço 5,2 (cerca de 1,3 px a 16 px) e pontas arredondadas;
+      • raio dos braços 21, deixando margem folgada até à borda do tile;
+      • núcleo sólido (raio 3,4) para o cruzamento dos braços não ficar esbatido;
+      • sem ramos a meio do braço: à escala de 16 px os ramos fundem-se com os
+        braços e com o núcleo e o ícone passa a ler-se como um bloco ciano. Com
+        os braços limpos, os 6 intervalos escuros entre eles mantêm-se visíveis,
+        que é o que faz o símbolo ser reconhecido tão pequeno.
+        Para voltar à versão com ramos, é só pedir.
+
+    Feito apenas com traços vectoriais: não depende de fontes nem de emoji.
+    Coordenadas por simetria de 60°, centradas em (32, 32).
+  -->
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b2230" />
+      <stop offset="1" stop-color="#0d1117" />
+    </linearGradient>
+  </defs>
+
+  <!-- Tile da marca (borda afinada para não competir com o floco a 16 px) -->
+  <rect x="2" y="2" width="60" height="60" rx="14"
+        fill="url(#fundo)" stroke="#00d4ff" stroke-width="2.4" />
+
+  <!-- Floco de neve: 6 braços -->
+  <g stroke="#00d4ff" stroke-width="5.2" stroke-linecap="round" fill="none">
+    <line x1="32" y1="32" x2="53" y2="32" />
+    <line x1="32" y1="32" x2="42.5" y2="50.19" />
+    <line x1="32" y1="32" x2="21.5" y2="50.19" />
+    <line x1="32" y1="32" x2="11" y2="32" />
+    <line x1="32" y1="32" x2="21.5" y2="13.81" />
+    <line x1="32" y1="32" x2="42.5" y2="13.81" />
+  </g>
+
+  <!-- Núcleo sólido -->
+  <circle cx="32" cy="32" r="3.4" fill="#00d4ff" />
+</svg>

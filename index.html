@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mente Fria — Cards de Análise Pré-Jogo (Match X-Ray) para Futebol e NBA</title>
+  <meta name="description" content="Gere Cards de Análise Pré-Jogo (Match X-Ray) com estatísticas reais dos últimos 5 jogos: tendência de golos/pontos, forma recente e partilha directa no WhatsApp. Futebol e NBA. Estatística, não garantia." />
+  <meta name="theme-color" content="#0d1117" />
+  <link rel="canonical" href="https://goloaovivo.ao/" />
+
+  <!-- Favicon: o símbolo da marca (🧠❄️) na aba do navegador -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" sizes="any" />
+
+  <!-- Open Graph: é isto que aparece quando alguém partilha o LINK do site no WhatsApp -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Mente Fria" />
+  <meta property="og:locale" content="pt_AO" />
+  <meta property="og:title" content="Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
+  <meta property="og:description" content="Cards de Análise Pré-Jogo com estatísticas reais dos últimos 5 jogos de Futebol e NBA. Tendência, forma recente e partilha no WhatsApp." />
+  <meta property="og:url" content="https://goloaovivo.ao/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Mente Fria — Análise Pré-Jogo (Match X-Ray)" />
+  <meta name="twitter:description" content="Estatísticas reais dos últimos 5 jogos, tendência de golos/pontos e partilha no WhatsApp. Futebol e NBA." />
+
+  <!--
+    Content-Security-Policy (meta tag, porque o site é estático na Vercel).
+    Para activar o Google AdSense depois de aprovado, acrescente:
+      script-src ... https://pagead2.googlesyndication.com https://partner.googleadservices.com;
+      img-src ... https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com;
+      frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com;
+    Para activar o webhook de analytics (n8n), acrescente o domínio em connect-src.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://a.espncdn.com; connect-src 'self' https://site.api.espn.com https://sports.core.api.espn.com; frame-src 'none'" />
+
+  <!-- Tipografia: Inter (texto) + Roboto Mono (números/dados) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+  <!-- ============================ CABEÇALHO ============================ -->
+  <header class="cabecalho">
+    <div class="cabecalho-interno">
+      <a class="marca" href="index.html" aria-label="Mente Fria — página inicial">
+        <span class="marca-simbolo" aria-hidden="true">🧠❄️</span>
+        <span class="marca-texto">
+          <span class="marca-nome">MENTE FRIA</span>
+          <span class="marca-slogan">Não apostes no escuro. Aposta com a Mente Fria.</span>
+        </span>
+      </a>
+
+      <nav class="cabecalho-nav" aria-label="Navegação principal">
+        <a href="index.html" aria-current="page">Gerador</a>
+        <a href="jogo-responsavel.html" class="ocultar-mobile">Jogo Responsável</a>
+        <a href="termos.html" class="ocultar-mobile">Termos</a>
+        <a href="privacidade.html" class="ocultar-mobile">Privacidade</a>
+        <span class="selo-18" title="Conteúdo exclusivo para maiores de 18 anos">🔞 +18</span>
+      </nav>
+    </div>
+  </header>
+
+  <main class="conteudo-principal">
+
+    <!-- ================= BLOCO DE ANÚNCIO (topo) =================
+         Espaço reservado para o Google AdSense (formato "leaderboard").
+         Colar aqui o script do Google AdSense depois de aprovado. -->
+    <div id="ad-slot-top" class="ad-placeholder" aria-hidden="true">
+      Espaço publicitário · 970×90 (AdSense — colar script após aprovação)
+    </div>
+
+    <!-- ============================ HERO ============================ -->
+    <section class="hero">
+      <div class="container">
+        <span class="hero-etiqueta">Match X-Ray · Estatística em tempo real</span>
+        <h1>NÃO APOSTES NO ESCURO.<br /><span class="destaque">Aposta com a Mente Fria.</span></h1>
+        <p class="hero-slogan">
+          Escolhe o desporto, o jogo do dia e recebe um <strong>Card de Análise Pré-Jogo</strong> com a forma
+          recente das duas equipas: média de golos/pontos marcados e sofridos nos últimos 5 jogos e a tendência
+          de Mais/Menos. Depois é só partilhar no WhatsApp.
+        </p>
+      </div>
+    </section>
+
+    <!-- ==================== PASSO 1: DESPORTO ==================== -->
+    <section class="painel" aria-labelledby="titulo-passo-1">
+      <div class="painel-topo">
+        <span class="painel-passo" aria-hidden="true">1</span>
+        <h2 class="painel-titulo" id="titulo-passo-1">Escolhe o desporto</h2>
+        <span class="painel-nota">Dados de jogos do dia: ESPN (fonte pública)</span>
+      </div>
+      <div class="painel-corpo">
+        <div class="grelha-desportos" role="group" aria-label="Escolha do desporto">
+          <button type="button" class="btn-desporto" data-desporto="futebol" aria-pressed="false">
+            <span aria-hidden="true">⚽</span> Futebol
+          </button>
+          <button type="button" class="btn-desporto" data-desporto="nba" aria-pressed="false">
+            <span aria-hidden="true">🏀</span> NBA
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PASSO 2: JOGO DO DIA ==================== -->
+    <section class="painel" id="painel-jogos" aria-labelledby="titulo-passo-2" hidden>
+      <div class="painel-topo">
+        <span class="painel-passo" aria-hidden="true">2</span>
+        <h2 class="painel-titulo" id="titulo-passo-2">Escolhe o jogo</h2>
+        <span class="painel-nota" id="nota-jogos"></span>
+      </div>
+
+      <div class="controlo-data">
+        <label for="campo-data">Dia dos jogos:</label>
+        <input type="date" id="campo-data" />
+        <button type="button" class="btn btn-rapido" id="btn-hoje">Hoje</button>
+      </div>
+
+      <div class="painel-corpo">
+        <div id="zona-estado-jogos"></div>
+        <div class="lista-jogos" id="lista-jogos"></div>
+      </div>
+    </section>
+
+    <!-- ==================== PASSO 3: CARD MATCH X-RAY ==================== -->
+    <section class="zona-card" id="zona-card" aria-labelledby="titulo-card" hidden>
+      <h2 class="apenas-leitores" id="titulo-card">Card de análise (Match X-Ray)</h2>
+      <div id="card-xray"></div>
+    </section>
+
+    <!-- ============ BLOCO DE ANÚNCIO (abaixo do card) ============
+         Nunca dentro do card, para não diluir a credibilidade da análise. -->
+    <div id="ad-slot-below-card" class="ad-placeholder" aria-hidden="true">
+      Espaço publicitário · in-article (AdSense — colar script após aprovação)
+    </div>
+
+    <!-- ==================== CONTEÚDO INFORMATIVO (SEO) ==================== -->
+    <section class="bloco-texto">
+      <h2>Como funciona o Match X-Ray</h2>
+      <p>
+        O <strong>Match X-Ray</strong> é o Card de Análise Pré-Jogo da Mente Fria. Em vez de te dar um palpite,
+        mostra-te os números que qualquer apostador deveria ver antes de decidir: a média de golos (futebol) ou
+        pontos (NBA) marcados pela equipa da casa nos últimos 5 jogos, a média sofrida pela equipa visitante no
+        mesmo período, a forma recente (vitórias, empates e derrotas) de cada equipa e a tendência de
+        <em>Mais</em> ou <em>Menos</em> em relação à linha de referência.
+      </p>
+
+      <h2>O que o card mostra</h2>
+      <ul>
+        <li><strong>Média marcada pela equipa da casa</strong> — poder ofensivo recente, nos últimos 5 jogos;</li>
+        <li><strong>Média sofrida pela equipa visitante</strong> — proxy da força defensiva fora de casa;</li>
+        <li><strong>Forma recente</strong> — sequência de V/E/D (futebol) ou V/D (NBA) dos últimos 5 jogos;</li>
+        <li><strong>Tendência Mais/Menos</strong> — soma das duas médias comparada com a linha de referência configurada no código;</li>
+        <li><strong>Aviso de responsabilidade</strong> — sempre visível no card, mesmo na imagem partilhada.</li>
+      </ul>
+
+      <h2>O que a Mente Fria não é</h2>
+      <p>
+        Não somos uma casa de apostas, não processamos apostas e não emitimos fichas ou créditos de jogo.
+        As tendências apresentadas são <strong>cálculo estatístico sobre dados históricos públicos</strong>,
+        não previsão garantida. Se uma equipa não tiver jogos suficientes na base de dados, o card diz
+        honestamente «dados insuficientes» em vez de inventar números.
+      </p>
+
+      <h2>Privacidade e dados</h2>
+      <p>
+        A análise é calculada no teu próprio navegador e a imagem do card é gerada localmente no teu
+        dispositivo — nada é enviado para servidores nossos, excepto eventos anónimos de utilização.
+        Vê a <a href="privacidade.html">Política de Privacidade</a> e os <a href="termos.html">Termos de Uso</a>.
+      </p>
+    </section>
+  </main>
+
+  <!-- ================= RODAPÉ LEGAL (obrigatório em todas as páginas) ================= -->
+  <footer class="site-footer">
+    <div class="footer-disclaimer">
+      🔞 Conteúdo destinado a maiores de 18 anos. O Mente Fria é uma ferramenta de
+      estatísticas e análise desportiva e <strong>NÃO é uma casa de apostas, não
+      processa apostas, não gere fundos de apostadores e não emite fichas ou
+      créditos de jogo</strong>. As tendências estatísticas apresentadas são
+      informativas, não constituem garantia de resultado. Qualquer problema com
+      uma aposta, depósito, levantamento ou fichas adquiridas deve ser reportado
+      directamente à casa de apostas onde a aposta foi realizada (ex: Bantubet),
+      nunca a este site.
+    </div>
+    <div class="footer-links">
+      <a href="privacidade.html" data-rodape="privacidade">Política de Privacidade</a> ·
+      <a href="termos.html" data-rodape="termos">Termos de Uso</a> ·
+      <a href="jogo-responsavel.html" data-rodape="jogo-responsavel">Jogo Responsável</a>
+    </div>
+    <div class="footer-contact">
+      Contacto: <a href="tel:+244922514198">+244 922 514 198</a> ·
+      <a href="mailto:goloaovivo@gmail.com">goloaovivo@gmail.com</a>
+    </div>
+    <div class="footer-legal-refs">
+      Actividade de jogo regulada em Angola pela Lei n.º 17/24, de 28 de Outubro
+      (Lei da Actividade de Jogos) e supervisionada pelo Instituto de Supervisão
+      de Jogos (ISJ) — <a href="https://isj.minfin.gov.ao/" target="_blank" rel="noopener">isj.minfin.gov.ao</a>.
+    </div>
+  </footer>
+
+<script>
+/* =============================================================================
+   MENTE FRIA — index.html (gerador de Match X-Ray)
+   Fluxo em 3 passos:
+     1) escolher desporto  ->  2) escolher o jogo do dia  ->  3) Card de Análise
+   Fonte de dados: ESPN (site.api.espn.com) — API pública, sem chave, CORS aberto.
+   Todo o cálculo estatístico é feito no browser, a partir dos jogos históricos.
+   100% vanilla: sem frameworks e sem bibliotecas externas.
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   CONFIGURAÇÃO DE AFILIADOS
+   Para adicionar mais parceiros no futuro (ex: Elebet, Premierbet), acrescentar
+   novas entradas aqui — o resto do código não muda.
+   ------------------------------------------------------------------------ */
+const AFFILIATE_LINKS = {
+  bantubet: "https://bantubet.co.ao/affiliates/?btag=2532299"
+};
+
+/* Domínio público do site (usado nas mensagens de partilha). */
+const SITE_URL = "https://goloaovivo.ao";
+
+/* Webhook de analytics (n8n). Se ficar vazio, só escreve no console. */
+const ANALYTICS_WEBHOOK = "";
+
+/* Linha de referência Mais/Menos por desporto (configurável aqui). */
+const OVER_UNDER_LINE = { futebol: 2.5, nba: 220 };
+
+/* Quantos jogos recentes entram no cálculo das médias. */
+const JOGOS_ANALISADOS = 5;
+
+/* Ligas/competições consultadas por desporto (códigos públicos da ESPN). */
+const COMPETICOES = {
+  futebol: [
+    { slug: "soccer/eng.1",          nome: "Premier League" },
+    { slug: "soccer/esp.1",          nome: "La Liga" },
+    { slug: "soccer/uefa.champions", nome: "Champions League" },
+    { slug: "soccer/caf.champions",  nome: "CAF Champions League" }
+  ],
+  nba: [
+    { slug: "basketball/nba", nome: "NBA" }
+  ]
+};
+
+/* Unidade de pontuação por desporto (usada nos textos do card). */
+const UNIDADE = { futebol: "golos", nba: "pontos" };
+
+const API_ESPN = "https://site.api.espn.com/apis/site/v2/sports/";
+
+/* Estado da aplicação. */
+const ESTADO = {
+  desporto: null,
+  data: null,          // YYYY-MM-DD seleccionado
+  jogo: null,          // jogo escolhido (normalizado)
+  analise: null,       // análise calculada (alimenta o card e a imagem)
+  pedido: 0            // contador para ignorar respostas de pedidos antigos
+};
+
+/* Atalhos de DOM. */
+const el = (id) => document.getElementById(id);
+const painelJogos = el("painel-jogos");
+const zonaEstadoJogos = el("zona-estado-jogos");
+const listaJogos = el("lista-jogos");
+const zonaCard = el("zona-card");
+const cardXray = el("card-xray");
+const campoData = el("campo-data");
+
+/* ---------------------------------------------------------------------------
+   1. ANALYTICS (Secção 7) — console.log + POST fire-and-forget para o webhook
+   ------------------------------------------------------------------------ */
+function trackEvent(nome, dados) {
+  const evento = Object.assign(
+    { evento: nome, pagina: "index", desporto: ESTADO.desporto, ts: new Date().toISOString() },
+    dados || {}
+  );
+
+  console.log("[ANALYTICS]", evento);
+
+  // Se o webhook ainda não estiver configurado, ficamos apenas pelo log.
+  if (!ANALYTICS_WEBHOOK) return;
+
+  try {
+    fetch(ANALYTICS_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(evento),
+      keepalive: true
+    }).catch(() => { /* fire-and-forget: falha de analytics nunca quebra a UI */ });
+  } catch (erro) {
+    console.warn("[ANALYTICS] não foi possível enviar o evento:", erro);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   2. UTILITÁRIOS
+   ------------------------------------------------------------------------ */
+
+/** Data de hoje (hora local do utilizador) em YYYY-MM-DD. */
+function hojeISO() {
+  const agora = new Date();
+  const mes = String(agora.getMonth() + 1).padStart(2, "0");
+  const dia = String(agora.getDate()).padStart(2, "0");
+  return agora.getFullYear() + "-" + mes + "-" + dia;
+}
+
+/** Converte YYYY-MM-DD em YYYYMMDD (formato exigido pela ESPN). */
+function paraEspn(iso) {
+  return String(iso).replace(/-/g, "");
+}
+
+/** Desloca uma data ISO (YYYY-MM-DD) em N dias e devolve ISO. */
+function deslocarDias(iso, dias) {
+  const d = new Date(iso + "T12:00:00Z");
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Data legível em português (ex: "sábado, 26 de setembro de 2026"). */
+function dataLegivel(iso) {
+  try {
+    return new Date(iso + "T12:00:00Z").toLocaleDateString("pt-PT", {
+      weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC"
+    });
+  } catch (e) {
+    return iso;
+  }
+}
+
+/** Hora do jogo no fuso de Luanda (WAT). */
+function horaLuanda(iso) {
+  try {
+    return new Date(iso).toLocaleTimeString("pt-PT", {
+      hour: "2-digit", minute: "2-digit", timeZone: "Africa/Luanda"
+    });
+  } catch (e) {
+    return "--:--";
+  }
+}
+
+/** Data + hora no fuso de Luanda. */
+function dataHoraLuanda(iso) {
+  try {
+    return new Date(iso).toLocaleString("pt-PT", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit", timeZone: "Africa/Luanda"
+    });
+  } catch (e) {
+    return iso;
+  }
+}
+
+/** Média arredondada a 1 casa decimal (0 se a lista estiver vazia). */
+function media(valores) {
+  if (!valores.length) return 0;
+  const soma = valores.reduce((a, b) => a + b, 0);
+  return Math.round((soma / valores.length) * 10) / 10;
+}
+
+/** Escapa texto para inserção em HTML. */
+function escaparHtml(valor) {
+  return String(valor == null ? "" : valor)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Iniciais de uma equipa (máx. 3 letras) para usar quando não há escudo. */
+function iniciaisEquipa(nome) {
+  const partes = String(nome || "").trim().split(/\s+/).filter(Boolean);
+  if (!partes.length) return "?";
+  if (partes.length === 1) return partes[0].slice(0, 3).toUpperCase();
+  return partes.slice(0, 3).map((p) => p[0]).join("").toUpperCase();
+}
+
+/**
+ * Pedido HTTP com timeout de 8s (AbortController) e tratamento de erro.
+ * Nunca lança excepção para o chamador sem contexto: devolve dados ou lança
+ * um Error já com mensagem legível.
+ */
+async function pedirJson(url, timeoutMs) {
+  const controlador = new AbortController();
+  const temporizador = setTimeout(() => controlador.abort(), timeoutMs || 8000);
+
+  try {
+    const resposta = await fetch(url, { signal: controlador.signal });
+    if (!resposta.ok) throw new Error("Resposta inválida da fonte de dados (" + resposta.status + ")");
+    return await resposta.json();
+  } catch (erro) {
+    if (erro.name === "AbortError") throw new Error("A fonte de dados demorou demasiado a responder (timeout de 8s).");
+    throw erro;
+  } finally {
+    clearTimeout(temporizador);
+  }
+}
+
+/* Cache em memória: evita repetir pedidos ao longo da sessão. */
+const cache = new Map();
+
+async function pedirJsonComCache(url) {
+  if (cache.has(url)) return cache.get(url);
+  const dados = await pedirJson(url);
+  cache.set(url, dados);
+  return dados;
+}
+
+/* ---------------------------------------------------------------------------
+   3. JOGOS DO DIA (passo 2)
+   ------------------------------------------------------------------------ */
+
+/** Normaliza um evento da ESPN para o formato interno da aplicação. */
+function normalizarJogo(evento, competicao) {
+  const competicaoEvento = (evento.competitions && evento.competitions[0]) || {};
+  const concorrentes = competicaoEvento.competitors || [];
+
+  const casa = concorrentes.find((c) => c.homeAway === "home") || concorrentes[0];
+  const fora = concorrentes.find((c) => c.homeAway === "away") || concorrentes[1];
+  if (!casa || !fora) return null;
+
+  return {
+    id: evento.id,
+    liga: competicao.nome,
+    ligaSlug: competicao.slug,
+    competicao: (competicaoEvento.status && competicaoEvento.status.type && competicaoEvento.status.type.name) || competicao.nome,
+    dataISO: competicaoEvento.date || evento.date,
+    estado: (competicaoEvento.status && competicaoEvento.status.type && competicaoEvento.status.type.state) || "pre",
+    local: (competicaoEvento.venue && competicaoEvento.venue.fullName) || "",
+    casa: {
+      id: String(casa.team && casa.team.id || casa.id),
+      nome: (casa.team && (casa.team.displayName || casa.team.name)) || "Equipa da casa",
+      abrev: (casa.team && casa.team.abbreviation) || "",
+      escudo: (casa.team && casa.team.logos && casa.team.logos[0] && casa.team.logos[0].href) || ""
+    },
+    fora: {
+      id: String(fora.team && fora.team.id || fora.id),
+      nome: (fora.team && (fora.team.displayName || fora.team.name)) || "Equipa visitante",
+      abrev: (fora.team && fora.team.abbreviation) || "",
+      escudo: (fora.team && fora.team.logos && fora.team.logos[0] && fora.team.logos[0].href) || ""
+    }
+  };
+}
+
+/** Vai buscar os jogos de um dia para todas as competições do desporto. */
+async function carregarJogosDoDia(desporto, iso) {
+  const competicoes = COMPETICOES[desporto] || [];
+  const pedidos = competicoes.map((competicao) =>
+    pedirJsonComCache(
+      API_ESPN + competicao.slug + "/scoreboard?dates=" + paraEspn(iso)
+    )
+      .then((dados) => ({ competicao: competicao, eventos: (dados && dados.events) || [] }))
+      .catch((erro) => {
+        console.warn("[DADOS] falha na competição " + competicao.nome + ":", erro.message);
+        return { competicao: competicao, eventos: [], erro: erro.message };
+      })
+  );
+
+  const resultados = await Promise.all(pedidos);
+
+  const jogos = [];
+  resultados.forEach((r) => {
+    r.eventos.forEach((evento) => {
+      const jogo = normalizarJogo(evento, r.competicao);
+      if (jogo) jogos.push(jogo);
+    });
+  });
+
+  // Ordena por hora do jogo.
+  jogos.sort((a, b) => new Date(a.dataISO) - new Date(b.dataISO));
+
+  const falhas = resultados.filter((r) => r.erro).length;
+  return { jogos: jogos, falhas: falhas };
+}
+
+/** Dia da semana (0 = domingo) de uma data ISO. */
+function diaDaSemana(iso) {
+  return new Date(iso + "T12:00:00Z").getUTCDay();
+}
+
+/**
+ * Procura automática e leve do dia com jogos mais próximo:
+ * 1) os 7 dias seguintes (o caso habitual: hoje é dia de semana e há jogos ao fim de semana);
+ * 2) o próximo sábado e domingo;
+ * 3) os 3 dias anteriores (jogos já terminados).
+ * Os pedidos ficam em cache, pelo que repetir a procura não volta a bater na API.
+ */
+async function encontrarDiaComJogos(desporto, isoInicial) {
+  const candidatos = [];
+
+  for (let i = 1; i <= 7; i++) candidatos.push(deslocarDias(isoInicial, i));
+
+  // Próximo sábado e domingo (podem estar fora da janela dos 7 dias)
+  const fds = proximoFimDeSemana(isoInicial);
+  candidatos.push(fds.sabado, fds.domingo);
+
+  for (let i = 1; i <= 3; i++) candidatos.push(deslocarDias(isoInicial, -i));
+
+  const unicos = candidatos.filter((iso, i) => candidatos.indexOf(iso) === i);
+
+  for (const iso of unicos) {
+    const r = await carregarJogosDoDia(desporto, iso);
+    if (r.jogos.length) return { iso: iso, jogos: r.jogos };
+  }
+
+  return { iso: null, jogos: [] };
+}
+
+/** Próximo sábado e domingo a contar de uma data ISO. */
+function proximoFimDeSemana(iso) {
+  const diaSemana = diaDaSemana(iso);
+  const ateSabado = (6 - diaSemana + 7) % 7;
+  const sabado = deslocarDias(iso, ateSabado === 0 ? 7 : ateSabado);
+  return { sabado: sabado, domingo: deslocarDias(sabado, 1) };
+}
+
+/**
+ * Procura alargada (accionada pelo utilizador) para a próxima jornada com jogos.
+ * Verifica os dias +8 até +28 em pequenos blocos, mostrando o progresso, e pára
+ * no primeiro dia com jogos. Útil nas paragens de selecções e fora de época.
+ */
+async function procurarProximaJornada() {
+  const desporto = ESTADO.desporto;
+  if (!desporto) return;
+
+  const isoBase = ESTADO.data || hojeISO();
+
+  for (let inicio = 8; inicio <= 28; inicio += 4) {
+    const bloco = [];
+    for (let i = inicio; i <= Math.min(inicio + 3, 28); i++) bloco.push(deslocarDias(isoBase, i));
+
+    mostrarEstadoJogos('<span class="pontos-carregando">A procurar a próxima jornada (a verificar ' +
+      escaparHtml(dataLegivel(bloco[0])) + ")</span>");
+
+    const resultados = await Promise.all(bloco.map(async (iso) => {
+      try { return { iso: iso, r: await carregarJogosDoDia(desporto, iso) }; }
+      catch (erro) { return { iso: iso, r: { jogos: [], falhas: 1 } }; }
+    }));
+
+    if (desporto !== ESTADO.desporto) return; // o utilizador mudou de desporto entretanto
+
+    const achado = resultados.find((x) => x.r.jogos.length);
+    if (achado) {
+      aplicarDia(achado.iso, achado.r.jogos,
+        "📅 Próxima jornada de " + escaparHtml(desportoLegivel()) + " com jogos: <strong>" +
+        escaparHtml(dataLegivel(achado.iso)) + "</strong>.");
+      return;
+    }
+  }
+
+  mostrarEstadoJogos("📭 Não encontrámos jogos de " + escaparHtml(desportoLegivel()) +
+    " nos próximos 28 dias. Escolhe uma data à mão no calendário acima.");
+}
+
+/** Aplica um dia encontrado: actualiza a data, o estado e a lista de jogos. */
+function aplicarDia(iso, jogos, mensagem) {
+  ESTADO.data = iso;
+  campoData.value = iso;
+  el("nota-jogos").textContent = dataLegivel(iso);
+  mostrarEstadoJogos(mensagem || "", extrairTipoMensagem(mensagem));
+  renderizarJogos(jogos);
+}
+
+/** Deduz o tipo de alerta a partir do texto (aviso vs informação). */
+function extrairTipoMensagem(mensagem) {
+  return mensagem && mensagem.indexOf("⚠️") === 0 ? "aviso" : "";
+}
+
+/** Estado vazio com atalhos úteis (próximo fim de semana + procura alargada). */
+function htmlSemJogos(iso) {
+  const fds = proximoFimDeSemana(hojeISO());
+  const atalho = (data, rotulo) =>
+    '<button type="button" class="btn btn-rapido" data-atalho-data="' + data + '">' + rotulo + "</button>";
+
+  return "📭 Não há jogos de " + escaparHtml(desportoLegivel()) + " a " +
+    escaparHtml(dataLegivel(iso)) + " (nem nos 7 dias seguintes)." +
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px">' +
+    atalho(fds.sabado, "Sábado " + escaparHtml(dataLegivel(fds.sabado).replace(/^[^,]+, /, ""))) +
+    atalho(fds.domingo, "Domingo " + escaparHtml(dataLegivel(fds.domingo).replace(/^[^,]+, /, ""))) +
+    '<button type="button" class="btn btn-rapido" id="btn-procurar-jornada">🔎 Procurar a próxima jornada</button>' +
+    "</div>" +
+    '<p style="margin-top:12px;font-size:12.5px">A procura alargada verifica os próximos 28 dias (útil durante as paragens de selecções e fora de época).</p>';
+}
+
+/* ---------------------------------------------------------------------------
+   4. MOTOR DE ESTATÍSTICAS (Secção 3)
+   Histórico recente de cada equipa:
+     - pedido principal: /teams/{id}/schedule (devolve os últimos jogos da
+       temporada em curso);
+     - se não houver jogos suficientes (ex: NBA fora de época), tentamos as
+       épocas anteriores por parâmetro ?season=.
+   Só entram jogos terminados ("post") com resultado válido.
+   ------------------------------------------------------------------------ */
+
+/** Valor numérico de um resultado da ESPN (aceita string ou objecto). */
+function valorResultado(concorrente) {
+  const bruto = concorrente && concorrente.score;
+  const valor = bruto && typeof bruto === "object" ? bruto.value : bruto;
+  const numero = parseFloat(valor);
+  return isNaN(numero) ? null : numero;
+}
+
+/** Lê o resultado de um evento terminado. Devolve null se não for utilizável. */
+function resultadoDoEvento(evento) {
+  const competicao = (evento.competitions && evento.competitions[0]) || {};
+  const estado = competicao.status && competicao.status.type && competicao.status.type.state;
+  if (estado !== "post") return null;
+
+  const concorrentes = competicao.competitors || [];
+  const casa = concorrentes.find((c) => c.homeAway === "home");
+  const fora = concorrentes.find((c) => c.homeAway === "away");
+  if (!casa || !fora) return null;
+
+  const golosCasa = valorResultado(casa);
+  const golosFora = valorResultado(fora);
+  if (golosCasa === null || golosFora === null) return null;
+
+  return {
+    data: competicao.date || evento.date,
+    casaId: String(casa.team && casa.team.id || casa.id),
+    foraId: String(fora.team && fora.team.id || fora.id),
+    golosCasa: golosCasa,
+    golosFora: golosFora
+  };
+}
+
+/**
+ * Vai buscar os últimos N jogos terminados de uma equipa.
+ * Tenta, por ordem: época em curso (sem parâmetro), época actual e as duas
+ * anteriores (com ?season=). Escolhe o conjunto com mais jogos concluídos.
+ */
+async function ultimosJogosEquipa(desporto, ligaSlug, equipaId) {
+  const anoAtual = new Date().getFullYear();
+
+  // Liga do jogo primeiro; se a competição não expuser o histórico da equipa
+  // (ex: Champions League), tenta as ligas domésticas conhecidas.
+  const ligas = [ligaSlug];
+  if (desporto === "futebol") {
+    ["soccer/eng.1", "soccer/esp.1"].forEach((liga) => {
+      if (ligas.indexOf(liga) === -1) ligas.push(liga);
+    });
+  }
+
+  // Sem parâmetro primeiro (temporada em curso); depois as épocas anteriores,
+  // necessárias por exemplo para a NBA fora de época.
+  const sufixos = ["", "?season=" + anoAtual, "?season=" + (anoAtual - 1), "?season=" + (anoAtual + 1)];
+
+  let melhores = [];
+  let erroPrincipal = null;
+
+  for (const liga of ligas) {
+    for (const sufixo of sufixos) {
+      const url = API_ESPN + liga + "/teams/" + equipaId + "/schedule" + sufixo;
+      try {
+        const dados = await pedirJsonComCache(url);
+        const concluidos = ((dados && dados.events) || [])
+          .map(resultadoDoEvento)
+          .filter(Boolean)
+          .filter((j) => j.data)
+          .sort((a, b) => new Date(a.data) - new Date(b.data));
+
+        if (concluidos.length > melhores.length) melhores = concluidos;
+        if (melhores.length >= JOGOS_ANALISADOS) return melhores.slice(-JOGOS_ANALISADOS);
+      } catch (erro) {
+        if (!erroPrincipal) erroPrincipal = erro.message;
+      }
+    }
+  }
+
+  if (!melhores.length && erroPrincipal) {
+    console.warn("[DADOS] sem histórico para a equipa " + equipaId + ":", erroPrincipal);
+  }
+
+  return melhores.slice(-JOGOS_ANALISADOS);
+}
+
+/** Sequência "3V 1E 1D" (futebol) / "4V 1D" (NBA). */
+function sequencia(equipa) {
+  const v = equipa.vitorias;
+  const e = equipa.empates;
+  const d = equipa.derrotas;
+  const partes = [];
+  if (v) partes.push(v + "V");
+  if (e) partes.push(e + "E");
+  if (d) partes.push(d + "D");
+  return partes.length ? partes.join(" ") : "—";
+}
+
+/**
+ * Calcula os indicadores de uma equipa a partir dos seus últimos jogos.
+ * Devolve null quando não há dados suficientes (nunca inventa valores).
+ */
+function calcularEquipa(jogo, idEquipa, historico) {
+  if (!historico || historico.length < 2) return null;
+
+  const marcados = [];
+  const sofridos = [];
+  let vitorias = 0;
+  let empates = 0;
+  let derrotas = 0;
+
+  historico.forEach((j) => {
+    const emCasa = j.casaId === idEquipa;
+    const marcou = emCasa ? j.golosCasa : j.golosFora;
+    const sofreu = emCasa ? j.golosFora : j.golosCasa;
+
+    marcados.push(marcou);
+    sofridos.push(sofreu);
+
+    if (marcou > sofreu) vitorias++;
+    else if (marcou === sofreu) empates++;
+    else derrotas++;
+  });
+
+  return {
+    jogos: historico.length,
+    mediaMarcados: media(marcados),
+    mediaSofridos: media(sofridos),
+    mediaTotal: Math.round(media(marcados.concat(sofridos)) * 10) / 10,
+    vitorias: vitorias,
+    empates: empates,
+    derrotas: derrotas
+  };
+}
+
+/** Orquestra a análise completa de um jogo (o "Match X-Ray"). */
+async function calcularAnalise(jogo) {
+  const [historicoCasa, historicoFora] = await Promise.all([
+    ultimosJogosEquipa(ESTADO.desporto, jogo.ligaSlug, jogo.casa.id),
+    ultimosJogosEquipa(ESTADO.desporto, jogo.ligaSlug, jogo.fora.id)
+  ]);
+
+  const casa = calcularEquipa(jogo, jogo.casa.id, historicoCasa);
+  const fora = calcularEquipa(jogo, jogo.fora.id, historicoFora);
+
+  const linha = OVER_UNDER_LINE[ESTADO.desporto];
+  const unidade = UNIDADE[ESTADO.desporto];
+
+  // Aviso obrigatório sempre visível no card.
+  const aviso = "📊 Estatística baseada nos últimos " + JOGOS_ANALISADOS +
+    " jogos. Tendência, não garantia. Aposta com responsabilidade.";
+
+  // Tendência (Secção 3): média marcada pela casa + média sofrida pela visitante.
+  let projeccao = null;
+  let tendencia = null;
+  if (casa && fora) {
+    projeccao = Math.round((casa.mediaMarcados + fora.mediaSofridos) * 10) / 10;
+    tendencia = projeccao >= linha ? "Mais" : "Menos";
+  }
+
+  return {
+    jogo: jogo,
+    desporto: ESTADO.desporto,
+    unidade: unidade,
+    linha: linha,
+    casa: casa,
+    fora: fora,
+    projeccao: projeccao,
+    tendencia: tendencia,
+    aviso: aviso,
+    geradoEm: new Date().toISOString()
+  };
+}
+
+/* ---------------------------------------------------------------------------
+   5. RENDERIZAÇÃO
+   ------------------------------------------------------------------------ */
+
+/** Mensagem de estado (carregando / erro / aviso) na lista de jogos. */
+function mostrarEstadoJogos(mensagem, tipo) {
+  zonaEstadoJogos.innerHTML = mensagem
+    ? '<div class="estado ' + (tipo || "") + '">' + mensagem + "</div>"
+    : "";
+}
+
+/**
+ * Substitui imagens de escudo que falharam pelas iniciais da equipa.
+ * Os dados (data-iniciais / data-classe) vêm no HTML; a substituição é feita
+ * aqui, em JS, para não depender de handlers inline (mais seguro e mais limpo).
+ */
+function activarFallbackEscudos(raiz) {
+  raiz.querySelectorAll("img[data-iniciais]").forEach((img) => {
+    img.addEventListener("error", () => {
+      const span = document.createElement("span");
+      span.className = img.dataset.classe || "jogo-escudo-iniciais";
+      span.setAttribute("aria-hidden", "true");
+      span.textContent = img.dataset.iniciais || "?";
+      img.replaceWith(span);
+    }, { once: true });
+  });
+}
+
+/** Escudo da equipa na lista de jogos (com fallback para as iniciais). */
+function htmlEscudo(equipa) {
+  const iniciais = escaparHtml(iniciaisEquipa(equipa.nome));
+  if (!equipa.escudo) {
+    return '<span class="jogo-escudo-iniciais" aria-hidden="true">' + iniciais + "</span>";
+  }
+  return '<img class="jogo-escudo" src="' + escaparHtml(equipa.escudo) + '" alt="" loading="lazy" ' +
+    'data-iniciais="' + iniciais + '" data-classe="jogo-escudo-iniciais" />';
+}
+
+/** Desenha a lista de jogos do dia. */
+function renderizarJogos(jogos) {
+  listaJogos.innerHTML = "";
+
+  jogos.forEach((jogo) => {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "jogo-card";
+    botao.setAttribute("data-jogo-id", jogo.id);
+    botao.innerHTML =
+      '<span class="jogo-liga"><span>' + escaparHtml(jogo.liga) + "</span>" +
+      (jogo.estado === "in" ? '<span style="color:var(--ambar)">A decorrer</span>' : "") + "</span>" +
+      '<span class="jogo-equipas">' + htmlEscudo(jogo.casa) +
+      '<span class="jogo-nome">' + escaparHtml(jogo.casa.nome) + "</span></span>" +
+      '<span class="jogo-equipas">' + htmlEscudo(jogo.fora) +
+      '<span class="jogo-nome">' + escaparHtml(jogo.fora.nome) + "</span></span>" +
+      '<span class="jogo-liga"><span>' + escaparHtml(jogo.local || "") + "</span>" +
+      '<span class="jogo-hora">' + horaLuanda(jogo.dataISO) + "</span></span>";
+
+    botao.addEventListener("click", () => escolherJogo(jogo));
+    listaJogos.appendChild(botao);
+    activarFallbackEscudos(botao);
+  });
+}
+
+/** Desenha o Card de Análise (Match X-Ray). */
+function renderizarCard(analise) {
+  const jogo = analise.jogo;
+  const unidade = analise.unidade;
+
+  const linhaCasaMarcados = analise.casa
+    ? '<span class="valor ciano">' + analise.casa.mediaMarcados + " " + unidade + "</span>"
+    : '<span class="valor aviso">Dados insuficientes</span>';
+
+  const linhaForaSofridos = analise.fora
+    ? '<span class="valor ciano">' + analise.fora.mediaSofridos + " " + unidade + "</span>"
+    : '<span class="valor aviso">Dados insuficientes</span>';
+
+  const formaCasa = analise.casa
+    ? '<span class="valor">' + escaparHtml(sequencia(analise.casa)) + "</span>"
+    : '<span class="valor aviso">Dados insuficientes</span>';
+
+  const formaFora = analise.fora
+    ? '<span class="valor">' + escaparHtml(sequencia(analise.fora)) + "</span>"
+    : '<span class="valor aviso">Dados insuficientes</span>';
+
+  const sinteseTexto = analise.tendencia
+    ? "Tendência: " + analise.tendencia + " de " + analise.linha + " " + unidade
+    : "Dados insuficientes para esta análise";
+
+  const sinteseSub = analise.projeccao !== null
+    ? "Projecção estatística: " + analise.projeccao + " " + unidade +
+      " (média marcada pela casa + média sofrida pela visitante)"
+    : "A fonte de dados não devolveu histórico suficiente para as duas equipas.";
+
+  cardXray.innerHTML =
+    '<article class="card-xray" id="card-analise">' +
+      '<header class="card-topo">' +
+        '<span class="card-marca">🧠❄️ MENTE FRIA <small>· MATCH X-RAY</small></span>' +
+        '<span class="card-desporto">' + (analise.desporto === "nba" ? "🏀 NBA" : "⚽ " + escaparHtml(jogo.liga)) + "</span>" +
+      "</header>" +
+
+      '<div class="card-confronto">' +
+        '<div class="card-equipa casa">' + escudoCard(jogo.casa) +
+          '<span class="card-equipa-nome">' + escaparHtml(jogo.casa.nome) + "</span>" +
+          '<span class="card-equipa-papel">Casa</span></div>' +
+        '<span class="card-vs">VS</span>' +
+        '<div class="card-equipa fora">' + escudoCard(jogo.fora) +
+          '<span class="card-equipa-nome">' + escaparHtml(jogo.fora.nome) + "</span>" +
+          '<span class="card-equipa-papel">Fora</span></div>' +
+      "</div>" +
+
+      '<p class="card-quando">' + escaparHtml(dataHoraLuanda(jogo.dataISO)) +
+        (jogo.local ? " · " + escaparHtml(jogo.local) : "") + "</p>" +
+
+      '<div class="card-estatisticas">' +
+        '<div class="linha-estatistica"><span class="rotulo">🏠 ' + escaparHtml(jogo.casa.nome) +
+          ": média marcada (últimos " + JOGOS_ANALISADOS + ")</span>" + linhaCasaMarcados + "</div>" +
+        '<div class="linha-estatistica"><span class="rotulo">✈️ ' + escaparHtml(jogo.fora.nome) +
+          ": média sofrida (últimos " + JOGOS_ANALISADOS + ")</span>" + linhaForaSofridos + "</div>" +
+        '<div class="linha-estatistica"><span class="rotulo">📈 Forma ' + escaparHtml(jogo.casa.nome) + "</span>" + formaCasa + "</div>" +
+        '<div class="linha-estatistica"><span class="rotulo">📉 Forma ' + escaparHtml(jogo.fora.nome) + "</span>" + formaFora + "</div>" +
+      "</div>" +
+
+      '<div class="sintese">' +
+        '<p class="sintese-titulo">Conclusão do Match X-Ray</p>' +
+        '<p class="sintese-texto">' + escaparHtml(sinteseTexto) + "</p>" +
+        '<p class="sintese-sub">' + escaparHtml(sinteseSub) + "</p>" +
+      "</div>" +
+
+      '<p class="aviso-card">' + escaparHtml(analise.aviso) + "</p>" +
+
+      '<div class="card-acoes">' +
+        '<a class="btn btn-cta" id="cta-apostar" href="' + escaparHtml(AFFILIATE_LINKS.bantubet) +
+          '" target="_blank" rel="noopener sponsored">' +
+          '<span class="badge-publicidade">Publicidade</span>' +
+          "Ver Odds Oficiais e Apostar na Bantubet</a>" +
+        '<button type="button" class="btn btn-secundario" id="btn-partilhar">📲 Partilhar no WhatsApp</button>' +
+        '<button type="button" class="btn btn-rapido" id="btn-refazer">🔄 Escolher outro jogo</button>' +
+      "</div>" +
+    "</article>";
+
+  zonaCard.hidden = false;
+  activarFallbackEscudos(cardXray);
+
+  // Eventos do card
+  el("btn-partilhar").addEventListener("click", partilharWhatsApp);
+  el("btn-refazer").addEventListener("click", () => {
+    zonaCard.hidden = true;
+    ESTADO.jogo = null;
+    ESTADO.analise = null;
+    painelJogos.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  el("cta-apostar").addEventListener("click", () => {
+    trackEvent("clique_cta_apostar", {
+      jogo: jogo.casa.nome + " vs " + jogo.fora.nome,
+      liga: jogo.liga,
+      tendencia: analise.tendencia
+    });
+  });
+
+  zonaCard.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/** Escudo maior, para o card (com fallback para iniciais). */
+function escudoCard(equipa) {
+  const iniciais = escaparHtml(iniciaisEquipa(equipa.nome));
+  const alternativa = '<span class="iniciais" aria-hidden="true">' + iniciais + "</span>";
+  if (!equipa.escudo) return alternativa;
+  return '<img src="' + escaparHtml(equipa.escudo) + '" alt="" ' +
+    'data-iniciais="' + iniciais + '" data-classe="iniciais" />';
+}
+
+/* ---------------------------------------------------------------------------
+   6. MOTOR DE PARTILHA (Secção 5) — imagem real do card via <canvas> nativo
+   Sem bibliotecas externas: desenhamos tudo manualmente com fillRect/fillText.
+   ------------------------------------------------------------------------ */
+
+/** Texto quebrado em várias linhas, respeitando a largura máxima. */
+function quebrarTexto(ctx, texto, larguraMax) {
+  const palavras = String(texto).split(/\s+/);
+  const linhas = [];
+  let linha = "";
+
+  palavras.forEach((palavra) => {
+    const tentativa = linha ? linha + " " + palavra : palavra;
+    if (ctx.measureText(tentativa).width > larguraMax && linha) {
+      linhas.push(linha);
+      linha = palavra;
+    } else {
+      linha = tentativa;
+    }
+  });
+
+  if (linha) linhas.push(linha);
+  return linhas;
+}
+
+/** Desenha o Card numa imagem vertical 1080×1350 (formato ideal para WhatsApp). */
+function desenharCardNoCanvas(analise) {
+  const L = 1080;
+  const A = 1350;
+  const canvas = document.createElement("canvas");
+  canvas.width = L;
+  canvas.height = A;
+  const ctx = canvas.getContext("2d");
+
+  const jogo = analise.jogo;
+  const unidade = analise.unidade;
+
+  // Fundo
+  ctx.fillStyle = "#0d1117";
+  ctx.fillRect(0, 0, L, A);
+
+  // Brilho ciano no topo
+  const brilho = ctx.createRadialGradient(L * 0.5, 0, 40, L * 0.5, 0, 780);
+  brilho.addColorStop(0, "rgba(0,212,255,0.20)");
+  brilho.addColorStop(1, "rgba(0,212,255,0)");
+  ctx.fillStyle = brilho;
+  ctx.fillRect(0, 0, L, 780);
+
+  // Moldura ciano
+  ctx.strokeStyle = "rgba(0,212,255,0.65)";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(34, 34, L - 68, A - 68);
+
+  // Cabeçalho: marca + competição
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#00d4ff";
+  ctx.font = '700 40px "Roboto Mono", monospace';
+  ctx.fillText("🧠 MENTE FRIA", 78, 108);
+
+  ctx.fillStyle = "#8b949e";
+  ctx.font = '400 26px "Inter", sans-serif';
+  ctx.fillText("MATCH X-RAY · ANÁLISE PRÉ-JOGO", 78, 152);
+
+  ctx.fillStyle = "#8b949e";
+  ctx.font = '400 26px "Roboto Mono", monospace';
+  const etiqueta = (analise.desporto === "nba" ? "NBA" : jogo.liga).toUpperCase();
+  ctx.textAlign = "right";
+  ctx.fillText(etiqueta, L - 78, 130);
+  ctx.textAlign = "left";
+
+  // Linha divisória
+  ctx.strokeStyle = "rgba(255,255,255,0.12)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(78, 196);
+  ctx.lineTo(L - 78, 196);
+  ctx.stroke();
+
+  // Equipas
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#e6edf3";
+  ctx.font = '700 46px "Inter", sans-serif';
+  const nomeCasa = quebrarTexto(ctx, jogo.casa.nome, 400);
+  nomeCasa.slice(0, 2).forEach((l, i) => ctx.fillText(l, 290, 300 + i * 52));
+  const nomeFora = quebrarTexto(ctx, jogo.fora.nome, 400);
+  nomeFora.slice(0, 2).forEach((l, i) => ctx.fillText(l, 790, 300 + i * 52));
+
+  ctx.fillStyle = "#6e7681";
+  ctx.font = '400 26px "Roboto Mono", monospace';
+  ctx.fillText("CASA", 290, 400);
+  ctx.fillText("FORA", 790, 400);
+
+  ctx.fillStyle = "#6e7681";
+  ctx.font = '700 34px "Roboto Mono", monospace';
+  ctx.fillText("VS", 540, 320);
+  ctx.textAlign = "left";
+
+  // Hora do jogo (Luanda)
+  ctx.fillStyle = "#8b949e";
+  ctx.font = '400 28px "Roboto Mono", monospace';
+  ctx.textAlign = "center";
+  ctx.fillText(dataHoraLuanda(jogo.dataISO) + " (Luanda)", L / 2, 470);
+  ctx.textAlign = "left";
+
+  // Estatísticas
+  const marcados = analise.casa ? analise.casa.mediaMarcados + " " + unidade : "dados insuficientes";
+  const sofridos = analise.fora ? analise.fora.mediaSofridos + " " + unidade : "dados insuficientes";
+  const formaCasa = analise.casa ? sequencia(analise.casa) : "dados insuficientes";
+  const formaFora = analise.fora ? sequencia(analise.fora) : "dados insuficientes";
+
+  const linhas = [
+    ["🏠 " + jogo.casa.nome, "média marcada: " + marcados],
+    ["✈️ " + jogo.fora.nome, "média sofrida: " + sofridos],
+    ["📈 Forma " + jogo.casa.nome, formaCasa],
+    ["📉 Forma " + jogo.fora.nome, formaFora]
+  ];
+
+  // Layout vertical calculado a partir do número de linhas, para garantir que
+  // as caixas não se sobrepõem nem saem da moldura (último texto a A - 70).
+  const LINHA_ALTURA = 76;
+  const LINHA_PASSO = 88;
+  const Y_LINHAS = 545;
+  const ALTURA_CONCLUSAO = 160;
+  const ALTURA_AVISO = 160;
+
+  let y = Y_LINHAS;
+  ctx.font = '400 30px "Inter", sans-serif';
+  linhas.forEach(([rotulo, valor]) => {
+    // Caixa da linha
+    ctx.fillStyle = "rgba(255,255,255,0.035)";
+    ctx.fillRect(78, y - LINHA_ALTURA / 2 - 4, L - 156, LINHA_ALTURA);
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(78, y - LINHA_ALTURA / 2 - 4, L - 156, LINHA_ALTURA);
+
+    ctx.fillStyle = "#8b949e";
+    ctx.font = '400 29px "Inter", sans-serif';
+    ctx.fillText(String(rotulo).slice(0, 40), 104, y + 5);
+
+    ctx.fillStyle = "#00d4ff";
+    ctx.font = '600 32px "Roboto Mono", monospace';
+    ctx.textAlign = "right";
+    ctx.fillText(String(valor), L - 104, y + 5);
+    ctx.textAlign = "left";
+
+    y += LINHA_PASSO;
+  });
+
+  // Fim da última linha + folga
+  const fimLinhas = Y_LINHAS + (linhas.length - 1) * LINHA_PASSO + LINHA_ALTURA / 2 + 4;
+
+  // Conclusão
+  const caixaY = fimLinhas + 30;
+  ctx.fillStyle = "rgba(0,212,255,0.12)";
+  ctx.fillRect(78, caixaY, L - 156, ALTURA_CONCLUSAO);
+  ctx.strokeStyle = "rgba(0,212,255,0.5)";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(78, caixaY, L - 156, ALTURA_CONCLUSAO);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#8b949e";
+  ctx.font = '500 24px "Roboto Mono", monospace';
+  ctx.fillText("CONCLUSÃO DO MATCH X-RAY", L / 2, caixaY + 40);
+
+  ctx.fillStyle = "#00d4ff";
+  ctx.font = '700 42px "Roboto Mono", monospace';
+  const conclusao = analise.tendencia
+    ? "Tendência: " + analise.tendencia + " de " + analise.linha + " " + unidade
+    : "Dados insuficientes";
+  ctx.fillText(conclusao.length > 42 ? conclusao.slice(0, 40) + "…" : conclusao, L / 2, caixaY + 94);
+
+  if (analise.projeccao !== null) {
+    ctx.fillStyle = "#8b949e";
+    ctx.font = '400 26px "Inter", sans-serif';
+    ctx.fillText("Projecção estatística: " + analise.projeccao + " " + unidade, L / 2, caixaY + 134);
+  }
+  ctx.textAlign = "left";
+
+  // Aviso de responsabilidade (sempre presente na imagem partilhada)
+  const avisoY = caixaY + ALTURA_CONCLUSAO + 22;
+  ctx.fillStyle = "rgba(255,165,0,0.10)";
+  ctx.fillRect(78, avisoY, L - 156, ALTURA_AVISO);
+  ctx.strokeStyle = "rgba(255,165,0,0.4)";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(78, avisoY, L - 156, ALTURA_AVISO);
+
+  ctx.fillStyle = "#ffd591";
+  ctx.font = '400 27px "Inter", sans-serif';
+  const avisoLinhas = quebrarTexto(ctx, analise.aviso, L - 200);
+  avisoLinhas.slice(0, 4).forEach((l, i) => ctx.fillText(l, 104, avisoY + 46 + i * 36));
+
+  // Rodapé da imagem (abaixo das caixas, dentro da moldura)
+  const yRodape = Math.max(avisoY + ALTURA_AVISO + 52, A - 78);
+  ctx.fillStyle = "#6e7681";
+  ctx.font = '400 25px "Roboto Mono", monospace';
+  ctx.fillText(SITE_URL.replace(/^https?:\/\//, ""), 78, yRodape);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#ffa500";
+  ctx.fillText("+18 · Joga com responsabilidade", L - 78, yRodape);
+  ctx.textAlign = "left";
+
+  return canvas;
+}
+
+/** Converte o canvas em Blob PNG (Promessa). */
+function canvasParaBlob(canvas) {
+  return new Promise((resolve, reject) => {
+    if (canvas.toBlob) {
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("Não foi possível gerar a imagem."))), "image/png", 0.95);
+    } else {
+      reject(new Error("O navegador não suporta canvas.toBlob."));
+    }
+  });
+}
+
+/** Descarrega a imagem gerada (fallback de desktop / navegadores antigos). */
+function descarregarImagem(blob, nome) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = nome;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+/**
+ * Partilha o card no WhatsApp:
+ *  - telemóvel com Web Share API (com ficheiros) -> menu nativo com a imagem anexada;
+ *  - desktop -> descarrega a imagem e abre o wa.me com o texto.
+ */
+async function partilharWhatsApp() {
+  const botao = el("btn-partilhar");
+  const analise = ESTADO.analise;
+  if (!analise) return;
+
+  const texto = "Análise gerada pela Mente Fria 🧠❄️ — " + analise.jogo.casa.nome + " vs " +
+    analise.jogo.fora.nome + ". Vê mais em " + SITE_URL;
+
+  botao.disabled = true;
+  const rotuloOriginal = botao.textContent;
+  botao.textContent = "A preparar imagem…";
+
+  try {
+    const canvas = desenharCardNoCanvas(analise);
+    const blob = await canvasParaBlob(canvas);
+    const nomeFicheiro = "mente-fria-" + analise.jogo.id + ".png";
+
+    let partilhadoComImagem = false;
+
+    if (navigator.canShare && navigator.share) {
+      const ficheiro = new File([blob], nomeFicheiro, { type: "image/png" });
+      if (navigator.canShare({ files: [ficheiro] })) {
+        try {
+          await navigator.share({ files: [ficheiro], text: texto });
+          partilhadoComImagem = true;
+        } catch (erro) {
+          // O utilizador cancelou a partilha: não é um erro a registar.
+          if (erro && erro.name === "AbortError") {
+            trackEvent("partilha_whatsapp_cancelada");
+            return;
+          }
+          console.warn("[PARTILHA] Web Share falhou, a usar o fallback:", erro);
+        }
+      }
+    }
+
+    if (partilhadoComImagem) {
+      trackEvent("partilha_whatsapp", { modo: "nativo_com_imagem", jogo: analise.jogo.id });
+    } else {
+      descarregarImagem(blob, nomeFicheiro);
+      window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank", "noopener");
+      trackEvent("partilha_whatsapp", { modo: "descarga_mais_wa_me", jogo: analise.jogo.id });
+    }
+  } catch (erro) {
+    console.error("[PARTILHA] erro ao gerar a imagem:", erro);
+    alert("Não foi possível gerar a imagem do card. Abrimos o WhatsApp com o texto da análise.");
+    window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank", "noopener");
+    trackEvent("partilha_whatsapp_erro", { mensagem: String(erro.message || erro) });
+  } finally {
+    botao.disabled = false;
+    botao.textContent = rotuloOriginal;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   7. FLUXO DOS 3 PASSOS
+   ------------------------------------------------------------------------ */
+
+/** Passo 1 -> 2: escolher o desporto e carregar os jogos do dia. */
+async function escolherDesporto(desporto) {
+  ESTADO.desporto = desporto;
+  ESTADO.jogo = null;
+  ESTADO.analise = null;
+  zonaCard.hidden = true;
+
+  document.querySelectorAll(".btn-desporto").forEach((botao) => {
+    botao.setAttribute("aria-pressed", String(botao.dataset.desporto === desporto));
+  });
+
+  painelJogos.hidden = false;
+  cache.clear(); // evita reutilizar respostas de outro desporto
+
+  trackEvent("desporto_escolhido", { desporto: desporto });
+
+  await carregarDia(ESTADO.data || hojeISO(), true);
+}
+
+/** Carrega (e desenha) os jogos de um dia. */
+async function carregarDia(iso, permitirFallback) {
+  const pedidoAtual = ++ESTADO.pedido;
+  ESTADO.data = iso;
+  campoData.value = iso;
+  el("nota-jogos").textContent = dataLegivel(iso);
+
+  listaJogos.innerHTML = "";
+  mostrarEstadoJogos('<span class="pontos-carregando">A carregar jogos</span>');
+
+  try {
+    const r = await carregarJogosDoDia(ESTADO.desporto, iso);
+    if (pedidoAtual !== ESTADO.pedido) return; // resposta de um pedido antigo
+
+    if (r.jogos.length) {
+      mostrarEstadoJogos(r.falhas ? "⚠️ Uma das competições não respondeu. A lista pode estar incompleta." : "", r.falhas ? "aviso" : "");
+      renderizarJogos(r.jogos);
+      return;
+    }
+
+    // Sem jogos neste dia: procura o dia mais próximo com jogos.
+    if (permitirFallback) {
+      mostrarEstadoJogos('<span class="pontos-carregando">Sem jogos neste dia — a procurar o dia mais próximo</span>');
+      const alternativa = await encontrarDiaComJogos(ESTADO.desporto, iso);
+      if (pedidoAtual !== ESTADO.pedido) return;
+
+      if (alternativa.jogos.length) {
+        aplicarDia(alternativa.iso, alternativa.jogos,
+          "📅 Não há jogos a " + escaparHtml(dataLegivel(iso)) +
+          ". A mostrar o dia mais próximo: <strong>" + escaparHtml(dataLegivel(alternativa.iso)) + "</strong>.");
+        return;
+      }
+    }
+
+    mostrarEstadoJogos(htmlSemJogos(iso));
+  } catch (erro) {
+    if (pedidoAtual !== ESTADO.pedido) return;
+    console.error("[JOGOS] erro:", erro);
+    mostrarEstadoJogos("⚠️ Não foi possível carregar os jogos: " + escaparHtml(erro.message) +
+      ". Verifica a ligação à internet e tenta novamente.", "erro");
+  }
+}
+
+function desportoLegivel() {
+  return ESTADO.desporto === "nba" ? "NBA" : "futebol";
+}
+
+/** Passo 2 -> 3: escolher o jogo e gerar o card. */
+async function escolherJogo(jogo) {
+  ESTADO.jogo = jogo;
+  ESTADO.analise = null;
+
+  trackEvent("jogo_escolhido", {
+    jogo: jogo.casa.nome + " vs " + jogo.fora.nome,
+    liga: jogo.liga,
+    hora: jogo.dataISO
+  });
+
+  // Ecrã de carregamento (o card só aparece quando o cálculo termina)
+  zonaCard.hidden = false;
+  cardXray.innerHTML = '<div class="estado"><span class="pontos-carregando">A cruzar os últimos ' +
+    JOGOS_ANALISADOS + ' jogos das duas equipas</span></div>';
+  zonaCard.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  try {
+    const analise = await calcularAnalise(jogo);
+    ESTADO.analise = analise;
+    renderizarCard(analise);
+
+    trackEvent("card_gerado", {
+      jogo: jogo.casa.nome + " vs " + jogo.fora.nome,
+      liga: jogo.liga,
+      tendencia: analise.tendencia,
+      projeccao: analise.projeccao,
+      dados_casa: analise.casa ? analise.casa.jogos : 0,
+      dados_fora: analise.fora ? analise.fora.jogos : 0
+    });
+  } catch (erro) {
+    console.error("[CARD] erro:", erro);
+    cardXray.innerHTML = '<div class="estado erro">⚠️ Não foi possível gerar a análise deste jogo: ' +
+      escaparHtml(erro.message) + ". Tenta novamente dentro de alguns segundos.</div>";
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   8. LIGAÇÕES DE EVENTOS E ARRANQUE
+   ------------------------------------------------------------------------ */
+document.querySelectorAll(".btn-desporto").forEach((botao) => {
+  botao.addEventListener("click", () => escolherDesporto(botao.dataset.desporto));
+});
+
+campoData.addEventListener("change", () => {
+  if (!ESTADO.desporto) {
+    ESTADO.data = campoData.value || hojeISO();
+    return;
+  }
+  const iso = campoData.value || hojeISO();
+  carregarDia(iso, false);
+});
+
+el("btn-hoje").addEventListener("click", () => {
+  if (!ESTADO.desporto) return;
+  carregarDia(hojeISO(), true);
+});
+
+// Atalhos do estado vazio (datas sugeridas e procura alargada da próxima jornada).
+zonaEstadoJogos.addEventListener("click", (evento) => {
+  const atalho = evento.target.closest("[data-atalho-data]");
+  if (atalho && ESTADO.desporto) {
+    carregarDia(atalho.getAttribute("data-atalho-data"), true);
+    return;
+  }
+  if (evento.target.closest("#btn-procurar-jornada")) procurarProximaJornada();
+});
+
+// Cliques no rodapé legal (métrica de interesse nos documentos legais).
+document.querySelectorAll("[data-rodape]").forEach((link) => {
+  link.addEventListener("click", () => {
+    trackEvent("clique_rodape_legal", { documento: link.dataset.rodape });
+  });
+});
+
+// Arranque: prepara a data e deixa o utilizador escolher o desporto.
+(function iniciar() {
+  const hoje = hojeISO();
+  ESTADO.data = hoje;
+  campoData.value = hoje;
+  campoData.max = deslocarDias(hoje, 120);
+  campoData.min = deslocarDias(hoje, -365);
+
+  console.log("[MENTE FRIA] Pronto. Escolhe Futebol ou NBA para começar.");
+})();
+</script>
+</body>
+</html>

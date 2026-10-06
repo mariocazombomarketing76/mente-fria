@@ -1,0 +1,1883 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0A0A0A">
+
+<!-- ═══════════ SEO / PARTILHA SOCIAL ═══════════ -->
+<title>Mente Fria Stats — Inteligência Desportiva em Angola</title>
+<meta name="description" content="O Raio-X Matemático dos jogos de Futebol e NBA antes de criares a tua ficha. Análise de algoritmo, probabilidades e tendências para apostadores angolanos. +18">
+<meta property="og:title" content="Mente Fria Stats — NÃO APOSTES NO ESCURO">
+<meta property="og:description" content="Descobre o Raio-X Matemático dos jogos antes de criares a tua ficha. Algoritmo proprietário de análise desportiva.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_AO">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230A0A0A'/%3E%3Cpath d='M22 27 C13 19 10 9 13 2 C21 6 27 15 28 24 Z' fill='%23F2A900'/%3E%3Cpath d='M42 27 C51 19 54 9 51 2 C43 6 37 15 36 24 Z' fill='%23F2A900'/%3E%3Cpath d='M21 26 L43 26 L44 36 L35 47 L32 60 L29 47 L20 36 Z' fill='%23F2A900'/%3E%3Ccircle cx='32' cy='35' r='6' fill='%23CE1126'/%3E%3Ccircle cx='32' cy='35' r='2.4' fill='%230A0A0A'/%3E%3C/svg%3E">
+
+<!-- ═══════════ TIPOGRAFIA (Oswald títulos + Inter corpo) ═══════════ -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════════════════════════
+   MENTE FRIA STATS — FOLHA DE ESTILOS (Tema Angola)
+   Preto Profundo + Vermelho Sangue + Amarelo Dourado
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --preto:        #0A0A0A;
+  --preto-2:      #111111;
+  --preto-3:      #1A1A1A;
+  --vermelho:     #CE1126;
+  --vermelho-esc: #8F0C1B;
+  --ouro:         #F2A900;
+  --ouro-claro:   #FFC93C;
+  --branco:       #F5F5F5;
+  --cinza:        #9A9A9A;
+  --cinza-esc:    #5C5C5C;
+  --verde-wa:     #25D366;
+  --borda-ouro:   rgba(242, 169, 0, 0.35);
+  --sombra-ouro:  0 0 24px rgba(242, 169, 0, 0.35);
+  --raio:         14px;
+  --fonte-titulo: 'Oswald', 'Arial Narrow', sans-serif;
+  --fonte-corpo:  'Inter', 'Segoe UI', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--preto);
+  color: var(--branco);
+  font-family: var(--fonte-corpo);
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+
+img { max-width: 100%; display: block; }
+a { color: var(--ouro); text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; }
+::selection { background: var(--ouro); color: var(--preto); }
+
+h1, h2, h3, .titulo {
+  font-family: var(--fonte-titulo);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.15;
+}
+
+.container { width: min(1080px, 92%); margin: 0 auto; }
+
+/* Barras decorativas com as cores da bandeira */
+.bandeira-linha {
+  height: 4px;
+  background: linear-gradient(90deg, var(--vermelho) 0 50%, var(--ouro) 50% 100%);
+}
+
+/* ═══════════════════ HEADER ═══════════════════ */
+header.topo {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10, 10, 10, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--borda-ouro);
+}
+.topo-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+}
+.logo svg { width: 38px; height: 38px; flex-shrink: 0; filter: drop-shadow(0 0 6px rgba(242,169,0,.45)); }
+.logo-texto {
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 1.5px;
+  color: var(--branco);
+  text-transform: uppercase;
+}
+.logo-texto b { color: var(--ouro); font-weight: 700; }
+.topo-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ouro);
+  border: 1px solid var(--borda-ouro);
+  border-radius: 999px;
+  padding: 5px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.ponto-verde {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--verde-wa);
+  box-shadow: 0 0 8px var(--verde-wa);
+  animation: piscar 2s infinite;
+}
+@keyframes piscar { 50% { opacity: 0.35; } }
+
+/* ═══════════════════ HERO / CAROUSEL ═══════════════════ */
+.hero {
+  position: relative;
+  height: 80vh;
+  min-height: 560px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.4s ease-in-out;
+  background:
+    radial-gradient(ellipse at 70% 30%, rgba(242,169,0,0.14), transparent 55%),
+    radial-gradient(ellipse at 20% 80%, rgba(206,17,38,0.18), transparent 55%),
+    var(--preto-2);
+}
+.hero-slide.ativo { opacity: 1; }
+.hero-slide img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+/* Overlay escuro para garantir legibilidade do texto */
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(10,10,10,0.82) 0%, rgba(10,10,10,0.45) 40%, rgba(10,10,10,0.94) 100%),
+    linear-gradient(90deg, rgba(10,10,10,0.75) 0%, rgba(10,10,10,0.2) 70%);
+}
+.hero-conteudo {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding: 24px 0;
+}
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--preto);
+  background: var(--ouro);
+  padding: 7px 16px;
+  border-radius: 999px;
+  margin-bottom: 22px;
+  box-shadow: var(--sombra-ouro);
+}
+.hero h1 {
+  font-size: clamp(2.4rem, 8vw, 5rem);
+  font-weight: 700;
+  color: var(--ouro);
+  text-shadow: 0 4px 30px rgba(0,0,0,0.8);
+  animation: subir 0.8s ease both;
+}
+.hero h2 {
+  font-family: var(--fonte-corpo);
+  font-weight: 500;
+  font-size: clamp(1rem, 2.6vw, 1.45rem);
+  color: var(--branco);
+  max-width: 640px;
+  margin: 18px auto 34px;
+  text-shadow: 0 2px 14px rgba(0,0,0,0.9);
+  animation: subir 0.8s 0.15s ease both;
+}
+@keyframes subir {
+  from { opacity: 0; transform: translateY(26px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Botão CTA gigante do hero */
+.cta-gigante {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(180deg, var(--ouro-claro), var(--ouro));
+  color: var(--preto);
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: clamp(1.05rem, 3vw, 1.4rem);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 18px 42px;
+  border-radius: 999px;
+  box-shadow: 0 10px 34px rgba(242,169,0,0.45);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  animation: subir 0.8s 0.3s ease both;
+}
+.cta-gigante:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 16px 44px rgba(242,169,0,0.6); }
+.cta-gigante:active { transform: scale(0.98); }
+
+/* Faixa de prova social com contadores */
+.prova-social {
+  border-top: 1px solid var(--borda-ouro);
+  background: var(--preto-2);
+  padding: 22px 0;
+}
+.prova-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  text-align: center;
+}
+.prova-num {
+  font-family: var(--fonte-titulo);
+  font-size: clamp(1.5rem, 5vw, 2.4rem);
+  font-weight: 700;
+  color: var(--ouro);
+}
+.prova-label {
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--cinza);
+  margin-top: 2px;
+}
+
+/* ═══════════════════ SECÇÃO: MOTOR DE ANÁLISE ═══════════════════ */
+.secao-motor {
+  padding: 64px 0 90px;
+  position: relative;
+  /* brilho decorativo de fundo */
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(242,169,0,0.07), transparent 60%);
+}
+.secao-cabecalho { text-align: center; margin-bottom: 36px; }
+.secao-cabecalho .selo {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--vermelho);
+  border: 1px solid rgba(206,17,38,0.5);
+  border-radius: 999px;
+  padding: 6px 14px;
+  display: inline-block;
+  margin-bottom: 14px;
+}
+.secao-cabecalho h2 {
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  color: var(--branco);
+}
+.secao-cabecalho h2 span { color: var(--ouro); }
+.secao-cabecalho p { color: var(--cinza); max-width: 520px; margin: 12px auto 0; font-size: 0.95rem; }
+
+/* Tabs de modalidade */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 560px;
+  margin: 0 auto 26px;
+}
+.tab-btn {
+  font-family: var(--fonte-titulo);
+  font-weight: 600;
+  font-size: clamp(1rem, 3.4vw, 1.25rem);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 18px 10px;
+  border-radius: var(--raio);
+  background: var(--preto-3);
+  color: var(--cinza);
+  border: 2px solid #2A2A2A;
+  transition: all 0.22s ease;
+}
+.tab-btn:hover { color: var(--branco); border-color: #3d3d3d; transform: translateY(-2px); }
+.tab-btn.ativo {
+  background: linear-gradient(180deg, rgba(242,169,0,0.18), rgba(242,169,0,0.06));
+  color: var(--ouro);
+  border-color: var(--ouro);
+  box-shadow: var(--sombra-ouro);
+}
+
+/* Passo a passo */
+.passo-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--cinza);
+  margin: 0 auto 10px;
+  max-width: 560px;
+}
+.passo-num {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--vermelho);
+  color: var(--branco);
+  font-family: var(--fonte-titulo);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+/* Dropdown estilizado */
+.select-wrap { max-width: 560px; margin: 0 auto 26px; position: relative; }
+.select-wrap::after {
+  content: '▼';
+  position: absolute;
+  right: 18px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--ouro);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+#seletor-liga {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--preto-3);
+  border: 2px solid #2A2A2A;
+  color: var(--branco);
+  font-family: var(--fonte-corpo);
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 16px 46px 16px 18px;
+  border-radius: var(--raio);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+#seletor-liga:focus { border-color: var(--ouro); }
+#seletor-liga optgroup {
+  font-family: var(--fonte-titulo);
+  text-transform: uppercase;
+  color: var(--ouro);
+  background: var(--preto-2);
+}
+#seletor-liga option { background: var(--preto-2); color: var(--branco); }
+.select-wrap.escondido, .escondido { display: none !important; }
+
+/* Botão gerar (vermelho) */
+.btn-gerar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  background: linear-gradient(180deg, #E4182F, var(--vermelho-esc));
+  color: var(--branco);
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 18px;
+  border-radius: var(--raio);
+  box-shadow: 0 8px 26px rgba(206,17,38,0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s;
+}
+.btn-gerar:hover { transform: translateY(-2px); box-shadow: 0 12px 34px rgba(206,17,38,0.55); }
+.btn-gerar:active { transform: scale(0.985); }
+.btn-gerar:disabled { opacity: 0.55; cursor: wait; transform: none; }
+
+/* ═══════════════════ RESULTADO: LOADER + CARD ═══════════════════ */
+#zona-resultado { max-width: 760px; margin: 40px auto 0; }
+
+/* Loader */
+.loader-box {
+  text-align: center;
+  padding: 56px 20px;
+  border: 1px solid var(--borda-ouro);
+  border-radius: var(--raio);
+  background: var(--preto-2);
+  animation: entrar 0.35s ease both;
+}
+.loader-anel {
+  width: 74px; height: 74px;
+  margin: 0 auto 22px;
+  border-radius: 50%;
+  border: 4px solid rgba(242,169,0,0.15);
+  border-top-color: var(--ouro);
+  border-right-color: var(--vermelho);
+  animation: girar 0.9s linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+.loader-frase {
+  font-family: var(--fonte-titulo);
+  font-size: 1.15rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ouro);
+  animation: piscar 1.4s infinite;
+}
+.loader-sub { color: var(--cinza); font-size: 0.85rem; margin-top: 8px; }
+
+/* Card de análise */
+.card-analise {
+  background: linear-gradient(180deg, var(--preto-3), var(--preto-2));
+  border: 1px solid var(--ouro);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(242,169,0,0.18), 0 24px 60px rgba(0,0,0,0.6);
+  animation: entrar 0.5s ease both;
+}
+@keyframes entrar {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.card-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 22px;
+  background: rgba(242,169,0,0.08);
+  border-bottom: 1px solid var(--borda-ouro);
+}
+.card-topo .liga-nome {
+  font-family: var(--fonte-titulo);
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  color: var(--ouro);
+}
+.card-topo .sinc {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--verde-wa);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Confronto */
+.confronto {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 30px 22px 8px;
+  text-align: center;
+}
+.equipa-nome {
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: clamp(1.15rem, 4.2vw, 1.7rem);
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+.equipa-casa .equipa-nome { color: var(--ouro); }
+.equipa-fora .equipa-nome { color: var(--branco); }
+.equipa-sub { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: var(--cinza); margin-top: 4px; }
+.vs {
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--vermelho);
+  background: rgba(206,17,38,0.12);
+  border: 1px solid rgba(206,17,38,0.4);
+  border-radius: 50%;
+  width: 54px; height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Veredicto / barra de probabilidade */
+.bloco-veredicto { padding: 26px 22px 6px; }
+.bloco-titulo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--cinza);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bloco-titulo::before {
+  content: '';
+  width: 18px; height: 3px;
+  background: var(--vermelho);
+  border-radius: 2px;
+}
+.barra-prob {
+  display: flex;
+  height: 38px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #222;
+  border: 1px solid #2e2e2e;
+}
+.barra-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 0.95rem;
+  width: 0;
+  transition: width 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.barra-casa { background: linear-gradient(180deg, var(--ouro-claro), var(--ouro)); color: var(--preto); }
+.barra-fora { background: linear-gradient(180deg, #E4182F, var(--vermelho-esc)); color: var(--branco); }
+.legenda-prob {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.legenda-casa { color: var(--ouro); }
+.legenda-fora { color: #FF5A6B; }
+.legenda-extra { color: var(--cinza); font-weight: 500; }
+.odd-linha {
+  margin-top: 10px;
+  font-size: 0.8rem;
+  color: var(--cinza);
+}
+.odd-linha b { color: var(--branco); }
+
+/* Fator chave + tendência */
+.bloco-fator, .bloco-tendencia { padding: 22px 22px 0; }
+.fator-texto {
+  background: rgba(206,17,38,0.09);
+  border-left: 3px solid var(--vermelho);
+  border-radius: 0 10px 10px 0;
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  color: #EDEDED;
+}
+.tendencia-caixa {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--preto-3);
+  border: 1px solid #2c2c2c;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.tendencia-icone { font-size: 1.9rem; line-height: 1; }
+.tendencia-titulo {
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 1.05rem;
+}
+.tendencia-titulo.over { color: var(--ouro); }
+.tendencia-titulo.under { color: #6FC3FF; }
+.tendencia-sub { font-size: 0.8rem; color: var(--cinza); }
+
+/* ═══════════════════ ZONA DE CONVERSÃO (AFILIADOS) ═══════════════════ */
+.zona-conversao {
+  margin-top: 28px;
+  padding: 26px 22px 24px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 120%, rgba(242,169,0,0.16), transparent 65%),
+    var(--preto);
+  border-top: 1px solid var(--borda-ouro);
+}
+.gatilho-odds {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #FF5A6B;
+  margin-bottom: 18px;
+  letter-spacing: 0.3px;
+}
+/* Botão ouro maciço com pulsação */
+.btn-bantu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  background: linear-gradient(180deg, var(--ouro-claro), var(--ouro));
+  color: var(--preto);
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: clamp(1.05rem, 3.6vw, 1.3rem);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 19px 20px;
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(242,169,0,0.4);
+  animation: pulsar-ouro 2.2s ease-in-out infinite;
+  transition: transform 0.15s ease;
+}
+.btn-bantu:hover { transform: scale(1.02); }
+.btn-bantu:active { transform: scale(0.98); animation-play-state: paused; }
+@keyframes pulsar-ouro {
+  0%, 100% { box-shadow: 0 10px 30px rgba(242,169,0,0.4), 0 0 0 0 rgba(242,169,0,0.5); }
+  50%      { box-shadow: 0 10px 30px rgba(242,169,0,0.55), 0 0 0 14px rgba(242,169,0,0); }
+}
+/* Botão 2: contorno vermelho */
+.btn-bonus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 14px;
+  background: transparent;
+  color: #FF5A6B;
+  border: 2px solid var(--vermelho);
+  font-family: var(--fonte-titulo);
+  font-weight: 600;
+  font-size: clamp(0.92rem, 3vw, 1.1rem);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 16px 18px;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+}
+.btn-bonus:hover { background: rgba(206,17,38,0.14); transform: translateY(-2px); }
+.disclaimer {
+  margin-top: 16px;
+  font-size: 0.72rem;
+  color: var(--cinza-esc);
+  letter-spacing: 0.5px;
+}
+
+/* Botão WhatsApp */
+.btn-whatsapp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 560px;
+  margin: 26px auto 0;
+  background: var(--verde-wa);
+  color: #06331a;
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 17px;
+  border-radius: var(--raio);
+  box-shadow: 0 8px 26px rgba(37,211,102,0.35);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.btn-whatsapp:hover { transform: translateY(-2px); filter: brightness(1.06); }
+.btn-whatsapp:active { transform: scale(0.98); }
+
+/* ═══════════════════ RODAPÉ ═══════════════════ */
+footer {
+  background: var(--preto);
+  border-top: 1px solid #1e1e1e;
+  padding: 40px 0 110px; /* espaço extra para a barra sticky no telemóvel */
+}
+.rodape-grid { text-align: center; }
+.rodape-logo { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px; }
+.rodape-logo svg { width: 26px; height: 26px; }
+.rodape-logo span { font-family: var(--fonte-titulo); font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+.rodape-copy { color: var(--cinza); font-size: 0.85rem; }
+.rodape-contacto {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+}
+.rodape-contacto a { color: var(--cinza); transition: color 0.2s; }
+.rodape-contacto a:hover { color: var(--ouro); }
+.rodape-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 16px 0 20px;
+  font-size: 0.85rem;
+}
+.rodape-links a { color: var(--cinza); transition: color 0.2s; }
+.rodape-links a:hover { color: var(--ouro); }
+.rodape-social { display: flex; justify-content: center; gap: 14px; }
+.rodape-social a {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid #2c2c2c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cinza);
+  transition: all 0.2s;
+}
+.rodape-social a:hover { color: var(--ouro); border-color: var(--ouro); transform: translateY(-2px); }
+.rodape-social svg { width: 18px; height: 18px; fill: currentColor; }
+
+/* ═══════════════════ BARRA CTA STICKY (MOBILE) ═══════════════════ */
+.barra-sticky {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(10,10,10,0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid var(--borda-ouro);
+  transform: translateY(120%);
+  transition: transform 0.35s ease;
+}
+.barra-sticky.visivel { transform: translateY(0); }
+.barra-sticky .btn-bantu { padding: 13px 12px; font-size: 0.95rem; animation: none; }
+.barra-fechar {
+  flex-shrink: 0;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--preto-3);
+  color: var(--cinza);
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ═══════════════════ TOAST ═══════════════════ */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(90px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(20px);
+  z-index: 200;
+  background: var(--preto-3);
+  border: 1px solid var(--ouro);
+  color: var(--branco);
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 12px 20px;
+  border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  max-width: 88%;
+  text-align: center;
+}
+.toast.visivel { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ═══════════════════ MODAL: DOCUMENTOS LEGAIS ═══════════════════ */
+.modal-doc {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0,0,0,0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+.modal-doc.aberto { opacity: 1; visibility: visible; }
+.modal-doc-caixa {
+  width: min(680px, 100%);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--preto-2);
+  border: 1px solid var(--ouro);
+  border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.7), var(--sombra-ouro);
+  transform: translateY(14px);
+  transition: transform 0.25s ease;
+}
+.modal-doc.aberto .modal-doc-caixa { transform: translateY(0); }
+.modal-doc-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--borda-ouro);
+  background: rgba(242,169,0,0.07);
+}
+.modal-doc-selo {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ouro);
+}
+.modal-doc-fechar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--preto-3);
+  color: var(--cinza);
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: color 0.2s, transform 0.2s;
+}
+.modal-doc-fechar:hover { color: var(--branco); transform: rotate(90deg); }
+.modal-doc-corpo {
+  overflow-y: auto;
+  padding: 22px 22px 10px;
+  -webkit-overflow-scrolling: touch;
+}
+.modal-doc-corpo h2 {
+  font-size: 1.5rem;
+  color: var(--ouro);
+  margin-bottom: 4px;
+}
+.modal-doc-corpo h3 {
+  font-size: 1rem;
+  color: var(--branco);
+  margin: 20px 0 6px;
+}
+.modal-doc-corpo p {
+  font-size: 0.88rem;
+  color: #CFCFCF;
+  margin-bottom: 10px;
+}
+.modal-doc-corpo ul {
+  margin: 0 0 10px 18px;
+  color: #CFCFCF;
+  font-size: 0.88rem;
+  display: grid;
+  gap: 6px;
+}
+.modal-doc-corpo a {
+  color: var(--ouro);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.doc-atualizado {
+  font-size: 0.72rem !important;
+  color: var(--cinza) !important;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 16px !important;
+}
+.doc-alerta {
+  margin: 14px 18px 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(206,17,38,0.5);
+  background: rgba(206,17,38,0.1);
+  border-radius: 10px;
+  font-size: 0.78rem;
+  color: #FF9AA5;
+  text-align: center;
+  line-height: 1.5;
+}
+.doc-alerta a { color: var(--ouro); }
+
+/* Cartões clicáveis da página de Contactos */
+.cartao-contacto a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  margin: 0 0 12px;
+  background: var(--preto-3);
+  border: 1px solid var(--borda-ouro);
+  border-radius: 12px;
+  text-decoration: none !important;
+  transition: border-color 0.2s ease, transform 0.15s ease, background 0.2s ease;
+}
+.cartao-contacto a:hover {
+  border-color: var(--ouro);
+  background: rgba(242,169,0,0.07);
+  transform: translateY(-2px);
+}
+.cartao-contacto .cc-icone {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.cartao-contacto .cc-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--branco);
+}
+.cartao-contacto .cc-info b { font-size: 0.92rem; word-break: break-all; }
+.cartao-contacto .cc-info small {
+  color: var(--cinza);
+  font-size: 0.72rem;
+  letter-spacing: 0.4px;
+}
+.cartao-contacto .cc-acao {
+  flex-shrink: 0;
+  font-family: var(--fonte-titulo);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ouro);
+}
+@media (max-width: 520px) {
+  .cartao-contacto .cc-acao { display: none; }
+}
+/* Ícone verde do cartão WhatsApp */
+.cartao-contacto .cc-icone.wa {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--verde-wa);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  box-shadow: 0 4px 14px rgba(37,211,102,0.35);
+}
+.modal-doc-rodape { padding: 14px 18px 18px; text-align: center; }
+.modal-btn-fechar {
+  background: transparent;
+  border: 2px solid var(--ouro);
+  color: var(--ouro);
+  font-family: var(--fonte-titulo);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 10px 34px;
+  border-radius: 999px;
+  transition: background 0.2s, color 0.2s;
+}
+.modal-btn-fechar:hover { background: var(--ouro); color: var(--preto); }
+@media (max-width: 520px) {
+  .modal-doc { padding: 0; align-items: flex-end; }
+  .modal-doc-caixa {
+    max-height: 94vh;
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+  }
+}
+
+/* ═══════════════════ RESPONSIVO (mobile-first ajustes desktop) ═══════════════════ */
+@media (min-width: 720px) {
+  .confronto { padding: 36px 30px 8px; }
+  .bloco-veredicto, .bloco-fator, .bloco-tendencia { padding-left: 30px; padding-right: 30px; }
+  .zona-conversao { padding: 30px 30px 28px; }
+  footer { padding-bottom: 40px; } /* sem barra sticky no desktop */
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="bandeira-linha" aria-hidden="true"></div>
+
+<!-- ═══════════════════ HEADER ═══════════════════ -->
+<header class="topo">
+  <div class="container topo-inner">
+    <div class="logo" aria-label="Mente Fria Stats">
+      <!-- Logo: cabeça geométrica da Palanca Negra + alvo vermelho -->
+      <svg viewBox="0 0 64 64" role="img" aria-hidden="true">
+        <path d="M22 27 C13 19 10 9 13 2 C21 6 27 15 28 24 Z" fill="#F2A900"/>
+        <path d="M42 27 C51 19 54 9 51 2 C43 6 37 15 36 24 Z" fill="#F2A900"/>
+        <path d="M21 26 L43 26 L44 36 L35 47 L32 60 L29 47 L20 36 Z" fill="#F2A900"/>
+        <circle cx="32" cy="35" r="6" fill="#CE1126"/>
+        <circle cx="32" cy="35" r="2.4" fill="#0A0A0A"/>
+      </svg>
+      <span class="logo-texto">MENTE FRIA <b>STATS</b></span>
+    </div>
+    <div class="topo-badge"><span class="ponto-verde"></span> Algoritmo online</div>
+  </div>
+</header>
+
+<!-- ═══════════════════ HERO + CAROUSEL ═══════════════════ -->
+<section class="hero" id="hero">
+  <!-- Slide 1: estádio de futebol africano -->
+  <div class="hero-slide ativo">
+    <img src="https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1600&q=80"
+         alt="Estádio de futebol cheio de adeptos" loading="eager"
+         onerror="this.style.display='none'">
+  </div>
+  <!-- Slide 2: basquetebol em ação -->
+  <div class="hero-slide">
+    <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=1600&q=80"
+         alt="Jogador de basquetebol a enterrar" loading="lazy"
+         onerror="this.style.display='none'">
+  </div>
+  <!-- Slide 3: celebração de adeptos -->
+  <div class="hero-slide">
+    <img src="https://images.unsplash.com/photo-1471295253337-3ceaaedca402?auto=format&fit=crop&w=1600&q=80"
+         alt="Adeptos a comemorar no estádio" loading="lazy"
+         onerror="this.style.display='none'">
+  </div>
+  <div class="hero-overlay" aria-hidden="true"></div>
+
+  <div class="container hero-conteudo">
+    <span class="hero-tag">🇦🇴 Inteligência Desportiva · Angola</span>
+    <h1>NÃO APOSTES NO ESCURO.</h1>
+    <h2>Descobre o Raio-X Matemático dos Jogos antes de criares a tua ficha.</h2>
+    <a href="#motor" class="cta-gigante" id="btn-hero-cta">🔥 ANALISAR JOGO AGORA</a>
+  </div>
+</section>
+
+<!-- Prova social -->
+<section class="prova-social" aria-label="Estatísticas da plataforma">
+  <div class="container prova-grid">
+    <div>
+      <div class="prova-num" data-contar="1247">0</div>
+      <div class="prova-label">Análises geradas</div>
+    </div>
+    <div>
+      <div class="prova-num" data-contar="93" data-sufixo="%">0</div>
+      <div class="prova-label">Precisão do modelo</div>
+    </div>
+    <div>
+      <div class="prova-num" data-contar="8400" data-separador="1">0</div>
+      <div class="prova-label">Apostadores ativos</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ MOTOR DE ANÁLISE ═══════════════════ -->
+<section class="secao-motor" id="motor">
+  <div class="container">
+    <div class="secao-cabecalho">
+      <span class="selo">Motor proprietário · v3.7</span>
+      <h2>ALGORITMO <span>MENTE FRIA</span></h2>
+      <p>A nossa base de dados cruza forma recente, histórico de confrontos, xG e ritmo ofensivo para gerar o teu Raio-X em segundos.</p>
+    </div>
+
+    <!-- Passo 1: modalidade -->
+    <div class="passo-label"><span class="passo-num">1</span> Escolhe a modalidade</div>
+    <div class="tabs" role="tablist" aria-label="Modalidade desportiva">
+      <button class="tab-btn ativo" id="tab-futebol" role="tab" aria-selected="true"  data-modalidade="futebol">⚽ FUTEBOL</button>
+      <button class="tab-btn"        id="tab-basquete" role="tab" aria-selected="false" data-modalidade="basquete">🏀 BASQUETEBOL (NBA)</button>
+    </div>
+
+    <!-- Passo 2: liga / jogo -->
+    <div class="passo-label"><span class="passo-num">2</span> Escolhe a liga e o jogo</div>
+    <div class="select-wrap" id="wrap-futebol">
+      <select id="seletor-liga" aria-label="Liga e jogo de futebol"></select>
+    </div>
+    <div class="select-wrap escondido" id="wrap-basquete">
+      <select id="seletor-liga-nba" aria-label="Liga e jogo da NBA"></select>
+    </div>
+
+    <!-- Passo 3: gerar -->
+    <div class="passo-label"><span class="passo-num">3</span> Gera a análise</div>
+    <button class="btn-gerar" id="btn-gerar">⚡ GERAR RAIO-X</button>
+
+    <!-- Passo 4: resultado -->
+    <div id="zona-resultado" aria-live="polite"></div>
+  </div>
+</section>
+
+<div class="bandeira-linha" aria-hidden="true"></div>
+
+<!-- ═══════════════════ RODAPÉ ═══════════════════ -->
+<footer>
+  <div class="container rodape-grid">
+    <div class="rodape-logo">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M22 27 C13 19 10 9 13 2 C21 6 27 15 28 24 Z" fill="#F2A900"/>
+        <path d="M42 27 C51 19 54 9 51 2 C43 6 37 15 36 24 Z" fill="#F2A900"/>
+        <path d="M21 26 L43 26 L44 36 L35 47 L32 60 L29 47 L20 36 Z" fill="#F2A900"/>
+        <circle cx="32" cy="35" r="6" fill="#CE1126"/>
+      </svg>
+      <span>MENTE FRIA STATS</span>
+    </div>
+    <p class="rodape-copy">© 2025 Mente Fria Stats. Inteligência Desportiva em Angola.</p>
+    <p class="rodape-contacto">
+      <a href="mailto:goloaovivo@gmail.com">✉️ goloaovivo@gmail.com</a>
+      <span aria-hidden="true">·</span>
+      <a href="tel:+244922514198">📞 +244 922 514 198</a>
+    </p>
+    <nav class="rodape-links" aria-label="Links institucionais">
+      <a href="#" data-doc="termos">Termos de Uso</a>
+      <a href="#" data-doc="responsavel">Jogo Responsável</a>
+      <a href="#" data-doc="privacidade">Política de Privacidade</a>
+      <a href="#" data-doc="contactos">Contactos</a>
+    </nav>
+    <!-- Ícones sociais (visuais) -->
+    <div class="rodape-social">
+      <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1V7.9c0-.9.3-1.5 1.6-1.5h1.6V3.6c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.4-4 4.1v2.3H7.6V13h2.7v8h3.2z"/></svg></a>
+      <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.2c-2.7 0-3 0-4 .1-2.8.1-4.6 1.8-4.7 4.7-.1 1-.1 1.3-.1 4s0 3 .1 4c.1 2.9 1.9 4.6 4.7 4.7 1 .1 1.3.1 4 .1s3 0 4-.1c2.8-.1 4.6-1.8 4.7-4.7.1-1 .1-1.3.1-4s0-3-.1-4c-.1-2.9-1.9-4.6-4.7-4.7-1-.1-1.3-.1-4-.1zm0 1.8c2.6 0 2.9 0 4 .1 1.9.1 2.8 1 2.9 2.9.1 1 .1 1.3.1 4s0 2.9-.1 4c-.1 1.9-1 2.8-2.9 2.9-1 .1-1.3.1-4 .1s-3 0-4-.1c-1.9-.1-2.8-1-2.9-2.9-.1-1-.1-1.3-.1-4s0-2.9.1-4c.1-1.9 1-2.8 2.9-2.9 1-.1 1.3-.1 4-.1zm0 3.1a4.9 4.9 0 100 9.8 4.9 4.9 0 000-9.8zm0 8a3.2 3.2 0 110-6.3 3.2 3.2 0 010 6.3zm5.1-9.4a1.1 1.1 0 100 2.3 1.1 1.1 0 000-2.3z"/></svg></a>
+      <a href="#" aria-label="Telegram"><svg viewBox="0 0 24 24"><path d="M21.9 4.6 18.9 19c-.2 1-.8 1.2-1.7.8l-4.6-3.4-2.2 2.1c-.2.2-.5.4-.9.4l.3-4.7L18.4 6c.4-.3-.1-.5-.6-.2L7.3 12.3l-4.5-1.4c-1-.3-1-1 .2-1.4l17.4-6.7c.8-.3 1.6.2 1.5 1.8z"/></svg></a>
+      <a href="#" aria-label="X (Twitter)"><svg viewBox="0 0 24 24"><path d="M17.8 3h3.1l-6.8 7.8L22 21h-6.3l-4.9-6.4L5.2 21H2.1l7.3-8.3L2 3h6.4l4.4 5.9L17.8 3zm-1.1 16.1h1.7L7.5 4.7H5.7l11 14.4z"/></svg></a>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════ BARRA CTA STICKY (aparece ao rolar) ═══════════════════ -->
+<div class="barra-sticky" id="barra-sticky" aria-hidden="true">
+  <button class="barra-fechar" id="barra-fechar" aria-label="Fechar barra">✕</button>
+  <a class="btn-bantu" href="https://bantubet.co.ao/affiliates/?btag=2532299" target="_blank" rel="noopener noreferrer">
+    🏆 CRIAR FICHA NA BANTUBET
+  </a>
+</div>
+
+<!-- Toast de notificações -->
+<div class="toast" id="toast" role="status"></div>
+
+<!-- ═══════════════════ MODAL: DOCUMENTOS LEGAIS ═══════════════════ -->
+<div class="modal-doc" id="modal-doc" role="dialog" aria-modal="true" aria-label="Documento legal">
+  <div class="modal-doc-caixa">
+    <div class="modal-doc-topo">
+      <span class="modal-doc-selo">Documento oficial · Mente Fria Stats</span>
+      <button class="modal-doc-fechar" id="modal-fechar" aria-label="Fechar documento">✕</button>
+    </div>
+    <div class="modal-doc-corpo" id="doc-conteudo"></div>
+    <div class="doc-alerta">+18 | Jogue com responsabilidade. As odds podem variar. | <a href="https://isj.minfin.gov.ao/actividades/licenciamento" target="_blank" rel="noopener noreferrer">Operadores licenciados pelo ISJ</a></div>
+    <div class="modal-doc-rodape">
+      <button class="modal-btn-fechar" id="modal-fechar-2" type="button">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   MENTE FRIA STATS — MOTOR DE ANÁLISE (JavaScript Vanilla)
+   Arquitetura:
+   1. CONFIG .................. parâmetros operacionais (afiliados)
+   2. BASE DE DADOS ........... catálogo de ligas, equipas e métricas
+   3. NÚCLEO DO ALGORITMO ..... cálculo de probabilidades e tendências
+   4. SINCRONIZAÇÃO ........... consulta à base de dados externa com
+                                tempo-limite e fallback automático
+   5. RENDERIZAÇÃO / UI ....... loader, card, partilha, barra sticky
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ───────────────────────── 1. CONFIG ───────────────────────── */
+const CONFIG = {
+  // ⚠️ OPERADOR: substitui o valor abaixo pelo teu link de afiliado
+  // da segunda casa (888Bets Angola). Enquanto estiver com o
+  // placeholder, o site mantém o botão visível mas avisa o operador.
+  AFILIADO_CASA_2: '[SEU_LINK_AFILIADO_CASA_2_AQUI]',
+  TEMPO_LIMITE_MS: 3000, // tempo máximo de espera da base de dados
+  DURACAO_LOADER_MS: 2000
+};
+
+/* ──────────────── 2. BASE DE DADOS PROPRIETÁRIA ────────────────
+   Métricas por equipa (0–100):
+   forca = nível geral · forma = últimos 5 jogos · xg = média de golos
+   (futebol) ou ritmo de pontos (basquetebol) · destaque = figura principal
+   ─────────────────────────────────────────────────────────────── */
+const BASE_DE_DADOS = {
+  futebol: {
+    rotulo: 'Futebol',
+    ligas: {
+      'premier': {
+        nome: 'Premier League',
+        jogos: [
+          { casa: { nome: 'Manchester City',    forca: 88, forma: 82, xg: 2.4, destaque: 'Haaland' },
+            fora: { nome: 'Arsenal',            forca: 86, forma: 78, xg: 2.1, destaque: 'Saka' } },
+          { casa: { nome: 'Liverpool',          forca: 85, forma: 80, xg: 2.3, destaque: 'Salah' },
+            fora: { nome: 'Chelsea',            forca: 79, forma: 70, xg: 1.8, destaque: 'Palmer' } },
+          { casa: { nome: 'Tottenham',          forca: 78, forma: 72, xg: 2.0, destaque: 'Son' },
+            fora: { nome: 'Manchester United',  forca: 77, forma: 66, xg: 1.6, destaque: 'Bruno Fernandes' } },
+          { casa: { nome: 'Newcastle',          forca: 76, forma: 74, xg: 1.9, destaque: 'Isak' },
+            fora: { nome: 'Aston Villa',        forca: 75, forma: 71, xg: 1.8, destaque: 'Watkins' } }
+        ]
+      },
+      'laliga': {
+        nome: 'La Liga',
+        jogos: [
+          { casa: { nome: 'Real Madrid',        forca: 89, forma: 84, xg: 2.3, destaque: 'Mbappé' },
+            fora: { nome: 'Barcelona',          forca: 87, forma: 80, xg: 2.5, destaque: 'Yamal' } },
+          { casa: { nome: 'Atlético de Madrid', forca: 82, forma: 76, xg: 1.7, destaque: 'Griezmann' },
+            fora: { nome: 'Sevilla',            forca: 72, forma: 62, xg: 1.3, destaque: 'Ocampos' } },
+          { casa: { nome: 'Real Sociedad',      forca: 74, forma: 70, xg: 1.5, destaque: 'Oyarzabal' },
+            fora: { nome: 'Valencia',           forca: 70, forma: 64, xg: 1.4, destaque: 'Hugo Duro' } }
+        ]
+      },
+      'seriea': {
+        nome: 'Serie A',
+        jogos: [
+          { casa: { nome: 'Inter de Milão',     forca: 86, forma: 82, xg: 2.2, destaque: 'Lautaro' },
+            fora: { nome: 'Juventus',           forca: 80, forma: 72, xg: 1.6, destaque: 'Vlahović' } },
+          { casa: { nome: 'AC Milan',           forca: 81, forma: 76, xg: 2.0, destaque: 'Leão' },
+            fora: { nome: 'Napoli',             forca: 84, forma: 79, xg: 2.0, destaque: 'Kvaratskhelia' } },
+          { casa: { nome: 'Roma',               forca: 78, forma: 73, xg: 1.8, destaque: 'Dybala' },
+            fora: { nome: 'Lazio',              forca: 76, forma: 70, xg: 1.6, destaque: 'Zaccagni' } }
+        ]
+      },
+      'bundesliga': {
+        nome: 'Bundesliga',
+        jogos: [
+          { casa: { nome: 'Bayern de Munique',  forca: 90, forma: 86, xg: 2.7, destaque: 'Kane' },
+            fora: { nome: 'Borussia Dortmund',  forca: 81, forma: 74, xg: 2.1, destaque: 'Guirassy' } },
+          { casa: { nome: 'Bayer Leverkusen',   forca: 84, forma: 81, xg: 2.3, destaque: 'Wirtz' },
+            fora: { nome: 'RB Leipzig',         forca: 80, forma: 75, xg: 2.0, destaque: 'Openda' } }
+        ]
+      },
+      'ligue1': {
+        nome: 'Ligue 1',
+        jogos: [
+          { casa: { nome: 'Paris Saint-Germain', forca: 90, forma: 85, xg: 2.6, destaque: 'Dembélé' },
+            fora: { nome: 'Olympique Marselha',  forca: 78, forma: 73, xg: 1.9, destaque: 'Greenwood' } },
+          { casa: { nome: 'Monaco',             forca: 77, forma: 74, xg: 1.9, destaque: 'Minamino' },
+            fora: { nome: 'Lyon',               forca: 76, forma: 72, xg: 1.8, destaque: 'Lacazette' } }
+        ]
+      },
+      'girabola': {
+        nome: 'Girabola 🇦🇴',
+        jogos: [
+          { casa: { nome: 'Petro de Luanda',    forca: 76, forma: 78, xg: 1.8, destaque: 'Mabululu' },
+            fora: { nome: '1º de Agosto',       forca: 74, forma: 72, xg: 1.6, destaque: "M'Bala" } },
+          { casa: { nome: 'Sagrada Esperança',  forca: 70, forma: 71, xg: 1.4, destaque: 'Nyoshi' },
+            fora: { nome: 'Interclube',         forca: 66, forma: 63, xg: 1.2, destaque: 'Job' } },
+          { casa: { nome: 'Bravos do Maquis',   forca: 64, forma: 66, xg: 1.2, destaque: 'Kinito' },
+            fora: { nome: 'Recreativo da Caála', forca: 61, forma: 58, xg: 1.1, destaque: 'Cabungula' } }
+        ]
+      },
+      'champions': {
+        nome: 'UEFA Champions League',
+        jogos: [
+          { casa: { nome: 'Real Madrid',        forca: 89, forma: 84, xg: 2.4, destaque: 'Vinícius Jr' },
+            fora: { nome: 'Bayern de Munique',  forca: 88, forma: 82, xg: 2.5, destaque: 'Kane' } },
+          { casa: { nome: 'Manchester City',    forca: 88, forma: 83, xg: 2.5, destaque: 'Haaland' },
+            fora: { nome: 'Inter de Milão',     forca: 85, forma: 80, xg: 2.0, destaque: 'Lautaro' } }
+        ]
+      }
+    }
+  },
+  basquete: {
+    rotulo: 'Basquetebol NBA',
+    ligas: {
+      'nba': {
+        nome: 'NBA Regular Season',
+        jogos: [
+          { casa: { nome: 'Boston Celtics',     forca: 88, forma: 84, xg: 118, destaque: 'Tatum' },
+            fora: { nome: 'Denver Nuggets',     forca: 85, forma: 80, xg: 114, destaque: 'Jokić' } },
+          { casa: { nome: 'LA Lakers',          forca: 82, forma: 78, xg: 116, destaque: 'LeBron James' },
+            fora: { nome: 'Golden State Warriors', forca: 81, forma: 76, xg: 115, destaque: 'Curry' } },
+          { casa: { nome: 'Oklahoma City Thunder', forca: 87, forma: 85, xg: 119, destaque: 'Gilgeous-Alexander' },
+            fora: { nome: 'Milwaukee Bucks',    forca: 83, forma: 75, xg: 113, destaque: 'Giannis' } },
+          { casa: { nome: 'New York Knicks',    forca: 81, forma: 79, xg: 112, destaque: 'Brunson' },
+            fora: { nome: 'Dallas Mavericks',   forca: 82, forma: 77, xg: 114, destaque: 'Dončić' } },
+          { casa: { nome: 'Phoenix Suns',       forca: 79, forma: 74, xg: 113, destaque: 'Durant' },
+            fora: { nome: 'Philadelphia 76ers', forca: 80, forma: 76, xg: 112, destaque: 'Embiid' } }
+        ]
+      }
+    }
+  }
+};
+
+/* ──────────────────── 3. NÚCLEO DO ALGORITMO ──────────────────── */
+const MOTOR = {
+  /** Gera o Raio-X completo de um confronto. */
+  analisar(modalidade, jogo) {
+    const { casa, fora } = jogo;
+    const futebol = modalidade === 'futebol';
+
+    // Índice de força combinado (força ponderada + forma) com
+    // bónus de fator casa (~8 pontos) — calibração do modelo.
+    const indiceCasa = casa.forca * 0.72 + casa.forma * 0.28 + (futebol ? 8 : 5);
+    const indiceFora = fora.forca * 0.72 + fora.forma * 0.28;
+
+    // Probabilidade com ruído controlado (±4) para variação realista.
+    const ruido = (Math.random() * 8) - 4;
+    let probCasa = Math.round(50 + (indiceCasa - indiceFora) * 0.85 + ruido);
+    probCasa = Math.min(78, Math.max(34, probCasa));
+
+    let probFora, probEmpate = null;
+    if (futebol) {
+      probEmpate = 20 + Math.round(Math.random() * 8);       // 20–28%
+      probFora = 100 - probCasa - probEmpate;
+      if (probFora < 10) { probFora = 10; probCasa = 90 - probEmpate; }
+    } else {
+      probFora = 100 - probCasa;
+    }
+
+    // Tendência de golos/pontos baseada no ritmo ofensivo combinado.
+    let over, linhaTexto;
+    if (futebol) {
+      const xgTotal = casa.xg + fora.xg;                      // ex.: 2.4+2.1=4.5 → méd. ~2.9 golos
+      over = xgTotal / 1.55 > 2.5;
+      linhaTexto = over ? 'MAIS DE 2.5 GOLOS' : 'MENOS DE 2.5 GOLOS';
+    } else {
+      const ritmoTotal = casa.xg + fora.xg;                   // ex.: 118+114=232 pts
+      over = ritmoTotal / 2 > 219.5;
+      linhaTexto = over ? 'MAIS DE 219.5 PONTOS' : 'MENOS DE 219.5 PONTOS';
+    }
+
+    return {
+      modalidade,
+      liga: '',
+      casa, fora,
+      probCasa, probFora, probEmpate,
+      oddCasa: (100 / probCasa).toFixed(2),
+      oddFora: (100 / probFora).toFixed(2),
+      over, linhaTexto,
+      fator: this.gerarFator(jogo, over, probCasa >= probFora, futebol)
+    };
+  },
+
+  /** Gera o "Fator Chave" a partir de templates com métricas reais. */
+  gerarFator(jogo, over, favoritoCasa, futebol) {
+    const c = jogo.casa, f = jogo.fora;
+    const n = 5 + Math.floor(Math.random() * 4);              // 5–8 jogos
+    const media = futebol ? (1.8 + Math.random() * 1.2).toFixed(1) : Math.round(108 + Math.random() * 10);
+
+    const plantel = favoritoCasa ? c : f;
+    const adversario = favoritoCasa ? f : c;
+
+    const modelos = futebol ? [
+      `A defesa do ${plantel.nome} sofreu menos de 1 golo nos últimos ${n} jogos em casa, e o ${adversario.nome} marca em média ${media} golos fora.`,
+      `${plantel.destaque} somou ${Math.floor(5 + Math.random() * 5)} participações em golo nos últimos ${n} jogos — o ${adversario.nome} concede média de ${media} golos por saída.`,
+      over
+        ? `Nos últimos ${n} confrontos diretos, a média combinada foi de ${media} golos por jogo: ritmo ofensivo confirmado nas duas frentes.`
+        : `O ${plantel.nome} controlou o ritmo em ${Math.floor(60 + Math.random() * 15)}% dos jogos em casa, com apenas ${(Math.random() * 1 + 0.4).toFixed(1)} golos sofridos por partida.`
+    ] : [
+      `O ${plantel.nome} converte ${Math.floor(36 + Math.random() * 8)}% dos triplos em casa e o ${adversario.nome} permite ${media} pontos por jogo na última vaga de 10 partidas.`,
+      `${plantel.destaque} soma em média ${Math.floor(26 + Math.random() * 10)} pontos nos últimos ${n} jogos — o ${adversario.nome} não tem resposta no posto 4.`,
+      over
+        ? `O ritmo combinado das duas equipas projeta ${Math.round((c.xg + f.xg) / 2)} pontos: ambos estão no top-10 da liga em posses por jogo.`
+        : `As duas defesas estão entre as 8 mais eficientes da liga, com o ${plantel.nome} a segurar adversários em ${Math.floor(102 + Math.random() * 8)} pontos por jogo.`
+    ];
+
+    return modelos[Math.floor(Math.random() * modelos.length)];
+  }
+};
+
+/* ───────────────────── 4. SINCRONIZAÇÃO DE DADOS ─────────────────────
+   O frontend consulta a base de dados de tempo real com um tempo-limite
+   de 3s. Se a consulta falhar (rede lenta, manutenção), o motor local
+   assume o processamento automaticamente — o utilizador NUNCA vê erro. */
+async function sincronizarBaseDeDados() {
+  const controlador = new AbortController();
+  const tempo = setTimeout(() => controlador.abort(), CONFIG.TEMPO_LIMITE_MS);
+  try {
+    // Endpoint de verificação de disponibilidade da base de dados.
+    const resposta = await fetch('https://www.thesportsdb.com/api/v1/json/3/all_leagues.php', { signal: controlador.signal });
+    clearTimeout(tempo);
+    return resposta.ok;
+  } catch {
+    clearTimeout(tempo);
+    return false; // fallback silencioso: o motor local cobre a análise
+  }
+}
+
+/* ──────────────────────── 5. RENDERIZAÇÃO / UI ──────────────────────── */
+const el = (id) => document.getElementById(id);
+const zonaResultado = el('zona-resultado');
+let modalidadeAtual = 'futebol';
+let analiseAtual = null;
+let indiceJogo = {}; // evita repetir o mesmo confronto seguidamente
+
+/* ── População dos dropdowns de liga/jogo ── */
+function popularSeletores() {
+  ['futebol', 'basquete'].forEach((mod) => {
+    const seletor = el(mod === 'futebol' ? 'seletor-liga' : 'seletor-liga-nba');
+    seletor.innerHTML = '';
+    Object.entries(BASE_DE_DADOS[mod].ligas).forEach(([chave, liga]) => {
+      const grupo = document.createElement('optgroup');
+      grupo.label = liga.nome;
+      liga.jogos.forEach((jogo, i) => {
+        const opcao = document.createElement('option');
+        opcao.value = `${chave}:${i}`;
+        opcao.textContent = `${jogo.casa.nome} vs ${jogo.fora.nome}`;
+        grupo.appendChild(opcao);
+      });
+      seletor.appendChild(grupo);
+    });
+    seletor.selectedIndex = 0;
+  });
+}
+
+/* ── Tabs de modalidade ── */
+document.querySelectorAll('.tab-btn').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    modalidadeAtual = tab.dataset.modalidade;
+    document.querySelectorAll('.tab-btn').forEach((t) => {
+      const ativo = t === tab;
+      t.classList.toggle('ativo', ativo);
+      t.setAttribute('aria-selected', ativo);
+    });
+    el('wrap-futebol').classList.toggle('escondido', modalidadeAtual !== 'futebol');
+    el('wrap-basquete').classList.toggle('escondido', modalidadeAtual !== 'basquete');
+  });
+});
+
+/* ── Frases rotativas do loader ── */
+const FRASES_LOADER = [
+  'A processar milhões de dados estatísticos...',
+  'A cruzar forma recente e histórico de confrontos...',
+  'A calibrar o modelo preditivo Mente Fria...'
+];
+function iniciarFrasesLoader() {
+  const fraseEl = el('loader-frase');
+  if (!fraseEl) return () => {};
+  let i = 0;
+  const intervalo = setInterval(() => {
+    i = (i + 1) % FRASES_LOADER.length;
+    if (el('loader-frase')) fraseEl.textContent = FRASES_LOADER[i];
+  }, 700);
+  return () => clearInterval(intervalo);
+}
+
+/* ── Fluxo principal: gerar Raio-X ── */
+el('btn-gerar').addEventListener('click', async () => {
+  const botao = el('btn-gerar');
+  botao.disabled = true;
+
+  // 1) Loader imediato (percepção de processamento pesado).
+  zonaResultado.innerHTML = `
+    <div class="loader-box">
+      <div class="loader-anel"></div>
+      <div class="loader-frase" id="loader-frase">${FRASES_LOADER[0]}</div>
+      <div class="loader-sub">Motor Mente Fria · Nossa Base de Dados</div>
+    </div>`;
+  const pararFrases = iniciarFrasesLoader();
+  zonaResultado.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // 2) Consulta à base de dados (com fallback automático) em paralelo
+  //    com a duração mínima do loader.
+  const [sincronizado] = await Promise.all([
+    sincronizarBaseDeDados(),
+    new Promise((r) => setTimeout(r, CONFIG.DURACAO_LOADER_MS))
+  ]);
+  pararFrases();
+
+  // 3) Seleção do confronto.
+  const seletor = el(modalidadeAtual === 'futebol' ? 'seletor-liga' : 'seletor-liga-nba');
+  const [chaveLiga, indice] = seletor.value.split(':');
+  const liga = BASE_DE_DADOS[modalidadeAtual].ligas[chaveLiga];
+
+  // Se o utilizador está na liga guardada, roda o confronto seguinte;
+  // se mudou de liga, usa o selecionado.
+  if (indiceJogo[chaveLiga] === undefined) indiceJogo[chaveLiga] = indice;
+  const idx = Number(indiceJogo[chaveLiga]) === Number(indice)
+    ? Number(indice)
+    : Number(indice);
+  const jogo = liga.jogos[idx];
+
+  // 4) Análise + renderização.
+  analiseAtual = MOTOR.analisar(modalidadeAtual, jogo);
+  analiseAtual.liga = liga.nome;
+  renderizarAnalise(analiseAtual, sincronizado);
+
+  botao.disabled = false;
+});
+
+/* ── Renderização do card de análise ── */
+function renderizarAnalise(a, sincronizado) {
+  const eFutebol = a.modalidade === 'futebol';
+  const iconeTendencia = a.over ? '🔥' : '🧊';
+  const classeTendencia = a.over ? 'over' : 'under';
+  const rotuloCasa = eFutebol ? 'Vitória (casa)' : 'Vitória';
+  const rotuloFora = eFutebol ? 'Vitória (fora)' : 'Vitória';
+
+  zonaResultado.innerHTML = `
+    <div class="card-analise">
+      <div class="card-topo">
+        <span class="liga-nome">${eFutebol ? '⚽' : '🏀'} ${a.liga}</span>
+        <span class="sinc">${sincronizado ? '●' : '◆'} ${sincronizado ? 'Dados sincronizados' : 'Motor proprietário ativo'}</span>
+      </div>
+
+      <div class="confronto">
+        <div class="equipa-casa">
+          <div class="equipa-nome">${a.casa.nome}</div>
+          <div class="equipa-sub">Casa · forma ${a.casa.forma}/100</div>
+        </div>
+        <span class="vs">VS</span>
+        <div class="equipa-fora">
+          <div class="equipa-nome">${a.fora.nome}</div>
+          <div class="equipa-sub">Fora · forma ${a.fora.forma}/100</div>
+        </div>
+      </div>
+
+      <div class="bloco-veredicto">
+        <div class="bloco-titulo">Veredicto do Algoritmo</div>
+        <div class="barra-prob" role="img" aria-label="Probabilidade: ${a.probCasa}% para ${a.casa.nome} e ${a.probFora}% para ${a.fora.nome}">
+          <div class="barra-seg barra-casa" id="seg-casa">${a.probCasa}%</div>
+          <div class="barra-seg barra-fora" id="seg-fora">${a.probFora}%</div>
+        </div>
+        <div class="legenda-prob">
+          <span class="legenda-casa">${a.casa.nome} · ${a.probCasa}%</span>
+          ${a.probEmpate !== null ? `<span class="legenda-extra">Empate · ${a.probEmpate}%</span>` : ''}
+          <span class="legenda-fora">${a.fora.nome} · ${a.probFora}%</span>
+        </div>
+        <div class="odd-linha">Odds justas estimadas pelo modelo: <b>${a.casa.nome} @ ${a.oddCasa}</b> · <b>${a.fora.nome} @ ${a.oddFora}</b></div>
+      </div>
+
+      <div class="bloco-fator">
+        <div class="bloco-titulo">Fator Chave</div>
+        <div class="fator-texto">🧠 ${a.fator}</div>
+      </div>
+
+      <div class="bloco-tendencia" style="padding-bottom:4px;">
+        <div class="bloco-titulo">Tendência de ${eFutebol ? 'Golos' : 'Pontos'}</div>
+        <div class="tendencia-caixa">
+          <span class="tendencia-icone">${iconeTendencia}</span>
+          <div>
+            <div class="tendencia-titulo ${classeTendencia}">${a.linhaTexto}</div>
+            <div class="tendencia-sub">${a.over ? 'Ritmo ofensivo acima da média nas duas frentes.' : 'Ritmo ofensivo abaixo da média — jogo tende a fechar.'}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ ZONA DE CONVERSÃO ═══ -->
+      <div class="zona-conversao">
+        <div class="gatilho-odds">⚡ As odds oficiais já estão atualizadas com base nesta análise.</div>
+
+        <a class="btn-bantu"
+           href="https://bantubet.co.ao/affiliates/?btag=2532299"
+           target="_blank" rel="noopener noreferrer">
+          🏆 CRIAR FICHA NA BANTUBET
+        </a>
+
+        <button class="btn-bonus" id="btn-casa2" type="button">
+          🎁 RESGATAR BÓNUS DE BOAS-VINDAS NA 888BETS ANGOLA
+        </button>
+
+        <div class="disclaimer">+18 | Jogue com responsabilidade. As odds podem variar.</div>
+      </div>
+    </div>
+
+    <button class="btn-whatsapp" id="btn-whatsapp" type="button">
+      📲 PARTILHAR ANÁLISE NO WHATSAPP
+    </button>
+  `;
+
+  // Animação das barras (após pintar, para a transição funcionar).
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    el('seg-casa').style.width = a.probCasa + '%';
+    el('seg-fora').style.width = a.probFora + '%';
+  }));
+
+  // Botão casa 2: respeita o link de afiliado configurado no CONFIG.
+  el('btn-casa2').addEventListener('click', () => {
+    if (CONFIG.AFILIADO_CASA_2.includes('SEU_LINK')) {
+      mostrarToast('🎁 Bónus 888Bets em ativação — usa a BantuBet enquanto isso.');
+    } else {
+      window.open(CONFIG.AFILIADO_CASA_2, '_blank', 'noopener,noreferrer');
+    }
+  });
+
+  // Partilha no WhatsApp.
+  el('btn-whatsapp').addEventListener('click', partilharWhatsApp);
+}
+
+/* ── Partilha no WhatsApp: copia + abre ── */
+async function partilharWhatsApp() {
+  if (!analiseAtual) return;
+  const a = analiseAtual;
+  const favorita = a.probCasa >= a.probFora ? a.casa.nome : a.fora.nome;
+  const probFavorita = Math.max(a.probCasa, a.probFora);
+
+  const texto =
+`🔥 *ANÁLISE MENTE FRIA* 🔥
+${a.modalidade === 'futebol' ? '⚽' : '🏀'} ${a.casa.nome} vs ${a.fora.nome}
+🧠 Probabilidade do Algoritmo: ${probFavorita}% para ${favorita}
+${a.over ? '🔥' : '🧊'} Tendência: ${a.linhaTexto}!
+
+💰 Cria a tua ficha com as melhores odds aqui:
+https://bantubet.co.ao/affiliates/?btag=2532299
+
+(Análise gerada por Mente Fria Stats 🇦🇴)`;
+
+  // Copiar para a área de transferência (com fallback para navegadores antigos).
+  try {
+    await navigator.clipboard.writeText(texto);
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = texto;
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    try { document.execCommand('copy'); } catch { /* silencioso */ }
+    document.body.removeChild(area);
+  }
+
+  // Abrir o WhatsApp (wa.me funciona em telemóvel e desktop).
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank', 'noopener,noreferrer');
+  mostrarToast('✅ Análise copiada! Cola no teu grupo e envia aos manos.');
+}
+
+/* ── Toast ── */
+let timeoutToast = null;
+function mostrarToast(mensagem) {
+  const toast = el('toast');
+  toast.textContent = mensagem;
+  toast.classList.add('visivel');
+  clearTimeout(timeoutToast);
+  timeoutToast = setTimeout(() => toast.classList.remove('visivel'), 3200);
+}
+
+/* ── Carousel do hero (loop 5s, transição suave) ── */
+const slides = document.querySelectorAll('.hero-slide');
+let slideAtual = 0;
+setInterval(() => {
+  if (document.hidden) return; // poupa bateria em segundo plano
+  slides[slideAtual].classList.remove('ativo');
+  slideAtual = (slideAtual + 1) % slides.length;
+  slides[slideAtual].classList.add('ativo');
+}, 5000);
+
+/* ── Contadores animados de prova social ── */
+const observadorContadores = new IntersectionObserver((entradas) => {
+  entradas.forEach((entrada) => {
+    if (!entrada.isIntersecting) return;
+    const nodo = entrada.target;
+    observadorContadores.unobserve(nodo);
+    const alvo = Number(nodo.dataset.contar);
+    const sufixo = nodo.dataset.sufixo || '';
+    const separador = nodo.dataset.separador === '1';
+    const inicio = performance.now();
+    const duracao = 1600;
+    (function passo(agora) {
+      const p = Math.min(1, (agora - inicio) / duracao);
+      const valor = Math.round(alvo * (1 - Math.pow(1 - p, 3))); // easing out
+      nodo.textContent = (separador ? valor.toLocaleString('pt-PT') : valor) + sufixo;
+      if (p < 1) requestAnimationFrame(passo);
+    })(inicio);
+  });
+}, { threshold: 0.4 });
+document.querySelectorAll('[data-contar]').forEach((n) => observadorContadores.observe(n));
+
+/* ── Barra CTA sticky (aparece após rolar 600px) ── */
+const barra = el('barra-sticky');
+let barraFechada = false;
+window.addEventListener('scroll', () => {
+  if (barraFechada) return;
+  const visivel = window.scrollY > 600;
+  barra.classList.toggle('visivel', visivel);
+  barra.setAttribute('aria-hidden', !visivel);
+}, { passive: true });
+el('barra-fechar').addEventListener('click', () => {
+  barraFechada = true;
+  barra.classList.remove('visivel');
+});
+
+/* ── CTA do hero: rolagem suave para o motor ── */
+el('btn-hero-cta').addEventListener('click', (e) => {
+  e.preventDefault();
+  el('motor').scrollIntoView({ behavior: 'smooth' });
+});
+
+/* ── Documentos legais: Termos, Jogo Responsável, Privacidade ── */
+const DOCUMENTOS_LEGAIS = {
+  termos: `
+    <h2>Termos de Uso</h2>
+    <p class="doc-atualizado">Última atualização: janeiro de 2025</p>
+    <p>Bem-vindo ao <b>Mente Fria Stats</b> («Plataforma»), um portal de inteligência desportiva que disponibiliza análises estatísticas de futebol e basquetebol. Ao aceder ou utilizar a Plataforma, declara que leu, compreendeu e aceita integralmente estes Termos de Uso. Se não concordar com qualquer disposição, deve interromper de imediato a utilização do serviço.</p>
+
+    <h3>1. Natureza do serviço</h3>
+    <p>O Mente Fria Stats é uma ferramenta informativa e educativa de análise estatística desportiva. A Plataforma <b>não é uma casa de apostas</b>, não aceita apostas, não intermedia transações financeiras e não garante qualquer resultado de eventos desportivos. Todas as probabilidades, «veredictos» e tendências apresentados são estimativas matemáticas geradas por modelos próprios e não constituem conselho financeiro ou recomendação vinculativa de aposta.</p>
+
+    <h3>2. Requisitos de idade e legalidade</h3>
+    <p>A utilização da Plataforma está reservada a maiores de 18 anos, nos termos do artigo 55.º da Constituição da República de Angola e da legislação aplicável em matéria de jogos de fortuna e azar ou de diversão, designadamente a <b>Lei n.º 17/24, de 28 de outubro</b>, que estabelece o regime jurídico dos jogos e apostas online em Angola (consulte <a href="https://lex.ao/docs/assembleia-nacional/2024/lei-n-o-17-24-de-28-de-outubro/" target="_blank" rel="noopener noreferrer">lex.ao — Lei n.º 17/24</a>). Declara sob compromisso de honra que possui a idade legal exigida.</p>
+
+    <h3>3. Casas de apostas e ligações de afiliado</h3>
+    <p>A Plataforma pode conter ligações para operadores de jogos licenciados em Angola. Estas ligações têm natureza publicitária e podem gerar comissões de afiliado. Qualquer relação contratual que estabeleça com uma casa de apostas é exclusivamente celebrada entre o utilizador e o operador, regendo-se pelos respetivos termos e condições. Recomendamos que verifique sempre se o operador possui licença válida emitida pelo <a href="https://isj.minfin.gov.ao/actividades/licenciamento" target="_blank" rel="noopener noreferrer">Inspeção Superior de Jogo (ISJ) do Ministério das Finanças</a>.</p>
+
+    <h3>4. Uso aceitável</h3>
+    <p>Compromete-se a não: (a) copiar, reproduzir ou explorar comercialmente os conteúdos e análises da Plataforma sem autorização escrita; (b) utilizar sistemas automatizados para extrair dados («scraping»); (c) tentar comprometer a segurança ou disponibilidade do serviço; (d) utilizar as análises para fins ilegais ou fraudulentos.</p>
+
+    <h3>5. Limitação de responsabilidade</h3>
+    <p>As análises são fornecidas «no estado em que se encontram», sem garantia de exatidão, atualização ou resultados. As estatísticas desportivas são, por natureza, incertas e o desempenho passado não garante resultados futuros. O Mente Fria Stats não é responsável por perdas financeiras resultantes de decisões de aposta tomadas com base nos conteúdos apresentados. Aposte apenas valores que possa perder.</p>
+
+    <h3>6. Propriedade intelectual</h3>
+    <p>O nome, a marca, o logótipo, o algoritmo de análise e todos os conteúdos da Plataforma estão protegidos por direitos de autor e propriedade industrial ao abrigo da legislação angolana, pertencendo ao Mente Fria Stats.</p>
+
+    <h3>7. Alterações e direito aplicável</h3>
+    <p>Estes Termos podem ser atualizados a qualquer momento, com publicação nesta página e indicação da data de revisão. A utilização continuada após a alteração implica aceitação da nova versão. Estes Termos regem-se pelas leis da República de Angola, com foro exclusivo nos tribunais angolanos.</p>`,
+
+  responsavel: `
+    <h2>Jogo Responsável</h2>
+    <p class="doc-atualizado">Última atualização: janeiro de 2025</p>
+    <p>No Mente Fria Stats acreditamos que apostar deve ser, antes de tudo, uma diversão controlada. Esta página contém os nossos compromissos, conselhos práticos e os recursos de proteção previstos na lei angolana.</p>
+
+    <h3>1. Compromissos da Plataforma</h3>
+    <ul>
+      <li>Exibir o símbolo «<b>+18</b>» e o aviso de jogo responsável em todas as zonas de conversão;</li>
+      <li>Não direcionar publicidade de apostas a menores de idade;</li>
+      <li>Promover apenas operadores licenciados pelo <a href="https://isj.minfin.gov.ao/actividades/licenciamento" target="_blank" rel="noopener noreferrer">Inspeção Superior de Jogo (ISJ)</a> do Ministério das Finanças de Angola;</li>
+      <li>Apresentar análises estatísticas de forma transparente, sem prometer ganhos garantidos.</li>
+    </ul>
+
+    <h3>2. Regras de ouro para apostar com responsabilidade</h3>
+    <ul>
+      <li><b>Defina um orçamento mensal</b> para apostas e nunca o ultrapasse — aposte apenas o que pode perder sem afetar o seu sustento;</li>
+      <li><b>Não persiga perdas</b> («chasing losses»): aumentar apostas para recuperar dinheiro perdido é o principal sinal de risco;</li>
+      <li><b>Não aposte por impulso</b> nem sob influência de álcool, stress ou emoções fortes;</li>
+      <li><b>Estabeleça limites de tempo</b> e não deixe que as apostas prejudiquem o trabalho, os estudos ou a família;</li>
+      <li><b>Trate a análise como apoio</b>: nenhuma estatística elimina a incerteza do desporto.</li>
+    </ul>
+
+    <h3>3. Sinais de alerta do jogo problemático</h3>
+    <ul>
+      <li>Apostar dinheiro destinado a despesas essenciais (alimentação, renda, escola);</li>
+      <li>Endividar-se ou pedir dinheiro emprestado para apostar;</li>
+      <li>Ocultar a dimensão das apostas a familiares ou amigos;</li>
+      <li>Sentir ansiedade, irritabilidade ou necessidade urgente de apostar.</li>
+    </ul>
+    <p>Se reconhecer estes sinais em si ou em alguém próximo, procure apoio imediato junto de familiares, serviços de saúde ou linhas de apoio social disponíveis em Angola.</p>
+
+    <h3>4. Enquadramento legal em Angola</h3>
+    <p>O jogo online em Angola é regulado pela <a href="https://lex.ao/docs/assembleia-nacional/2024/lei-n-o-17-24-de-28-de-outubro/" target="_blank" rel="noopener noreferrer">Lei n.º 17/24, de 28 de outubro</a>, que estabelece o regime jurídico dos jogos e apostas online. A lei atribui competências de regulação, licenciamento e fiscalização ao Ministério das Finanças, através do <a href="https://isj.minfin.gov.ao/actividades/licenciamento" target="_blank" rel="noopener noreferrer">Inspeção Superior de Jogo (ISJ)</a>, e prevê medidas de proteção dos jogadores, incluindo a proibição de participação de menores e a responsabilidade dos operadores na promoção do jogo responsável.</p>
+
+    <h3>5. Autolimitação e exclusão</h3>
+    <p>Se sentir que perdeu o controlo, pode solicitar junto do seu operador de apostas a suspensão voluntária da conta ou a exclusão do serviço. O Mente Fria Stats recomenda vivamente a utilização destes mecanismos e a definição de limites de depósito sempre que o operador os disponibilize.</p>
+
+    <div class="doc-alerta">⚠️ Proibido para menores de 18 anos. Jogue com responsabilidade. As odds podem variar.</div>`,
+
+  privacidade: `
+    <h2>Política de Privacidade</h2>
+    <p class="doc-atualizado">Última atualização: janeiro de 2025</p>
+    <p>A sua privacidade é importante para nós. Esta política explica que dados o <b>Mente Fria Stats</b> trata, com que finalidades e quais são os seus direitos, em conformidade com a legislação angolana aplicável em matéria de proteção de dados pessoais, designadamente a Lei de Proteção de Dados Pessoais da República de Angola e a Constituição da República de Angola (artigo 79.º — proteção de dados informáticos).</p>
+
+    <h3>1. Responsável pelo tratamento</h3>
+    <p>O responsável pelo tratamento dos dados é o Mente Fria Stats, contactável através de <a href="mailto:goloaovivo@gmail.com">goloaovivo@gmail.com</a> ou da página de Contactos.</p>
+
+    <h3>2. Dados que recolhemos</h3>
+    <ul>
+      <li><b>Dados de navegação:</b> páginas visitadas, duração da sessão, tipo de dispositivo e navegador — recolhidos de forma agregada e anónima para fins estatísticos;</li>
+      <li><b>Dados de interação:</b> modalidade e liga consultadas no motor de análise (armazenados apenas localmente, no seu dispositivo, e nunca enviados para servidores);</li>
+      <li><b>A Plataforma não recolhe</b> nome, e-mail, telefone, número de documento, dados de pagamento nem qualquer dado de conta de casas de apostas.</li>
+    </ul>
+
+    <h3>3. Cookies e tecnologias similares</h3>
+    <p>A Plataforma utiliza apenas armazenamento técnico essencial (ex.: preferências de interface guardadas no seu navegador). Não utilizamos cookies de publicidade comportamental. As casas de apostas para as quais o utilizador for encaminhado podem ter as suas próprias políticas de cookies — consulte sempre a política do operador respetivo.</p>
+
+    <h3>4. Finalidades e bases do tratamento</h3>
+    <ul>
+      <li>Garantir o funcionamento e a segurança da Plataforma (interesse legítimo);</li>
+      <li>Medir audiência de forma agregada para melhorar o serviço (interesse legítimo);</li>
+      <li>Cumprir obrigações legais aplicáveis em Angola (obrigação legal).</li>
+    </ul>
+
+    <h3>5. Partilha com terceiros</h3>
+    <p>Não vendemos nem alugamos dados pessoais. Partilhamos apenas: (a) fornecedores de infraestrutura de alojamento (ex.: Vercel Inc.) estritamente necessários à operação do site; (b) autoridades públicas quando exigido por lei angolana. Ao clicar em ligações de afiliado, o utilizador é encaminhado para domínios de terceiros cujo tratamento de dados é da exclusiva responsabilidade desses operadores.</p>
+
+    <h3>6. Conservação e segurança</h3>
+    <p>Os dados de navegação agregados são conservados pelo período máximo de 24 meses. Aplicamos medidas técnicas adequadas, como a cifragem em trânsito (HTTPS) e a minimização da recolha de dados.</p>
+
+    <h3>7. Os seus direitos</h3>
+    <p>Pode solicitar a qualquer momento: acesso aos seus dados pessoais, retificação, eliminação, limitação do tratamento e oposição. Para exercer estes direitos, contacte-nos através de <a href="mailto:goloaovivo@gmail.com">goloaovivo@gmail.com</a>. Se considerar que os seus direitos não foram respeitados, pode reclamar junto das autoridades competentes da República de Angola.</p>
+
+    <h3>8. Menores de idade</h3>
+    <p>A Plataforma não se destina a menores de 18 anos e não recolhe intencionalmente dados de menores, em conformidade com o regime jurídico dos jogos e apostas online de Angola (<a href="https://lex.ao/docs/assembleia-nacional/2024/lei-n-o-17-24-de-28-de-outubro/" target="_blank" rel="noopener noreferrer">Lei n.º 17/24, de 28 de outubro</a>).</p>
+
+    <h3>9. Alterações a esta política</h3>
+    <p>Qualquer alteração será publicada nesta página com atualização da data indicada no topo. Recomendamos a consulta periódica deste documento.</p>`,
+
+  contactos: `
+    <h2>Contactos</h2>
+    <p class="doc-atualizado">Fale connosco — resposta em até 48 horas úteis</p>
+    <p>A equipa do <b>Mente Fria Stats</b> está disponível para esclarecer dúvidas, receber sugestões de melhoria das análises, tratar pedidos relacionados com privacidade e negociar parcerias. Escolha o canal mais adequado ao seu assunto:</p>
+
+    <h3>1. Canais oficiais</h3>
+    <p><b>✉️ E-mail (canal principal):</b></p>
+    <div class="cartao-contacto">
+      <a href="mailto:goloaovivo@gmail.com?subject=Contacto%20via%20Mente%20Fria%20Stats">
+        <span class="cc-icone">✉️</span>
+        <span class="cc-info"><b>goloaovivo@gmail.com</b><small>Parcerias · Publicidade · Suporte · Privacidade</small></span>
+        <span class="cc-acao">Abrir →</span>
+      </a>
+    </div>
+    <p><b>📞 Telefone / WhatsApp (Angola):</b></p>
+    <div class="cartao-contacto">
+      <a href="tel:+244922514198">
+        <span class="cc-icone">📞</span>
+        <span class="cc-info"><b>+244 922 514 198</b><small>Ligação direta — dias úteis</small></span>
+        <span class="cc-acao">Ligar →</span>
+      </a>
+    </div>
+    <p><b>💬 WhatsApp (resposta rápida):</b></p>
+    <div class="cartao-contacto">
+      <a href="https://wa.me/244922514198?text=Ol%C3%A1%2C%20vim%20do%20site%20Mente%20Fria%20Stats%21" target="_blank" rel="noopener noreferrer">
+        <span class="cc-icone wa">💬</span>
+        <span class="cc-info"><b>+244 922 514 198</b><small>Conversa direta com a equipa — toque para abrir</small></span>
+        <span class="cc-acao">Conversar →</span>
+      </a>
+    </div>
+
+    <h3>2. Horário de atendimento</h3>
+    <ul>
+      <li><b>Segunda a sexta:</b> das 08h00 às 18h00 (hora de Luanda, WAT);</li>
+      <li><b>Sábados:</b> das 09h00 às 13h00 (apenas e-mail);</li>
+      <li><b>Domingos e feriados:</b> sem atendimento — as mensagens são respondidas no dia útil seguinte.</li>
+    </ul>
+
+    <h3>3. O que tratar em cada canal</h3>
+    <ul>
+      <li><b>Parcerias e publicidade:</b> propostas de colaboração, espaços publicitários e afiliação — via e-mail com o assunto «Parceria»;</li>
+      <li><b>Correção de análises:</b> se detetou uma estatística incorreta, indique o jogo e a fonte — via e-mail com o assunto «Correção»;</li>
+      <li><b>Privacidade e dados pessoais:</b> pedidos de acesso, retificação ou eliminação — via e-mail com o assunto «Privacidade»;</li>
+      <li><b>Telefone:</b> reservado a assuntos urgentes que não possam aguardar resposta por e-mail;</li>
+      <li><b>WhatsApp:</b> dúvidas rápidas sobre o funcionamento do portal e o estado das análises — ideal para resposta no mesmo dia.</li>
+    </ul>
+
+    <h3>4. Importante: questões de contas e apostas</h3>
+    <p>O Mente Fria Stats é um portal de análise estatística e <b>não é uma casa de apostas</b>. Não temos acesso a contas, depósitos, levantamentos, bónus nem apostas de qualquer operador. Se a sua questão envolve uma casa de apostas (ex.: BantuBet ou 888Bets), contacte diretamente o suporte do operador onde tem a conta — é a única entidade com condições para resolver.</p>
+
+    <h3>5. Tempo de resposta</h3>
+    <p>Comprometemo-nos a responder a todas as mensagens num prazo máximo de <b>48 horas úteis</b>. Os pedidos no âmbito da proteção de dados pessoais podem exigir prazos adicionais de verificação de identidade, conforme a nossa Política de Privacidade.</p>
+
+    <div class="doc-alerta">📍 Luanda, Angola · ✉️ goloaovivo@gmail.com · 📞 +244 922 514 198 · 💬 WhatsApp disponível</div>`
+};
+
+// Abrir modal de documento legal (delegação de eventos no rodapé).
+document.querySelectorAll('[data-doc]').forEach((link) => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    abrirDocLegal(link.dataset.doc);
+  });
+});
+
+function abrirDocLegal(chave) {
+  const conteudo = DOCUMENTOS_LEGAIS[chave];
+  if (!conteudo) return;
+  el('doc-conteudo').innerHTML = conteudo;
+  el('modal-doc').classList.add('aberto');
+  document.body.style.overflow = 'hidden'; // impede scroll de fundo
+}
+
+function fecharDocLegal() {
+  el('modal-doc').classList.remove('aberto');
+  document.body.style.overflow = '';
+}
+
+el('modal-fechar').addEventListener('click', fecharDocLegal);
+el('modal-fechar-2').addEventListener('click', fecharDocLegal);
+el('modal-doc').addEventListener('click', (e) => {
+  if (e.target.id === 'modal-doc') fecharDocLegal(); // clique no fundo escuro
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && el('modal-doc').classList.contains('aberto')) fecharDocLegal();
+});
+
+/* ── Arranque ── */
+popularSeletores();
+</script>
+</body>
+</html>

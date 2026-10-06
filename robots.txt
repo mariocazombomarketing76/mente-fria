@@ -1,0 +1,11 @@
+# Mente Fria — robots.txt
+# Site estático de uma só finalidade: indexar as 4 páginas públicas.
+
+User-agent: *
+Allow: /
+
+# Nada de interesse público por aqui (backups e assets auxiliares).
+Disallow: /_arquivo/
+
+# Sitemap (substitua o domínio se publicar noutro endereço)
+Sitemap: https://goloaovivo.ao/sitemap.xml
