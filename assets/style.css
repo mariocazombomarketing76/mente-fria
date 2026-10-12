@@ -774,3 +774,307 @@ a:hover { text-decoration: underline; }
   .card-confronto { gap: 6px; }
   .linha-estatistica { font-size: 12.5px; }
 }
+
+
+/* ============================================================================
+   12. VISUAL DESPORTIVO (v4.2) — "terminal de mercados" / sala de apostas
+   Grelha técnica de fundo, barras de estatística, pílulas V/E/D, medidor
+   projeção-vs-linha e micro-animações. Tudo vanilla, sem dependências.
+   ========================================================================== */
+
+/* Grelha de fundo (senso de campo/terminal) por cima dos gradientes existentes */
+body {
+  background-image:
+    radial-gradient(900px 480px at 12% -12%, rgba(0, 212, 255, .10), transparent 62%),
+    radial-gradient(700px 420px at 96% -6%, rgba(255, 165, 0, .07), transparent 60%),
+    linear-gradient(rgba(0, 212, 255, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, .035) 1px, transparent 1px);
+  background-size: auto, auto, 46px 46px, 46px 46px;
+  background-attachment: fixed;
+}
+
+/* ---------------------------------------------------------------- HERO */
+.hero-etiqueta::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--verde);
+  box-shadow: 0 0 0 0 rgba(46, 160, 67, .65);
+  animation: pulsar-ponto 2.2s ease-out infinite;
+}
+
+@keyframes pulsar-ponto {
+  0% { box-shadow: 0 0 0 0 rgba(46, 160, 67, .65); }
+  70% { box-shadow: 0 0 0 11px rgba(46, 160, 67, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(46, 160, 67, 0); }
+}
+
+.hero h1, .hero h1 .destaque {
+  color: transparent;
+  background-image: linear-gradient(175deg, #ffffff 34%, #a6eaff 72%, #00d4ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.hero-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.hero-kpi {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1px solid var(--linha-forte);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .03);
+  color: var(--texto-fraco);
+  font-size: 12.5px;
+}
+
+.hero-kpi b { color: var(--texto); font-weight: 600; }
+
+/* --------------------------------------------------- PASSO 1 (desportos) */
+.btn-desporto {
+  position: relative;
+  overflow: hidden;
+  flex-direction: column;
+  gap: 4px;
+  padding: 26px 18px;
+  border-radius: 14px;
+  font-size: 17px;
+  background: linear-gradient(165deg, var(--bg-3), #11161e);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+}
+
+.btn-desporto > span[aria-hidden] { font-size: 27px; line-height: 1; }
+
+.btn-desporto small {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--fonte-texto);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--texto-fraco);
+}
+
+.btn-desporto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(320px 130px at 50% 118%, rgba(0, 212, 255, .22), transparent 72%);
+  opacity: 0;
+  transition: var(--transicao);
+  pointer-events: none;
+}
+
+.btn-desporto:hover::after { opacity: 1; }
+.btn-desporto:hover small { color: var(--texto-suave); }
+
+.btn-desporto[aria-pressed="true"] { box-shadow: inset 0 0 0 1px rgba(0, 212, 255, .3), 0 12px 30px -18px rgba(0, 212, 255, .8); }
+.btn-desporto[aria-pressed="true"] small { color: var(--ciano); }
+
+/* ------------------------------------------------- PASSO 2 (jogos do dia) */
+.jogo-card {
+  position: relative;
+  overflow: hidden;
+  border-left: 3px solid rgba(0, 212, 255, .5);
+  gap: 9px;
+}
+
+.jogo-card::before {
+  content: "";
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--ciano);
+  box-shadow: 0 0 14px rgba(0, 212, 255, .9);
+  opacity: 0;
+  transition: var(--transicao);
+}
+
+.jogo-card:hover { box-shadow: 0 14px 34px -20px rgba(0, 212, 255, .75); }
+.jogo-card:hover::before { opacity: 1; }
+
+.jogo-hora { font-weight: 700; }
+
+/* -------------------------------------------- CARD MATCH X-RAY (premium) */
+.card-xray {
+  animation: entrar-card .38s cubic-bezier(.2, .7, .3, 1) both;
+  box-shadow:
+    0 0 0 1px rgba(0, 212, 255, .10),
+    0 30px 60px -34px rgba(0, 212, 255, .35),
+    var(--sombra);
+}
+
+@keyframes entrar-card {
+  from { opacity: 0; transform: translateY(16px) scale(.99); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Varredura tipo "raio-X" a percorrer o card */
+.card-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 120px;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 212, 255, .13), rgba(0, 212, 255, 0));
+  animation: varrer-xray 6s cubic-bezier(.45, 0, .55, 1) infinite;
+}
+
+@keyframes varrer-xray {
+  0% { transform: translateY(-120px); }
+  60%, 100% { transform: translateY(620px); }
+}
+
+.card-equipa img, .card-equipa .iniciais {
+  box-shadow: 0 0 0 4px rgba(0, 212, 255, .07), 0 12px 26px -14px rgba(0, 0, 0, .9);
+}
+
+.card-vs {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--linha-forte);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 0%, rgba(0, 212, 255, .16), transparent 70%);
+  font-size: 12px;
+}
+
+/* Linhas de estatística com barra de intensidade */
+.linha-estatistica { display: block; padding: 12px; }
+
+.linha-topo { display: flex; align-items: center; gap: 10px; }
+
+.linha-estatistica .barra {
+  display: block;
+  height: 7px;
+  margin-top: 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .06);
+  overflow: hidden;
+}
+
+.linha-estatistica .barra-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(0, 212, 255, .35), var(--ciano));
+  box-shadow: 0 0 12px rgba(0, 212, 255, .55);
+  transition: width .5s cubic-bezier(.2, .7, .3, 1);
+}
+
+/* Pílulas V/E/D da forma recente */
+.pilulas { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+
+.pilula {
+  display: inline-grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-family: var(--fonte-dados);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.pilula.v { background: rgba(46, 160, 67, .16); color: #56d364; border-color: rgba(46, 160, 67, .42); }
+.pilula.e { background: rgba(139, 148, 158, .14); color: #9aa4b0; border-color: rgba(139, 148, 158, .35); }
+.pilula.d { background: rgba(248, 81, 73, .14); color: #ff7b72; border-color: rgba(248, 81, 73, .42); }
+
+/* Medidor: projecção estatística vs linha de referência */
+.card-projecao {
+  margin: 14px 18px 0;
+  padding: 13px 15px;
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  background: rgba(255, 255, 255, .02);
+}
+
+.projecao-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.projecao-topo .rotulo { color: var(--texto-suave); font-size: 12.5px; }
+.projecao-topo .mono { color: var(--ambar-forte); font-size: 12px; }
+
+.gauge {
+  position: relative;
+  height: 12px;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(0, 212, 255, .16), rgba(255, 165, 0, .16), rgba(248, 81, 73, .16));
+}
+
+.gauge-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(0, 212, 255, .28), rgba(0, 212, 255, .55));
+  border-right: 2px solid var(--ciano);
+  transition: width .5s cubic-bezier(.2, .7, .3, 1);
+}
+
+.gauge-marca {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--ambar);
+  box-shadow: 0 0 10px rgba(255, 165, 0, .85);
+}
+
+.gauge-legenda {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 9px;
+  font-family: var(--fonte-dados);
+  font-size: 11px;
+  color: var(--texto-fraco);
+}
+
+.gauge-legenda .destaque { color: var(--ciano); font-weight: 600; }
+
+/* Síntese com selo grande da tendência */
+.sintese-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 11px;
+  padding: 6px 15px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: var(--fonte-dados);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.sintese-tipo.mais { background: rgba(255, 165, 0, .14); color: var(--ambar-forte); border-color: rgba(255, 165, 0, .45); }
+.sintese-tipo.menos { background: rgba(0, 212, 255, .12); color: var(--ciano); border-color: rgba(0, 212, 255, .4); }
+.sintese-tipo.sem-dados { background: rgba(139, 148, 158, .12); color: var(--texto-suave); border-color: var(--linha-forte); }
+
+/* CTA mais imponente */
+.btn-cta { padding: 16px 20px; font-size: 15px; }
+.btn-cta:hover { transform: translateY(-2px); box-shadow: 0 16px 34px -16px rgba(255, 165, 0, .85); }
+
+/* Ajustes responsivos das peças novas */
+@media (max-width: 720px) {
+  .hero-kpi { font-size: 11.5px; padding: 7px 12px; }
+  .btn-desporto { padding: 22px 14px; font-size: 15.5px; }
+  .card-scan { animation-duration: 7s; }
+}

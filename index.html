@@ -88,6 +88,12 @@
           recente das duas equipas: média de golos/pontos marcados e sofridos nos últimos 5 jogos e a tendência
           de Mais/Menos. Depois é só partilhar no WhatsApp.
         </p>
+
+        <div class="hero-kpis">
+          <span class="hero-kpi">⚡ <b>Card em segundos</b> · 5 jogos cruzados por equipa</span>
+          <span class="hero-kpi">📈 <b>Números reais</b> · fonte pública ESPN</span>
+          <span class="hero-kpi">📲 <b>1 clique</b> · imagem pronta para o WhatsApp</span>
+        </div>
       </div>
     </section>
 
@@ -101,10 +107,12 @@
       <div class="painel-corpo">
         <div class="grelha-desportos" role="group" aria-label="Escolha do desporto">
           <button type="button" class="btn-desporto" data-desporto="futebol" aria-pressed="false">
-            <span aria-hidden="true">⚽</span> Futebol
+            <span aria-hidden="true">⚽</span>
+            <span>Futebol<small>Premier League · La Liga · Champions · CAF</small></span>
           </button>
           <button type="button" class="btn-desporto" data-desporto="nba" aria-pressed="false">
-            <span aria-hidden="true">🏀</span> NBA
+            <span aria-hidden="true">🏀</span>
+            <span>NBA<small>Temporada regular e playoffs · pontos por jogo</small></span>
           </button>
         </div>
       </div>
@@ -234,6 +242,10 @@ const ANALYTICS_WEBHOOK = "";
 
 /* Linha de referência Mais/Menos por desporto (configurável aqui). */
 const OVER_UNDER_LINE = { futebol: 2.5, nba: 220 };
+
+/* Escala máxima das barras do card (para as barras terem significado visual).
+   Futebol: 4 golos/jogo · NBA: 130 pontos/jogo. */
+const ESCALA_BARRA = { futebol: 4, nba: 130 };
 
 /* Quantos jogos recentes entram no cálculo das médias. */
 const JOGOS_ANALISADOS = 5;
@@ -710,6 +722,7 @@ function calcularEquipa(jogo, idEquipa, historico) {
   let vitorias = 0;
   let empates = 0;
   let derrotas = 0;
+  const letras = []; // V/E/D por jogo (ordem cronológica) — alimenta as pílulas do card
 
   historico.forEach((j) => {
     const emCasaJogo = j.casaId === idEquipa;
@@ -721,9 +734,9 @@ function calcularEquipa(jogo, idEquipa, historico) {
     (emCasaJogo ? emCasa : foraDeCasa).marcados.push(marcou);
     (emCasaJogo ? emCasa : foraDeCasa).sofridos.push(sofreu);
 
-    if (marcou > sofreu) vitorias++;
-    else if (marcou === sofreu) empates++;
-    else derrotas++;
+    if (marcou > sofreu) { vitorias++; letras.push("V"); }
+    else if (marcou === sofreu) { empates++; letras.push("E"); }
+    else { derrotas++; letras.push("D"); }
   });
 
   return {
@@ -732,6 +745,7 @@ function calcularEquipa(jogo, idEquipa, historico) {
     mediaSofridos: media(sofridos),
     mediaTotal: Math.round(media(marcados.concat(sofridos)) * 10) / 10,
     // Contagem de jogos em cada contexto (para o card mostrar o tamanho da amostra)
+    sequenciaJogos: letras,
     jogosEmCasa: emCasa.marcados.length,
     jogosFora: foraDeCasa.sofridos.length,
     mediaMarcadosEmCasa: media(emCasa.marcados),
@@ -873,16 +887,35 @@ function renderizarJogos(jogos) {
   });
 }
 
-/** Desenha o Card de Análise (Match X-Ray). */
+/** Desenha o Card de Análise (Match X-Ray) — versão desportiva (v4.2). */
 function renderizarCard(analise) {
   const jogo = analise.jogo;
   const unidade = analise.unidade;
 
-  // Cada número vem com o seu contexto ("em casa"/"fora") e o tamanho da
-  // amostra (n=), para o utilizador saber quantos jogos sustentam a estatística.
   const chipAmostra = (n) =>
     '<span class="amostra" title="N.º de jogos que sustentam este número">n=' + n + "</span>";
 
+  /* Barra de intensidade: valor comparado com a escala máxima do desporto. */
+  const barra = (valor) => {
+    const escala = ESCALA_BARRA[analise.desporto] || 4;
+    const pct = Math.max(6, Math.min(100, Math.round((valor / escala) * 100)));
+    return '<span class="barra"><span class="barra-fill" style="width:' + pct + '%"></span></span>';
+  };
+
+  /* Pílulas V/E/D (da mais recente para a mais antiga). */
+  const pilulas = (equipa) => {
+    if (!equipa || !equipa.sequenciaJogos || !equipa.sequenciaJogos.length) {
+      return '<span class="valor aviso">Dados insuficientes</span>';
+    }
+    return '<div class="pilulas">' +
+      equipa.sequenciaJogos.slice().reverse()
+        .map((l) => '<span class="pilula ' + l.toLowerCase() + '" title="Vitória/derrota/empate">' + l + "</span>")
+        .join("") +
+      "</div>";
+  };
+
+  // Cada número vem com o seu contexto ("em casa"/"fora") e o tamanho da
+  // amostra (n=), para o utilizador saber quantos jogos sustentam a estatística.
   const linhaCasaMarcados = analise.baseCasa
     ? '<span class="valor ciano">' + analise.baseCasa.valor + " " + unidade + "</span>" + chipAmostra(analise.baseCasa.n)
     : '<span class="valor aviso">Dados insuficientes</span>';
@@ -891,13 +924,8 @@ function renderizarCard(analise) {
     ? '<span class="valor ciano">' + analise.baseFora.valor + " " + unidade + "</span>" + chipAmostra(analise.baseFora.n)
     : '<span class="valor aviso">Dados insuficientes</span>';
 
-  const formaCasa = analise.casa
-    ? '<span class="valor">' + escaparHtml(sequencia(analise.casa)) + "</span>" + chipAmostra(analise.casa.jogos)
-    : '<span class="valor aviso">Dados insuficientes</span>';
-
-  const formaFora = analise.fora
-    ? '<span class="valor">' + escaparHtml(sequencia(analise.fora)) + "</span>" + chipAmostra(analise.fora.jogos)
-    : '<span class="valor aviso">Dados insuficientes</span>';
+  const formaCasa = analise.casa ? chipAmostra(analise.casa.jogos) : "";
+  const formaFora = analise.fora ? chipAmostra(analise.fora.jogos) : "";
 
   // Contexto real de cada média (a fonte nem sempre tem jogos em casa/fora).
   const contextoCasa = analise.baseCasa ? " " + analise.baseCasa.contexto : "";
@@ -912,6 +940,25 @@ function renderizarCard(analise) {
       JOGOS_ANALISADOS + " jogos.</p>"
     : "";
 
+  // Medidor: projecção estatística contra a linha de referência.
+  const blocoProjecao = (analise.projeccao !== null)
+    ? (function () {
+        const max = Math.max(analise.projeccao, analise.linha) * 1.4 || 1;
+        const pctProj = Math.min(100, (analise.projeccao / max) * 100);
+        const pctLinha = Math.min(100, (analise.linha / max) * 100);
+        return '<div class="card-projecao">' +
+          '<div class="projecao-topo"><span class="rotulo">🎯 Projecção vs linha</span>' +
+          '<span class="mono">linha ' + analise.linha + "</span></div>" +
+          '<div class="gauge">' +
+            '<span class="gauge-fill" style="width:' + pctProj.toFixed(1) + '%"></span>' +
+            '<span class="gauge-marca" style="left:' + pctLinha.toFixed(1) + '%"></span>' +
+          "</div>" +
+          '<div class="gauge-legenda"><span>0</span><span class="destaque">' +
+            analise.projeccao + " " + unidade + " projectados</span><span>" + max.toFixed(1) + "</span></div>" +
+        "</div>";
+      })()
+    : "";
+
   const sinteseTexto = analise.tendencia
     ? "Tendência: " + analise.tendencia + " de " + analise.linha + " " + unidade
     : "Dados insuficientes para esta análise";
@@ -921,8 +968,16 @@ function renderizarCard(analise) {
       " (média marcada pela casa + média sofrida pela visitante)"
     : "A fonte de dados não devolveu histórico suficiente para as duas equipas.";
 
+  // Selo grande da tendência (componente visual dominante da conclusão).
+  const badgeTendencia = analise.tendencia
+    ? '<span class="sintese-tipo ' + (analise.tendencia === "Mais" ? "mais" : "menos") + '">' +
+      analise.tendencia.toUpperCase() + " de " + analise.linha + " " + unidade + "</span>"
+    : '<span class="sintese-tipo sem-dados">DADOS INSUFICIENTES</span>';
+
   cardXray.innerHTML =
     '<article class="card-xray" id="card-analise">' +
+      '<span class="card-scan" aria-hidden="true"></span>' +
+
       '<header class="card-topo">' +
         '<span class="card-marca">🧠❄️ MENTE FRIA <small>· MATCH X-RAY</small></span>' +
         '<span class="card-desporto">' + (analise.desporto === "nba" ? "🏀 NBA" : "⚽ " + escaparHtml(jogo.liga)) + "</span>" +
@@ -942,20 +997,32 @@ function renderizarCard(analise) {
         (jogo.local ? " · " + escaparHtml(jogo.local) : "") + "</p>" +
 
       '<div class="card-estatisticas">' +
-        '<div class="linha-estatistica"><span class="rotulo">🏠 ' + escaparHtml(jogo.casa.nome) +
-          ": média marcada" + escaparHtml(contextoCasa) + " (últimos " + JOGOS_ANALISADOS + ")</span>" +
-          linhaCasaMarcados + "</div>" +
-        '<div class="linha-estatistica"><span class="rotulo">✈️ ' + escaparHtml(jogo.fora.nome) +
-          ": média sofrida" + escaparHtml(contextoFora) + " (últimos " + JOGOS_ANALISADOS + ")</span>" +
-          linhaForaSofridos + "</div>" +
-        '<div class="linha-estatistica"><span class="rotulo">📈 Forma ' + escaparHtml(jogo.casa.nome) + "</span>" + formaCasa + "</div>" +
-        '<div class="linha-estatistica"><span class="rotulo">📉 Forma ' + escaparHtml(jogo.fora.nome) + "</span>" + formaFora + "</div>" +
+        '<div class="linha-estatistica">' +
+          '<div class="linha-topo"><span class="rotulo">🏠 ' + escaparHtml(jogo.casa.nome) + ": média marcada" +
+            escaparHtml(contextoCasa) + " (últimos " + JOGOS_ANALISADOS + ")</span>" + linhaCasaMarcados + "</div>" +
+          (analise.baseCasa ? barra(analise.baseCasa.valor) : "") +
+        "</div>" +
+        '<div class="linha-estatistica">' +
+          '<div class="linha-topo"><span class="rotulo">✈️ ' + escaparHtml(jogo.fora.nome) + ": média sofrida" +
+            escaparHtml(contextoFora) + " (últimos " + JOGOS_ANALISADOS + ")</span>" + linhaForaSofridos + "</div>" +
+          (analise.baseFora ? barra(analise.baseFora.valor) : "") +
+        "</div>" +
+        '<div class="linha-estatistica">' +
+          '<div class="linha-topo"><span class="rotulo">📈 Forma ' + escaparHtml(jogo.casa.nome) + "</span>" + formaCasa + "</div>" +
+          pilulas(analise.casa) +
+        "</div>" +
+        '<div class="linha-estatistica">' +
+          '<div class="linha-topo"><span class="rotulo">📉 Forma ' + escaparHtml(jogo.fora.nome) + "</span>" + formaFora + "</div>" +
+          pilulas(analise.fora) +
+        "</div>" +
       "</div>" +
       notaAmostra +
+      blocoProjecao +
 
       '<div class="sintese">' +
         '<p class="sintese-titulo">Conclusão do Match X-Ray</p>' +
         '<p class="sintese-texto">' + escaparHtml(sinteseTexto) + "</p>" +
+        badgeTendencia +
         '<p class="sintese-sub">' + escaparHtml(sinteseSub) + "</p>" +
       "</div>" +
 
@@ -1139,9 +1206,9 @@ function desenharCardNoCanvas(analise) {
   // Layout vertical calculado a partir do número de linhas, para garantir que
   // as caixas não se sobrepõem nem saem da moldura (último texto a A - 70).
   const LINHA_ALTURA = 76;
-  const LINHA_PASSO = 88;
-  const Y_LINHAS = 545;
-  const ALTURA_CONCLUSAO = 160;
+  const LINHA_PASSO = 84;
+  const Y_LINHAS = 530;
+  const ALTURA_CONCLUSAO = 190;
   const ALTURA_AVISO = 160;
 
   let y = Y_LINHAS;
@@ -1190,10 +1257,27 @@ function desenharCardNoCanvas(analise) {
     : "Dados insuficientes";
   ctx.fillText(conclusao.length > 42 ? conclusao.slice(0, 40) + "…" : conclusao, L / 2, caixaY + 94);
 
+  // Medidor projecção-vs-linha (mesmo componente visual do ecrã).
   if (analise.projeccao !== null) {
-    ctx.fillStyle = "#8b949e";
-    ctx.font = '400 26px "Inter", sans-serif';
-    ctx.fillText("Projecção estatística: " + analise.projeccao + " " + unidade, L / 2, caixaY + 134);
+    const maxG = Math.max(analise.projeccao, analise.linha) * 1.4 || 1;
+    const gx = 150, gw = L - 300, gy = caixaY + 124, gh = 14;
+    const pctP = Math.min(1, analise.projeccao / maxG);
+    const pctL = Math.min(1, analise.linha / maxG);
+
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.fillRect(gx, gy, gw, gh);
+    ctx.fillStyle = "rgba(0,212,255,0.55)";
+    ctx.fillRect(gx, gy, gw * pctP, gh);
+    ctx.fillStyle = "#ffa500";
+    ctx.fillRect(gx + gw * pctL - 2, gy - 7, 4, gh + 14);
+
+    ctx.fillStyle = "#00d4ff";
+    ctx.font = '600 24px "Roboto Mono", monospace';
+    ctx.textAlign = "left";
+    ctx.fillText("PROJEÇÃO " + analise.projeccao + " " + unidade, gx, caixaY + 168);
+    ctx.fillStyle = "#ffa500";
+    ctx.textAlign = "right";
+    ctx.fillText("LINHA " + analise.linha, gx + gw, caixaY + 168);
   }
   ctx.textAlign = "left";
 
