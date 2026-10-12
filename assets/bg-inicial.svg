@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Futebol e basquetebol">
+  <defs>
+    <linearGradient id="div" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#00d4ff" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="#ffa500" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="pontosi" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="1.7" fill="#8b949e" fill-opacity=".28"/>
+    </pattern>
+    <radialGradient id="vf1" cx="20%" cy="55%" r="45%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity=".13"/><stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vf2" cx="82%" cy="55%" r="45%">
+      <stop offset="0%" stop-color="#ffa500" stop-opacity=".13"/><stop offset="100%" stop-color="#ffa500" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="#0d1117"/>
+  <rect width="1600" height="900" fill="url(#pontosi)" opacity=".55"/>
+  <rect width="1600" height="900" fill="url(#vf1)"/>
+  <rect width="1600" height="900" fill="url(#vf2)"/>
+
+  <!-- lado futebol -->
+  <g fill="none" stroke="#00d4ff" stroke-width="4">
+    <circle cx="-90" cy="450" r="430" stroke-opacity=".22"/>
+    <circle cx="150" cy="450" r="150" stroke-opacity=".15"/>
+    <line x1="-90" y1="450" x2="150" y2="450" stroke-opacity=".12"/>
+    <circle cx="255" cy="705" r="74" stroke-opacity=".38" stroke-width="3"/>
+    <g fill="#00d4ff" fill-opacity=".18" stroke="#00d4ff" stroke-opacity=".5" stroke-width="2.5">
+      <polygon points="255.0,645.8 276.1,661.1 268.0,686.0 242.0,686.0 233.9,661.1"/>
+      <polygon points="306.3,734.6 282.4,745.2 265.0,725.8 278.0,703.2 303.5,708.6"/>
+      <polygon points="203.7,734.6 206.5,708.6 232.0,703.2 245.0,725.8 227.6,745.2"/>
+    </g>
+  </g>
+
+  <!-- lado basket -->
+  <g fill="none" stroke="#ffa500" stroke-width="4">
+    <circle cx="1690" cy="450" r="430" stroke-opacity=".22"/>
+    <circle cx="1450" cy="450" r="150" stroke-opacity=".15"/>
+    <line x1="1450" y1="450" x2="1690" y2="450" stroke-opacity=".12"/>
+    <circle cx="1345" cy="705" r="74" stroke-opacity=".4" stroke-width="3"/>
+    <g stroke-width="3">
+      <line x1="1271" y1="705" x2="1419" y2="705"/>
+      <path d="M 1345 631 C 1370 664 1370 746 1345 779"/>
+      <path d="M 1345 631 C 1320 664 1320 746 1345 779"/>
+    </g>
+  </g>
+
+  <!-- divisória -->
+  <rect x="720" y="0" width="160" height="900" fill="url(#div)" opacity=".55"/>
+  <line x1="800" y1="70" x2="800" y2="830" stroke="#ffffff" stroke-opacity=".08" stroke-width="2" stroke-dasharray="15 17"/>
+  <circle cx="800" cy="170" r="52" fill="none" stroke="#e6edf3" stroke-opacity=".14" stroke-width="3"/>
+</svg>

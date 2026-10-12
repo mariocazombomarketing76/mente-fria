@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Campo de futebol">
+  <defs>
+    <radialGradient id="vf" cx="70%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#00d4ff" stop-opacity=".16"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="fade" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".85"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="pontosf" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="1.7" fill="#00d4ff" fill-opacity=".3"/>
+    </pattern>
+    <mask id="maskf"><rect width="1600" height="900" fill="url(#fade)"/></mask>
+  </defs>
+
+  <rect width="1600" height="900" fill="#0d1117"/>
+  <rect width="1600" height="900" fill="url(#vf)"/>
+  <rect width="1600" height="900" fill="url(#pontosf)" mask="url(#maskf)" opacity=".7"/>
+
+  <!-- linha lateral superior/inferior -->
+  <line x1="0" y1="130" x2="1600" y2="130" stroke="#ffffff" stroke-opacity=".05" stroke-width="2"/>
+  <line x1="0" y1="770" x2="1600" y2="770" stroke="#ffffff" stroke-opacity=".05" stroke-width="2"/>
+
+  <!-- campo inclinado -->
+  <g transform="translate(1215 445) rotate(-14)" stroke="#00d4ff" stroke-opacity=".26" stroke-width="4" fill="none">
+    <line x1="-760" y1="-400" x2="760" y2="-400"/>
+    <line x1="-760" y1="400" x2="760" y2="400"/>
+    <line x1="0" y1="-400" x2="0" y2="400" stroke-opacity=".2"/>
+    <circle cx="0" cy="0" r="245"/>
+    <circle cx="0" cy="0" r="9" fill="#00d4ff" stroke="none"/>
+    <rect x="-760" y="-250" width="290" height="500" stroke-opacity=".22"/>
+    <rect x="-760" y="-130" width="175" height="260" stroke-opacity=".15"/>
+    <circle cx="-470" cy="0" r="105" stroke-opacity=".18"/>
+    <line x1="-760" y1="-180" x2="-620" y2="-180" stroke-opacity=".14"/>
+    <line x1="-760" y1="180" x2="-620" y2="180" stroke-opacity=".14"/>
+    <circle cx="620" cy="0" r="245" stroke-opacity=".16"/>
+  </g>
+
+  <!-- bola -->
+  <g transform="translate(300 675)">
+    <circle r="188" fill="none" stroke="#00d4ff" stroke-opacity=".13" stroke-width="2" stroke-dasharray="11 15"/>
+    <circle r="134" fill="#0f1620" fill-opacity=".9" stroke="#00d4ff" stroke-opacity=".4" stroke-width="4"/>
+    <g fill="#00d4ff" fill-opacity=".2" stroke="#00d4ff" stroke-opacity=".55" stroke-width="3">
+      <polygon points="0.0,-107.2 38.2,-79.4 23.6,-34.5 -23.6,-34.5 -38.2,-79.4"/>
+      <polygon points="92.8,53.6 49.7,72.8 18.0,37.7 41.7,-3.2 87.9,6.6"/>
+      <polygon points="-92.8,53.6 -87.9,6.6 -41.7,-3.2 -18.0,37.7 -49.7,72.8"/>
+    </g>
+  </g>
+
+  <!-- canto: bandeira de canto -->
+  <g stroke="#00d4ff" stroke-opacity=".2" stroke-width="3" fill="none">
+    <line x1="60" y1="240" x2="60" y2="150"/>
+    <polygon points="60,150 120,172 60,194" fill="#00d4ff" fill-opacity=".18" stroke="none"/>
+    <path d="M 60 240 C 60 292 108 330 150 330"/>
+  </g>
+</svg>

@@ -1078,3 +1078,161 @@ body {
   .btn-desporto { padding: 22px 14px; font-size: 15.5px; }
   .card-scan { animation-duration: 7s; }
 }
+
+
+/* ============================================================================
+   13. FUNDO POR DESPORTO (v4.3) — imagens de futebol/basquetebol no fundo
+   ========================================================================== */
+.fundo-desporto {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity .55s ease;
+}
+
+body.fundo-inicial .fundo-desporto { opacity: .50; background-image: url("assets/bg-inicial.svg"); }
+body.fundo-futebol .fundo-desporto { opacity: .55; background-image: url("assets/bg-futebol.svg"); }
+body.fundo-nba .fundo-desporto     { opacity: .55; background-image: url("assets/bg-basket.svg"); }
+
+/* Veu escuro para o texto continuar legível por cima da imagem */
+.fundo-desporto::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 100vmax rgba(13, 17, 23, .42);
+}
+
+/* ============================================================================
+   14. FILTROS POR COMPETIÇÃO (chips)
+   ========================================================================== */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.chip-filtro {
+  padding: 7px 13px;
+  border: 1px solid var(--linha-forte);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .03);
+  color: var(--texto-suave);
+  font-family: var(--fonte-dados);
+  font-size: 11.5px;
+  letter-spacing: .03em;
+  cursor: pointer;
+  transition: var(--transicao);
+}
+
+.chip-filtro b { margin-left: 5px; color: var(--texto-fraco); font-size: 10.5px; font-weight: 600; }
+.chip-filtro:hover { border-color: var(--ciano); color: var(--ciano); }
+
+.chip-filtro.activo {
+  background: var(--ciano-fraco);
+  border-color: var(--ciano);
+  color: var(--ciano);
+  box-shadow: inset 0 0 0 1px rgba(0, 212, 255, .25);
+}
+.chip-filtro.activo b { color: var(--ciano); }
+
+/* ============================================================================
+   15. SPARKLINE — evolução marcados/sofridos dos últimos jogos
+   ========================================================================== */
+.spark { margin-top: 11px; }
+
+.spark svg {
+  display: block;
+  width: 100%;
+  height: 64px;
+  border: 1px solid var(--linha);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .02);
+}
+
+.spark-linha { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.spark-linha.mar { stroke: var(--ciano); }
+.spark-linha.sof { stroke: var(--vermelho); stroke-dasharray: 5 4; }
+.spark-area { fill: rgba(0, 212, 255, .10); stroke: none; }
+
+.spark-legenda {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  font-family: var(--fonte-dados);
+  font-size: 10.5px;
+  color: var(--texto-fraco);
+}
+.spark-legenda .p-mar { color: var(--ciano); }
+.spark-legenda .p-sof { color: #ff7b72; }
+.spark-legenda .p-max { margin-left: auto; }
+
+/* ============================================================================
+   16. NÚMERO GIGANTE DA PROJEÇÃO (placar) + medidor ao lado
+   ========================================================================== */
+.card-projecao { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; }
+
+.projecao-num {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 116px;
+  padding-right: 16px;
+  border-right: 1px solid var(--linha);
+}
+
+.projecao-valor {
+  font-family: var(--fonte-dados);
+  font-size: clamp(2.4rem, 9vw, 3.1rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.02em;
+  color: var(--ciano);
+  text-shadow: 0 0 28px rgba(0, 212, 255, .38);
+  font-variant-numeric: tabular-nums;
+}
+
+.projecao-un { margin-top: 5px; font-family: var(--fonte-dados); font-size: 12px; color: var(--texto-suave); }
+.projecao-rot { margin-top: 7px; font-family: var(--fonte-dados); font-size: 9.5px; letter-spacing: .1em; color: var(--texto-fraco); }
+
+@media (max-width: 560px) {
+  .card-projecao { grid-template-columns: 1fr; gap: 12px; }
+  .projecao-num { flex-direction: row; align-items: baseline; gap: 9px; min-width: 0; padding: 0 0 10px; border-right: 0; border-bottom: 1px solid var(--linha); }
+  .projecao-rot { width: 100%; }
+}
+
+/* ============================================================================
+   17. CORES DAS EQUIPAS no card (identidade de cada jogo)
+   ========================================================================== */
+.card-confronto {
+  background:
+    radial-gradient(170px 120px at 20% 46%, rgba(var(--cor-casa-rgb, 0, 212, 255), .22), transparent 72%),
+    radial-gradient(170px 120px at 80% 46%, rgba(var(--cor-fora-rgb, 255, 165, 0), .22), transparent 72%);
+}
+
+.card-equipa::after {
+  content: "";
+  width: 54px;
+  height: 4px;
+  border-radius: 3px;
+  background: var(--cor-casa, var(--ciano));
+  box-shadow: 0 0 12px rgba(var(--cor-casa-rgb, 0, 212, 255), .55);
+}
+
+.card-equipa.fora::after {
+  background: var(--cor-fora, var(--ambar));
+  box-shadow: 0 0 12px rgba(var(--cor-fora-rgb, 255, 165, 0), .55);
+}
+
+.card-equipa.casa img, .card-equipa.casa .iniciais {
+  box-shadow: 0 0 0 4px rgba(var(--cor-casa-rgb, 0, 212, 255), .18), 0 12px 26px -14px rgba(0, 0, 0, .9);
+}
+
+.card-equipa.fora img, .card-equipa.fora .iniciais {
+  box-shadow: 0 0 0 4px rgba(var(--cor-fora-rgb, 255, 165, 0), .18), 0 12px 26px -14px rgba(0, 0, 0, .9);
+}

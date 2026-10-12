@@ -23,7 +23,10 @@ mente-fria/
 ├── assets/
 │   ├── style.css            → CSS partilhado pelas 4 páginas
 │   ├── favicon.svg          → favicon (floco de neve ciano na aba do navegador)
-│   └── og-image.png         → imagem estática 1200×630 para og:image/twitter:image
+│   ├── og-image.png         → imagem estática 1200×630 para og:image/twitter:image
+│   ├── bg-inicial.svg        → fundo da página inicial (futebol + basquetebol)
+│   ├── bg-futebol.svg        → fundo quando o utilizador escolhe ⚽ Futebol
+│   └── bg-basket.svg         → fundo quando o utilizador escolhe 🏀 NBA
 ├── tools/
 │   └── gerar-og-image.js    → script que (re)gera o og-image.png (só para manutenção)
 ├── vercel.json              → configuração de deploy/cabeçalhos na Vercel
@@ -87,7 +90,7 @@ const JOGOS_ANALISADOS = 5;
 
 ### Eventos de analytics registados
 
-`desporto_escolhido`, `jogo_escolhido`, `card_gerado`, `clique_cta_apostar`,
+`desporto_escolhido`, `filtro_liga`, `jogo_escolhido`, `card_gerado`, `clique_cta_apostar`,
 `partilha_whatsapp` (com o modo: `nativo_com_imagem` ou `descarga_mais_wa_me`),
 `partilha_whatsapp_cancelada`, `partilha_whatsapp_erro` e `clique_rodape_legal`.
 
@@ -199,6 +202,25 @@ Antes de publicar, substitua `https://goloaovivo.ao` em `SITE_URL`, no `robots.t
 `tools/gerar-og-image.js` pelo domínio real.
 
 ---
+
+## 🎨 Camada visual (v4.2 + v4.3)
+
+Tudo vanilla, sem bibliotecas:
+
+| Peça | O que faz |
+|---|---|
+| **Fundo por desporto** | `body.fundo-inicial / fundo-futebol / fundo-nba` trocam a imagem de fundo (SVG próprio, ~3 KB cada) com transição suave; vêu escuro para o texto continuar legível |
+| **Cores das equipas** | `team.color` da ESPN → `--cor-casa` / `--cor-fora` no card (halo no escudo, barra sob o nome, gradiente no confronto) e **barras de cor na imagem partilhada**. Cores escuras (ex.: preto) caem para as cores-padrão do tema |
+| **Barras de intensidade** | cada média mostra uma barra proporcional (escala: 4 golos · 130 pontos) |
+| **Pílulas V/E/D** | forma recente em blocos coloridos, do mais recente para o mais antigo |
+| **Sparkline** | gráfico SVG inline com a série *marcados* (ciano) e *sofridos* (vermelho tracejado) dos últimos jogos + máximo |
+| **Número gigante da projecção** | contagem animada até ao valor final (respeta `prefers-reduced-motion`) ao lado do medidor projecção-vs-linha |
+| **Filtros por competição** | chips "Todas · Premier · La Liga · …" acima da lista, com contagem de jogos |
+
+> As imagens de fundo são **SVG desenhado de raiz** (campo, quadra e bolas) — nada de
+> fotografias de terceiros, pelo que não há questões de licença nem peso extra
+> (3 KB cada). Se quiser fotografias reais, usa imagens com licença livre e coloca-as
+> em `assets/` referenciadas no CSS.
 
 ## 🖼️ Imagem de partilha do link (og:image)
 

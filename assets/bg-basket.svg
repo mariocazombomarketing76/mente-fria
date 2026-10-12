@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Campo de basquetebol">
+  <defs>
+    <radialGradient id="vb" cx="70%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#ffa500" stop-opacity=".17"/>
+      <stop offset="100%" stop-color="#ffa500" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="fadeb" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".85"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="pontosb" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="1.7" fill="#ffa500" fill-opacity=".3"/>
+    </pattern>
+    <mask id="maskb"><rect width="1600" height="900" fill="url(#fadeb)"/></mask>
+  </defs>
+
+  <rect width="1600" height="900" fill="#0d1117"/>
+  <rect width="1600" height="900" fill="url(#vb)"/>
+  <rect width="1600" height="900" fill="url(#pontosb)" mask="url(#maskb)" opacity=".7"/>
+
+  <line x1="0" y1="130" x2="1600" y2="130" stroke="#ffffff" stroke-opacity=".05" stroke-width="2"/>
+  <line x1="0" y1="770" x2="1600" y2="770" stroke="#ffffff" stroke-opacity=".05" stroke-width="2"/>
+
+  <!-- meia-campo inclinado -->
+  <g transform="translate(1160 455) rotate(12)" stroke-width="4" fill="none">
+    <g stroke="#ffa500" stroke-opacity=".26">
+      <line x1="-780" y1="-400" x2="780" y2="-400"/>
+      <line x1="-780" y1="400" x2="780" y2="400"/>
+      <line x1="-780" y1="-400" x2="-780" y2="400"/>
+      <line x1="0" y1="-400" x2="0" y2="400"/>
+      <circle cx="0" cy="0" r="178"/>
+      <circle cx="0" cy="0" r="8" fill="#ffa500" stroke="none"/>
+    </g>
+    <!-- pintura -->
+    <g stroke="#00d4ff" stroke-opacity=".26">
+      <rect x="-780" y="-155" width="310" height="310"/>
+      <circle cx="-470" cy="0" r="155" stroke-opacity=".2"/>
+      <line x1="-780" y1="-330" x2="-470" y2="-330" stroke-opacity=".3"/>
+      <line x1="-780" y1="330" x2="-470" y2="330" stroke-opacity=".3"/>
+      <path d="M -470 -330 C -240 -230 -240 230 -470 330" stroke-opacity=".3"/>
+      <line x1="-780" y1="-160" x2="-700" y2="-160" stroke-opacity=".35"/>
+      <line x1="-780" y1="160" x2="-700" y2="160" stroke-opacity=".35"/>
+    </g>
+    <!-- cesta -->
+    <g stroke="#ff7b72" stroke-opacity=".3">
+      <circle cx="-770" cy="0" r="34"/>
+      <line x1="-770" y1="-34" x2="-700" y2="-34" stroke-opacity=".2"/>
+      <line x1="-770" y1="34" x2="-700" y2="34" stroke-opacity=".2"/>
+    </g>
+  </g>
+
+  <!-- bola -->
+  <g transform="translate(340 640)">
+    <circle r="188" fill="none" stroke="#ffa500" stroke-opacity=".13" stroke-width="2" stroke-dasharray="11 15"/>
+    <circle r="134" fill="#151a22" fill-opacity=".92" stroke="#ffa500" stroke-opacity=".45" stroke-width="4"/>
+    <g fill="none" stroke="#ffa500" stroke-opacity=".5" stroke-width="3.5">
+      <line x1="-134" y1="0" x2="134" y2="0"/>
+      <path d="M 0 -134 C 44 -72 44 72 0 134"/>
+      <path d="M 0 -134 C -44 -72 -44 72 0 134"/>
+      <path d="M -122 -58 C -52 -22 -52 22 -122 58" stroke-opacity=".32"/>
+      <path d="M 122 -58 C 52 -22 52 22 122 58" stroke-opacity=".32"/>
+    </g>
+  </g>
+</svg>

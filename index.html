@@ -46,7 +46,10 @@
 
   <link rel="stylesheet" href="assets/style.css" />
 </head>
-<body>
+<body class="fundo-inicial">
+
+  <!-- Fundo com imagem do desporto (futebol / NBA / inicial). Decorativo. -->
+  <div class="fundo-desporto" aria-hidden="true"></div>
 
   <!-- ============================ CABEÇALHO ============================ -->
   <header class="cabecalho">
@@ -134,6 +137,7 @@
 
       <div class="painel-corpo">
         <div id="zona-estado-jogos"></div>
+        <div class="filtros" id="filtros-ligas" role="group" aria-label="Filtrar jogos por competição" hidden></div>
         <div class="lista-jogos" id="lista-jogos"></div>
       </div>
     </section>
@@ -274,6 +278,8 @@ const ESTADO = {
   data: null,          // YYYY-MM-DD seleccionado
   jogo: null,          // jogo escolhido (normalizado)
   analise: null,       // análise calculada (alimenta o card e a imagem)
+  jogos: [],           // jogos do dia já carregados (alimenta os filtros)
+  filtro: "todas",     // competição seleccionada nos filtros
   pedido: 0            // contador para ignorar respostas de pedidos antigos
 };
 
@@ -430,6 +436,35 @@ async function pedirJsonComCache(url) {
    3. JOGOS DO DIA (passo 2)
    ------------------------------------------------------------------------ */
 
+/**
+ * Converte uma cor da ESPN (hex sem "#") em cor CSS utilizável.
+ * Protege contra valores vazios/inválidos e contra cores demasiado escuras
+ * (ex.: preto no fundo escuro) — nesse caso tenta a cor alternativa.
+ */
+function corUtil(primaria, alternativa) {
+  const limpar = (v) => {
+    const h = String(v || "").replace("#", "").trim();
+    if (/^[0-9a-fA-F]{3}$/.test(h)) h = h.split("").map((c) => c + c).join("");
+    return /^[0-9a-fA-F]{6}$/.test(h) ? h.toLowerCase() : null;
+  };
+  const luminancia = (h) =>
+    (0.2126 * parseInt(h.slice(0, 2), 16) + 0.7152 * parseInt(h.slice(2, 4), 16) + 0.0722 * parseInt(h.slice(4, 6), 16)) / 255;
+
+  const p = limpar(primaria);
+  if (p && luminancia(p) >= 0.22) return "#" + p;
+  const a = limpar(alternativa);
+  if (a && luminancia(a) >= 0.22) return "#" + a;
+  // Sem cor utilizável (ex.: preto puro): o card usa as cores-padrão do tema.
+  return null;
+}
+
+/** Hex "#rrggbb" -> triplo "r,g,b" (para rgba() no CSS). */
+function hexParaRgb(hex) {
+  const h = String(hex || "").replace("#", "");
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return "0, 212, 255";
+  return parseInt(h.slice(0, 2), 16) + ", " + parseInt(h.slice(2, 4), 16) + ", " + parseInt(h.slice(4, 6), 16);
+}
+
 /** Normaliza um evento da ESPN para o formato interno da aplicação. */
 function normalizarJogo(evento, competicao) {
   const competicaoEvento = (evento.competitions && evento.competitions[0]) || {};
@@ -449,12 +484,14 @@ function normalizarJogo(evento, competicao) {
     local: (competicaoEvento.venue && competicaoEvento.venue.fullName) || "",
     casa: {
       id: String(casa.team && casa.team.id || casa.id),
+      cor: corUtil(casa.team && casa.team.color, casa.team && casa.team.alternateColor),
       nome: (casa.team && (casa.team.displayName || casa.team.name)) || "Equipa da casa",
       abrev: (casa.team && casa.team.abbreviation) || "",
       escudo: (casa.team && casa.team.logos && casa.team.logos[0] && casa.team.logos[0].href) || ""
     },
     fora: {
       id: String(fora.team && fora.team.id || fora.id),
+      cor: corUtil(fora.team && fora.team.color, fora.team && fora.team.alternateColor),
       nome: (fora.team && (fora.team.displayName || fora.team.name)) || "Equipa visitante",
       abrev: (fora.team && fora.team.abbreviation) || "",
       escudo: (fora.team && fora.team.logos && fora.team.logos[0] && fora.team.logos[0].href) || ""
@@ -746,6 +783,7 @@ function calcularEquipa(jogo, idEquipa, historico) {
     mediaTotal: Math.round(media(marcados.concat(sofridos)) * 10) / 10,
     // Contagem de jogos em cada contexto (para o card mostrar o tamanho da amostra)
     sequenciaJogos: letras,
+    serie: { marcados: marcados.slice(), sofridos: sofridos.slice() },
     jogosEmCasa: emCasa.marcados.length,
     jogosFora: foraDeCasa.sofridos.length,
     mediaMarcadosEmCasa: media(emCasa.marcados),
@@ -766,6 +804,34 @@ function escolherMedia(valorContexto, nContexto, valorGeral, nGeral, rotuloConte
   if (nContexto >= 2) return { valor: valorContexto, n: nContexto, contexto: rotuloContexto };
   if (nGeral >= 2) return { valor: valorGeral, n: nGeral, contexto: rotuloGeral };
   return null;
+}
+
+/**
+ * Sparkline dos últimos jogos de uma equipa (opção "gráfico de tendência").
+ * Linha ciano = marcados, linha vermelha = sofridos, área suave sob a de marcados.
+ * Desenhado em SVG inline — sem bibliotecas.
+ */
+function sparkline(equipa, nome) {
+  const serieA = (equipa && equipa.serie && equipa.serie.marcados) || [];
+  const serieB = (equipa && equipa.serie && equipa.serie.sofridos) || [];
+  if (serieA.length < 2) return "";
+
+  const W = 300, H = 64, PAD = 5;
+  const max = Math.max.apply(null, serieA.concat(serieB).concat([1]));
+  const px = (i, n) => (n === 1 ? W / 2 : (i / (n - 1)) * (W - 2 * PAD) + PAD);
+  const py = (v) => H - PAD - (v / max) * (H - 2 * PAD);
+  const pontos = (serie) => serie.map((v, i) => px(i, serie.length).toFixed(1) + "," + py(v).toFixed(1)).join(" ");
+  const area = PAD + "," + (H - PAD) + " " + pontos(serieA) + " " + (W - PAD) + "," + (H - PAD);
+
+  return '<div class="spark">' +
+    '<svg viewBox="0 0 ' + W + " " + H + '" preserveAspectRatio="none" role="img" aria-label="Evolução de ' +
+      escaparHtml(nome) + " nos últimos " + serieA.length + " jogos (máximo " + max + ')">' +
+      '<polygon class="spark-area" points="' + area + '" />' +
+      '<polyline class="spark-linha sof" points="' + pontos(serieB) + '" vector-effect="non-scaling-stroke" />' +
+      '<polyline class="spark-linha mar" points="' + pontos(serieA) + '" vector-effect="non-scaling-stroke" />' +
+    "</svg>" +
+    '<span class="spark-legenda"><span class="p-mar">━ marcados</span><span class="p-sof">━ sofridos</span>' +
+    '<span class="p-max">máx. ' + max + "</span></span></div>";
 }
 
 /** Orquestra a análise completa de um jogo (o "Match X-Ray"). */
@@ -862,11 +928,49 @@ function htmlEscudo(equipa) {
     'data-iniciais="' + iniciais + '" data-classe="jogo-escudo-iniciais" />';
 }
 
-/** Desenha a lista de jogos do dia. */
+/** Desenha a lista de jogos do dia (guarda-os para alimentar os filtros). */
 function renderizarJogos(jogos) {
+  ESTADO.jogos = jogos || [];
+  ESTADO.filtro = "todas";
+  desenharFiltros();
+  desenharLista();
+}
+
+/** Constrói os chips de filtro por competição (só aparece com 2+ ligas). */
+function desenharFiltros() {
+  const zona = el("filtros-ligas");
+  const ligas = [];
+  ESTADO.jogos.forEach((j) => { if (ligas.indexOf(j.liga) === -1) ligas.push(j.liga); });
+
+  if (ligas.length < 2) { zona.hidden = true; zona.innerHTML = ""; return; }
+
+  const contagem = (liga) => liga === "todas"
+    ? ESTADO.jogos.length
+    : ESTADO.jogos.filter((j) => j.liga === liga).length;
+
+  const chip = (valor, rotulo) =>
+    '<button type="button" class="chip-filtro' + (ESTADO.filtro === valor ? " activo" : "") +
+      '" data-filtro="' + escaparHtml(valor) + '" aria-pressed="' + (ESTADO.filtro === valor) + '">' +
+      escaparHtml(rotulo) + " <b>" + contagem(valor) + "</b></button>";
+
+  zona.innerHTML = chip("todas", "Todas") + ligas.map((l) => chip(l, l)).join("");
+  zona.hidden = false;
+}
+
+/** Desenha a lista já filtrada pela competição escolhida. */
+function desenharLista() {
   listaJogos.innerHTML = "";
 
-  jogos.forEach((jogo) => {
+  const visiveis = ESTADO.filtro === "todas"
+    ? ESTADO.jogos
+    : ESTADO.jogos.filter((j) => j.liga === ESTADO.filtro);
+
+  if (!visiveis.length) {
+    mostrarEstadoJogos("Nenhum jogo de <strong>" + escaparHtml(ESTADO.filtro) + "</strong> neste dia. Escolhe outra competição.");
+    return;
+  }
+
+  visiveis.forEach((jogo) => {
     const botao = document.createElement("button");
     botao.type = "button";
     botao.className = "jogo-card";
@@ -946,15 +1050,23 @@ function renderizarCard(analise) {
         const max = Math.max(analise.projeccao, analise.linha) * 1.4 || 1;
         const pctProj = Math.min(100, (analise.projeccao / max) * 100);
         const pctLinha = Math.min(100, (analise.linha / max) * 100);
+        const casas = analise.desporto === "nba" ? 0 : 1;
         return '<div class="card-projecao">' +
-          '<div class="projecao-topo"><span class="rotulo">🎯 Projecção vs linha</span>' +
-          '<span class="mono">linha ' + analise.linha + "</span></div>" +
-          '<div class="gauge">' +
-            '<span class="gauge-fill" style="width:' + pctProj.toFixed(1) + '%"></span>' +
-            '<span class="gauge-marca" style="left:' + pctLinha.toFixed(1) + '%"></span>' +
+          '<div class="projecao-num">' +
+            '<span class="projecao-valor" data-alvo="' + analise.projeccao + '" data-casas="' + casas + '">0</span>' +
+            '<span class="projecao-un">' + unidade + "</span>" +
+            '<span class="projecao-rot">PROJEÇÃO · últimos ' + JOGOS_ANALISADOS + " jogos</span>" +
           "</div>" +
-          '<div class="gauge-legenda"><span>0</span><span class="destaque">' +
-            analise.projeccao + " " + unidade + " projectados</span><span>" + max.toFixed(1) + "</span></div>" +
+          '<div class="projecao-gauge">' +
+            '<div class="projecao-topo"><span class="rotulo">🎯 Contra a linha de referência</span>' +
+            '<span class="mono">linha ' + analise.linha + "</span></div>" +
+            '<div class="gauge">' +
+              '<span class="gauge-fill" style="width:' + pctProj.toFixed(1) + '%"></span>' +
+              '<span class="gauge-marca" style="left:' + pctLinha.toFixed(1) + '%"></span>' +
+            "</div>" +
+            '<div class="gauge-legenda"><span>0</span><span class="destaque">' + max.toFixed(1) +
+              " " + unidade + "</span></div>" +
+          "</div>" +
         "</div>";
       })()
     : "";
@@ -974,8 +1086,14 @@ function renderizarCard(analise) {
       analise.tendencia.toUpperCase() + " de " + analise.linha + " " + unidade + "</span>"
     : '<span class="sintese-tipo sem-dados">DADOS INSUFICIENTES</span>';
 
+  // Cores das equipas (opção "identidade visual por jogo") + espírito desportivo.
+  const estiloCores = "--cor-casa:" + (jogo.casa.cor || "#00d4ff") +
+    ";--cor-casa-rgb:" + hexParaRgb(jogo.casa.cor) +
+    ";--cor-fora:" + (jogo.fora.cor || "#ffa500") +
+    ";--cor-fora-rgb:" + hexParaRgb(jogo.fora.cor || "#ffa500") + ";";
+
   cardXray.innerHTML =
-    '<article class="card-xray" id="card-analise">' +
+    '<article class="card-xray" id="card-analise" style="' + estiloCores + '">' +
       '<span class="card-scan" aria-hidden="true"></span>' +
 
       '<header class="card-topo">' +
@@ -1009,11 +1127,11 @@ function renderizarCard(analise) {
         "</div>" +
         '<div class="linha-estatistica">' +
           '<div class="linha-topo"><span class="rotulo">📈 Forma ' + escaparHtml(jogo.casa.nome) + "</span>" + formaCasa + "</div>" +
-          pilulas(analise.casa) +
+          pilulas(analise.casa) + sparkline(analise.casa, jogo.casa.nome) +
         "</div>" +
         '<div class="linha-estatistica">' +
           '<div class="linha-topo"><span class="rotulo">📉 Forma ' + escaparHtml(jogo.fora.nome) + "</span>" + formaFora + "</div>" +
-          pilulas(analise.fora) +
+          pilulas(analise.fora) + sparkline(analise.fora, jogo.fora.nome) +
         "</div>" +
       "</div>" +
       notaAmostra +
@@ -1040,6 +1158,7 @@ function renderizarCard(analise) {
 
   zonaCard.hidden = false;
   activarFallbackEscudos(cardXray);
+  animarProjecao();
 
   // Eventos do card
   el("btn-partilhar").addEventListener("click", partilharWhatsApp);
@@ -1058,6 +1177,36 @@ function renderizarCard(analise) {
   });
 
   zonaCard.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/**
+ * Faz o número gigante da projecção "contar" até ao valor final.
+ * Respeita prefers-reduced-motion (define o valor final de imediato).
+ */
+function animarProjecao() {
+  const alvo = cardXray.querySelector(".projecao-valor");
+  if (!alvo) return;
+
+  const final = parseFloat(alvo.dataset.alvo);
+  const casas = parseInt(alvo.dataset.casas, 10) || 0;
+  if (!isFinite(final)) return;
+
+  const reduzir = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduzir || typeof requestAnimationFrame !== "function") {
+    alvo.textContent = final.toFixed(casas);
+    return;
+  }
+
+  const inicio = performance.now();
+  const duracao = 750;
+  const passo = (agora) => {
+    const t = Math.min(1, (agora - inicio) / duracao);
+    const suave = 1 - Math.pow(1 - t, 3);
+    alvo.textContent = (final * suave).toFixed(casas);
+    if (t < 1) requestAnimationFrame(passo);
+    else alvo.textContent = final.toFixed(casas);
+  };
+  requestAnimationFrame(passo);
 }
 
 /** Escudo maior, para o card (com fallback para iniciais). */
@@ -1160,6 +1309,12 @@ function desenharCardNoCanvas(analise) {
   ctx.font = '400 26px "Roboto Mono", monospace';
   ctx.fillText("CASA", 290, 400);
   ctx.fillText("FORA", 790, 400);
+
+  // Barras com as cores de cada equipa (a mesma identidade do card do ecrã)
+  ctx.fillStyle = jogo.casa.cor || "#00d4ff";
+  ctx.fillRect(290 - 75, 430, 150, 5);
+  ctx.fillStyle = jogo.fora.cor || "#ffa500";
+  ctx.fillRect(790 - 75, 430, 150, 5);
 
   ctx.fillStyle = "#6e7681";
   ctx.font = '700 34px "Roboto Mono", monospace';
@@ -1429,6 +1584,9 @@ async function escolherDesporto(desporto) {
   painelJogos.hidden = false;
   cache.clear(); // evita reutilizar respostas de outro desporto
 
+  // Fundo do ecrã passa a mostrar o desporto escolhido.
+  document.body.className = desporto === "nba" ? "fundo-nba" : "fundo-futebol";
+
   trackEvent("desporto_escolhido", { desporto: desporto });
 
   await carregarDia(ESTADO.data || hojeISO(), true);
@@ -1547,6 +1705,16 @@ zonaEstadoJogos.addEventListener("click", (evento) => {
     return;
   }
   if (evento.target.closest("#btn-procurar-jornada")) procurarProximaJornada();
+});
+
+// Filtros por competição (opção "filtrar por liga").
+el("filtros-ligas").addEventListener("click", (evento) => {
+  const chip = evento.target.closest("[data-filtro]");
+  if (!chip) return;
+  ESTADO.filtro = chip.getAttribute("data-filtro");
+  desenharFiltros();
+  desenharLista();
+  trackEvent("filtro_liga", { filtro: ESTADO.filtro, total: ESTADO.jogos.length });
 });
 
 // Cliques no rodapé legal (métrica de interesse nos documentos legais).

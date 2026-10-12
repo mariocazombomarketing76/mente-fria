@@ -1,0 +1,8 @@
+# Ficheiros de entrega/manutenção — nunca entram no repositório.
+*.zip
+*.patch
+
+# Artefactos locais
+.DS_Store
+Thumbs.db
+node_modules/
