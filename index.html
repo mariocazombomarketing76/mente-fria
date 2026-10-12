@@ -18,9 +18,16 @@
   <meta property="og:title" content="Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
   <meta property="og:description" content="Cards de Análise Pré-Jogo com estatísticas reais dos últimos 5 jogos de Futebol e NBA. Tendência, forma recente e partilha no WhatsApp." />
   <meta property="og:url" content="https://goloaovivo.ao/" />
+  <!-- Open Graph image: é a imagem que aparece quando alguém partilha o LINK no WhatsApp -->
+  <meta property="og:image" content="https://goloaovivo.ao/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Mente Fria — Análise Pré-Jogo (Match X-Ray)" />
   <meta name="twitter:description" content="Estatísticas reais dos últimos 5 jogos, tendência de golos/pontos e partilha no WhatsApp. Futebol e NBA." />
+  <meta name="twitter:image" content="https://goloaovivo.ao/assets/og-image.png" />
+  <meta name="twitter:image:alt" content="Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
 
   <!--
     Content-Security-Policy (meta tag, porque o site é estático na Vercel).
@@ -696,17 +703,23 @@ function calcularEquipa(jogo, idEquipa, historico) {
 
   const marcados = [];
   const sofridos = [];
+  // Médias por contexto: jogos em casa e jogos fora (Secção 4 do prompt:
+  // "média marcada pela equipa da casa" / "média sofrida fora pela visitante").
+  const emCasa = { marcados: [], sofridos: [] };
+  const foraDeCasa = { marcados: [], sofridos: [] };
   let vitorias = 0;
   let empates = 0;
   let derrotas = 0;
 
   historico.forEach((j) => {
-    const emCasa = j.casaId === idEquipa;
-    const marcou = emCasa ? j.golosCasa : j.golosFora;
-    const sofreu = emCasa ? j.golosFora : j.golosCasa;
+    const emCasaJogo = j.casaId === idEquipa;
+    const marcou = emCasaJogo ? j.golosCasa : j.golosFora;
+    const sofreu = emCasaJogo ? j.golosFora : j.golosCasa;
 
     marcados.push(marcou);
     sofridos.push(sofreu);
+    (emCasaJogo ? emCasa : foraDeCasa).marcados.push(marcou);
+    (emCasaJogo ? emCasa : foraDeCasa).sofridos.push(sofreu);
 
     if (marcou > sofreu) vitorias++;
     else if (marcou === sofreu) empates++;
@@ -718,10 +731,27 @@ function calcularEquipa(jogo, idEquipa, historico) {
     mediaMarcados: media(marcados),
     mediaSofridos: media(sofridos),
     mediaTotal: Math.round(media(marcados.concat(sofridos)) * 10) / 10,
+    // Contagem de jogos em cada contexto (para o card mostrar o tamanho da amostra)
+    jogosEmCasa: emCasa.marcados.length,
+    jogosFora: foraDeCasa.sofridos.length,
+    mediaMarcadosEmCasa: media(emCasa.marcados),
+    mediaSofridosFora: media(foraDeCasa.sofridos),
     vitorias: vitorias,
     empates: empates,
     derrotas: derrotas
   };
+}
+
+/**
+ * Escolhe a média que vai para o card: prefere o contexto exacto (marcado em
+ * casa / sofrido fora) e só cai para a média geral quando não há pelo menos 2
+ * jogos nesse contexto. Devolve { valor, n, contexto } ou null (sem dados).
+ * O campo "n" mostra ao utilizador quantos jogos sustentam o número.
+ */
+function escolherMedia(valorContexto, nContexto, valorGeral, nGeral, rotuloContexto, rotuloGeral) {
+  if (nContexto >= 2) return { valor: valorContexto, n: nContexto, contexto: rotuloContexto };
+  if (nGeral >= 2) return { valor: valorGeral, n: nGeral, contexto: rotuloGeral };
+  return null;
 }
 
 /** Orquestra a análise completa de um jogo (o "Match X-Ray"). */
@@ -737,6 +767,20 @@ async function calcularAnalise(jogo) {
   const linha = OVER_UNDER_LINE[ESTADO.desporto];
   const unidade = UNIDADE[ESTADO.desporto];
 
+  // Números concretos que vão para o card (contexto casa/fora, com amostra).
+  const baseCasa = casa
+    ? escolherMedia(casa.mediaMarcadosEmCasa, casa.jogosEmCasa,
+                    casa.mediaMarcados, casa.jogos, "em casa", "em todos os jogos")
+    : null;
+  const baseFora = fora
+    ? escolherMedia(fora.mediaSofridosFora, fora.jogosFora,
+                    fora.mediaSofridos, fora.jogos, "fora", "em todos os jogos")
+    : null;
+
+  // Menor amostra usada no card (para avisar quando é reduzida).
+  const amostras = [baseCasa, baseFora].filter(Boolean).map((b) => b.n);
+  const amostraMinima = amostras.length ? Math.min.apply(null, amostras) : null;
+
   // Aviso obrigatório sempre visível no card.
   const aviso = "📊 Estatística baseada nos últimos " + JOGOS_ANALISADOS +
     " jogos. Tendência, não garantia. Aposta com responsabilidade.";
@@ -744,8 +788,8 @@ async function calcularAnalise(jogo) {
   // Tendência (Secção 3): média marcada pela casa + média sofrida pela visitante.
   let projeccao = null;
   let tendencia = null;
-  if (casa && fora) {
-    projeccao = Math.round((casa.mediaMarcados + fora.mediaSofridos) * 10) / 10;
+  if (baseCasa && baseFora) {
+    projeccao = Math.round((baseCasa.valor + baseFora.valor) * 10) / 10;
     tendencia = projeccao >= linha ? "Mais" : "Menos";
   }
 
@@ -756,6 +800,9 @@ async function calcularAnalise(jogo) {
     linha: linha,
     casa: casa,
     fora: fora,
+    baseCasa: baseCasa,
+    baseFora: baseFora,
+    amostraMinima: amostraMinima,
     projeccao: projeccao,
     tendencia: tendencia,
     aviso: aviso,
@@ -831,21 +878,39 @@ function renderizarCard(analise) {
   const jogo = analise.jogo;
   const unidade = analise.unidade;
 
-  const linhaCasaMarcados = analise.casa
-    ? '<span class="valor ciano">' + analise.casa.mediaMarcados + " " + unidade + "</span>"
+  // Cada número vem com o seu contexto ("em casa"/"fora") e o tamanho da
+  // amostra (n=), para o utilizador saber quantos jogos sustentam a estatística.
+  const chipAmostra = (n) =>
+    '<span class="amostra" title="N.º de jogos que sustentam este número">n=' + n + "</span>";
+
+  const linhaCasaMarcados = analise.baseCasa
+    ? '<span class="valor ciano">' + analise.baseCasa.valor + " " + unidade + "</span>" + chipAmostra(analise.baseCasa.n)
     : '<span class="valor aviso">Dados insuficientes</span>';
 
-  const linhaForaSofridos = analise.fora
-    ? '<span class="valor ciano">' + analise.fora.mediaSofridos + " " + unidade + "</span>"
+  const linhaForaSofridos = analise.baseFora
+    ? '<span class="valor ciano">' + analise.baseFora.valor + " " + unidade + "</span>" + chipAmostra(analise.baseFora.n)
     : '<span class="valor aviso">Dados insuficientes</span>';
 
   const formaCasa = analise.casa
-    ? '<span class="valor">' + escaparHtml(sequencia(analise.casa)) + "</span>"
+    ? '<span class="valor">' + escaparHtml(sequencia(analise.casa)) + "</span>" + chipAmostra(analise.casa.jogos)
     : '<span class="valor aviso">Dados insuficientes</span>';
 
   const formaFora = analise.fora
-    ? '<span class="valor">' + escaparHtml(sequencia(analise.fora)) + "</span>"
+    ? '<span class="valor">' + escaparHtml(sequencia(analise.fora)) + "</span>" + chipAmostra(analise.fora.jogos)
     : '<span class="valor aviso">Dados insuficientes</span>';
+
+  // Contexto real de cada média (a fonte nem sempre tem jogos em casa/fora).
+  const contextoCasa = analise.baseCasa ? " " + analise.baseCasa.contexto : "";
+  const contextoFora = analise.baseFora ? " " + analise.baseFora.contexto : "";
+
+  // Aviso de amostra reduzida (o aviso legal obrigatório mantém-se intacto).
+  const notaAmostra = (analise.amostraMinima !== null && analise.amostraMinima < JOGOS_ANALISADOS)
+    ? '<p class="card-amostra">⚠️ Amostra reduzida: a média com menos dados usa apenas <strong>' +
+      analise.amostraMinima + " jogo" + (analise.amostraMinima === 1 ? "" : "s") +
+      "</strong> concluído" + (analise.amostraMinima === 1 ? "" : "s") +
+      ", pelo que estes números são uma indicação menos fiável do que uma média de " +
+      JOGOS_ANALISADOS + " jogos.</p>"
+    : "";
 
   const sinteseTexto = analise.tendencia
     ? "Tendência: " + analise.tendencia + " de " + analise.linha + " " + unidade
@@ -878,12 +943,15 @@ function renderizarCard(analise) {
 
       '<div class="card-estatisticas">' +
         '<div class="linha-estatistica"><span class="rotulo">🏠 ' + escaparHtml(jogo.casa.nome) +
-          ": média marcada (últimos " + JOGOS_ANALISADOS + ")</span>" + linhaCasaMarcados + "</div>" +
+          ": média marcada" + escaparHtml(contextoCasa) + " (últimos " + JOGOS_ANALISADOS + ")</span>" +
+          linhaCasaMarcados + "</div>" +
         '<div class="linha-estatistica"><span class="rotulo">✈️ ' + escaparHtml(jogo.fora.nome) +
-          ": média sofrida (últimos " + JOGOS_ANALISADOS + ")</span>" + linhaForaSofridos + "</div>" +
+          ": média sofrida" + escaparHtml(contextoFora) + " (últimos " + JOGOS_ANALISADOS + ")</span>" +
+          linhaForaSofridos + "</div>" +
         '<div class="linha-estatistica"><span class="rotulo">📈 Forma ' + escaparHtml(jogo.casa.nome) + "</span>" + formaCasa + "</div>" +
         '<div class="linha-estatistica"><span class="rotulo">📉 Forma ' + escaparHtml(jogo.fora.nome) + "</span>" + formaFora + "</div>" +
       "</div>" +
+      notaAmostra +
 
       '<div class="sintese">' +
         '<p class="sintese-titulo">Conclusão do Match X-Ray</p>' +
@@ -1039,16 +1107,33 @@ function desenharCardNoCanvas(analise) {
   ctx.textAlign = "left";
 
   // Estatísticas
-  const marcados = analise.casa ? analise.casa.mediaMarcados + " " + unidade : "dados insuficientes";
-  const sofridos = analise.fora ? analise.fora.mediaSofridos + " " + unidade : "dados insuficientes";
-  const formaCasa = analise.casa ? sequencia(analise.casa) : "dados insuficientes";
-  const formaFora = analise.fora ? sequencia(analise.fora) : "dados insuficientes";
+  // Etiquetas curtas: os nomes das equipas já vão em destaque no topo da imagem.
+  const etiquetaCasa = jogo.casa.abrev || iniciaisEquipa(jogo.casa.nome);
+  const etiquetaFora = jogo.fora.abrev || iniciaisEquipa(jogo.fora.nome);
+
+  // Contexto + tamanho da amostra, igual ao card do ecrã (n= jogos usados).
+  const sufixo = (b) =>
+    "(" + (b.contexto === "em casa" ? "casa" : b.contexto === "fora" ? "fora" : "todos") +
+    ", n=" + b.n + ")";
+
+  const marcados = analise.baseCasa
+    ? analise.baseCasa.valor + " " + unidade + " " + sufixo(analise.baseCasa)
+    : "dados insuficientes";
+  const sofridos = analise.baseFora
+    ? analise.baseFora.valor + " " + unidade + " " + sufixo(analise.baseFora)
+    : "dados insuficientes";
+  const formaCasa = analise.casa
+    ? sequencia(analise.casa) + " (n=" + analise.casa.jogos + ")"
+    : "dados insuficientes";
+  const formaFora = analise.fora
+    ? sequencia(analise.fora) + " (n=" + analise.fora.jogos + ")"
+    : "dados insuficientes";
 
   const linhas = [
-    ["🏠 " + jogo.casa.nome, "média marcada: " + marcados],
-    ["✈️ " + jogo.fora.nome, "média sofrida: " + sofridos],
-    ["📈 Forma " + jogo.casa.nome, formaCasa],
-    ["📉 Forma " + jogo.fora.nome, formaFora]
+    ["🏠 " + etiquetaCasa + " · média marcada", marcados],
+    ["✈️ " + etiquetaFora + " · média sofrida", sofridos],
+    ["📈 Forma da casa: " + etiquetaCasa, formaCasa],
+    ["📉 Forma de fora: " + etiquetaFora, formaFora]
   ];
 
   // Layout vertical calculado a partir do número de linhas, para garantir que
@@ -1150,6 +1235,27 @@ function canvasParaBlob(canvas) {
   });
 }
 
+/**
+ * Abre o WhatsApp numa nova separador sem depender de permissões de pop-up:
+ * um clique em âncora é naveração normal, enquanto window.open() é bloqueado
+ * por muitos navegadores quando já passou um gesto assíncrono do utilizador.
+ */
+function abrirWhatsApp(texto) {
+  const url = "https://wa.me/?text=" + encodeURIComponent(texto);
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (erro) {
+    console.warn("[PARTILHA] não foi possível abrir o WhatsApp:", erro);
+    window.location.href = url;
+  }
+}
+
 /** Descarrega a imagem gerada (fallback de desktop / navegadores antigos). */
 function descarregarImagem(blob, nome) {
   const url = URL.createObjectURL(blob);
@@ -1207,13 +1313,13 @@ async function partilharWhatsApp() {
       trackEvent("partilha_whatsapp", { modo: "nativo_com_imagem", jogo: analise.jogo.id });
     } else {
       descarregarImagem(blob, nomeFicheiro);
-      window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank", "noopener");
+      abrirWhatsApp(texto);
       trackEvent("partilha_whatsapp", { modo: "descarga_mais_wa_me", jogo: analise.jogo.id });
     }
   } catch (erro) {
     console.error("[PARTILHA] erro ao gerar a imagem:", erro);
     alert("Não foi possível gerar a imagem do card. Abrimos o WhatsApp com o texto da análise.");
-    window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank", "noopener");
+    abrirWhatsApp(texto);
     trackEvent("partilha_whatsapp_erro", { mensagem: String(erro.message || erro) });
   } finally {
     botao.disabled = false;

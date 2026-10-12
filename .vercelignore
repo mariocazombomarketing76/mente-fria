@@ -1,0 +1,6 @@
+# Mente Fria — ficheiros que NÃO são enviados para a Vercel.
+# Sem isto, a versão antiga do projecto (_arquivo/) e os ficheiros de
+# documentação são publicados à mesma e ficam acessíveis por URL directa.
+_arquivo/
+tools/
+README.md

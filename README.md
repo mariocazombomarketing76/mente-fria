@@ -15,15 +15,19 @@ para deploy gratuito na **Vercel**.
 ## 📁 Estrutura do projecto
 
 ```
-Golo Ao Vivo/
+mente-fria/
 ├── index.html               → gerador de Match X-Ray (página principal)
 ├── privacidade.html         → Política de Privacidade
 ├── termos.html              → Termos de Uso
 ├── jogo-responsavel.html    → Jogo Responsável
 ├── assets/
 │   ├── style.css            → CSS partilhado pelas 4 páginas
-│   └── favicon.svg          → favicon (floco de neve ciano na aba do navegador)
+│   ├── favicon.svg          → favicon (floco de neve ciano na aba do navegador)
+│   └── og-image.png         → imagem estática 1200×630 para og:image/twitter:image
+├── tools/
+│   └── gerar-og-image.js    → script que (re)gera o og-image.png (só para manutenção)
 ├── vercel.json              → configuração de deploy/cabeçalhos na Vercel
+├── .vercelignore            → impede o deploy de _arquivo/, tools/ e README.md
 ├── robots.txt               → indexação
 ├── sitemap.xml              → sitemap das 4 páginas
 ├── README.md                → este guia
@@ -99,9 +103,14 @@ por card gerado** — informação para decidir onde investir mais tempo.
    houver jogos suficientes (habitual na NBA fora de época), tenta-se a época anterior com
    `?season=AAAA`;
 3. Só entram jogos **terminados** com resultado válido; calculam-se:
-   - **média marcada** (equipa da casa) e **média sofrida** (equipa visitante) nos últimos 5 jogos;
+   - **média marcada em casa** (equipa da casa) e **média sofrida fora** (equipa
+     visitante) nos últimos 5 jogos — as médias usam o **contexto de jogo** sempre
+     que há pelo menos 2 jogos nesse contexto, e só então caem para a média geral
+     (o card indica qual dos dois está a ser usado);
    - **forma recente** (sequência de V/E/D em futebol, V/D em NBA);
-4. **Tendência:** `média marcada (casa) + média sofrida (visitante)` comparada com
+   - cada número é apresentado com o seu **tamanho de amostra** (`n=`) e, quando
+     `n < 5`, o card acrescenta um aviso de *amostra reduzida*;
+4. **Tendência:** `média marcada em casa + média sofrida fora` comparada com
    `OVER_UNDER_LINE` → «Tendência: Mais de X» ou «Tendência: Menos de X»;
 5. Se uma equipa não tiver histórico suficiente, o card mostra **«Dados insuficientes»** —
    nunca inventa números.
@@ -116,7 +125,8 @@ utilizador nunca fica com o ecrã bloqueado por causa de uma equipa sem dados.
 - **Telemóvel (Web Share API):** gera a imagem do card no `<canvas>` (1080×1350), converte
   em ficheiro PNG e abre o **menu nativo de partilha** com a imagem já anexada.
 - **Desktop / navegador sem suporte:** descarrega a imagem automaticamente e abre o
-  `wa.me` com o texto da análise, para anexar a imagem à mão.
+  `wa.me` com o texto da análise, para anexar a imagem à mão (aberto por clique em
+  âncora, para não ser bloqueado como *pop-up*).
 
 O aviso `📊 Estatística baseada nos últimos 5 jogos. Tendência, não garantia.` está sempre
 presente **dentro do card e dentro da imagem partilhada**.
@@ -176,7 +186,7 @@ or facilitation of illegal goods and services». Requisitos práticos:
 
 ```bash
 npm i -g vercel      # uma só vez
-cd "Golo Ao Vivo"
+cd mente-fria
 vercel               # preview
 vercel --prod        # produção
 ```
@@ -185,9 +195,25 @@ vercel --prod        # produção
 (Framework Preset: **Other**; sem build command; output = raiz do projecto).
 
 Antes de publicar, substitua `https://goloaovivo.ao` em `SITE_URL`, no `robots.txt`, no
-`sitemap.xml` e nas meta tags Open Graph pelo domínio real.
+`sitemap.xml`, nas meta tags Open Graph (incluindo `og:image`/`twitter:image`) e no
+`tools/gerar-og-image.js` pelo domínio real.
 
 ---
+
+## 🖼️ Imagem de partilha do link (og:image)
+
+O link do site partilhado no WhatsApp/Telegram/facebook usa `assets/og-image.png`
+(1200×630, gerada com o mesmo tema do site). Está referenciada em `og:image` e
+`twitter:image` nas 4 páginas — **sem esta imagem, o `twitter:card=summary_large_image`
+sai sem foto** e a partilha do link tem muito menos impacto.
+
+Para a regerar (só é preciso se mudar o visual):
+
+```bash
+cd tools && npm i canvas && node gerar-og-image.js ../assets/og-image.png
+```
+
+`tools/` está no `.vercelignore`, pelo que este script nunca é publicado.
 
 ## 💰 Google AdSense
 
