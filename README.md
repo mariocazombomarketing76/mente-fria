@@ -28,7 +28,8 @@ mente-fria/
 │   ├── bg-futebol.svg        → fundo quando o utilizador escolhe ⚽ Futebol
 │   └── bg-basket.svg         → fundo quando o utilizador escolhe 🏀 NBA
 ├── tools/
-│   └── gerar-og-image.js    → script que (re)gera o og-image.png (só para manutenção)
+│   ├── gerar-og-image.js    → script que (re)gera o og-image.png (só para manutenção)
+│   └── testes.js            → 67 verificações: offline + fluxo real + imagem partilhada
 ├── vercel.json              → configuração de deploy/cabeçalhos na Vercel
 ├── .vercelignore            → impede o deploy de _arquivo/, tools/ e README.md
 ├── robots.txt               → indexação
@@ -41,26 +42,38 @@ mente-fria/
 
 ## 🔌 Fonte de dados
 
-**ESPN** — API pública, **sem chave** e com CORS aberto (`site.api.espn.com`):
+Duas APIs públicas, **sem chave** e com CORS aberto — todo o cálculo é feito no
+navegador do utilizador, sem servidor e sem custos.
+
+**ESPN** (`site.api.espn.com`) — ligas internacionais e NBA:
 
 | Uso | Endpoint |
 |---|---|
 | Jogos do dia | `/apis/site/v2/sports/{desporto}/scoreboard?dates=AAAAMMDD` |
 | Últimos jogos de uma equipa | `/apis/site/v2/sports/{desporto}/teams/{id}/schedule` |
 
+**TheSportsDB** (`thesportsdb.com`, chave pública `123`) — **Girabola**, que a ESPN não publica:
+
+| Uso | Endpoint |
+|---|---|
+| Jogos do dia | `/api/v1/json/123/eventsday.php?d=AAAA-MM-DD&s=Soccer&l=5229` |
+| Jogos de uma ronda (histórico) | `/api/v1/json/123/eventsround.php?id=5229&r=N&s=AAAA-AAAA` |
+| Ronda em curso (reserva) | `/api/v1/json/123/eventsnextleague.php?id=5229` |
+
+> **Porquê por ronda?** A chave gratuita devolve no máximo **15 eventos** em
+> `eventsseason.php` e **1 resultado** em `eventslast.php` — não chega para a média dos
+> últimos 5 jogos. Cada ronda tem 8 jogos e cada equipa joga uma vez por ronda, pelo que
+> **as últimas 6 rondas em cache** cobrem os 5 jogos do cálculo: ~12 pedidos na primeira
+> análise e 0 (cache) nas seguintes. Se a fonte falhar, o card mostra «Dados
+> insuficientes» — nunca inventa números.
+>
+> A TheSportsDB **não publica cores** para os clubes angolanos: os cards do Girabola usam
+> as cores-padrão do tema (`--cor-casa` / `--cor-fora`).
+
 Competições consultadas (editáveis em `COMPETICOES`, no `index.html`):
 Premier League (`soccer/eng.1`), La Liga (`soccer/esp.1`), Champions League
-(`soccer/uefa.champions`), CAF Champions League (`soccer/caf.champions`) e NBA
-(`basketball/nba`).
-
-> **Nota sobre o Girabola:** a fonte pública da ESPN não publica a liga angolana, pelo que
-> o Girabola não aparece na lista. Se a ESPN passar a disponibilizar o código da liga,
-> basta acrescentar uma linha em `COMPETICOES.futebol`.
->
-> **Nota histórica:** a versão inicial deste projecto usava a TheSportsDB com a chave de
-> teste `123`. Essa chave devolve no máximo **1 resultado** em `eventslast.php` (o que torna
-> impossível calcular a média dos últimos 5 jogos) e responde **HTTP 429** ao fim de poucos
-> pedidos — por isso foi substituída pela ESPN.
+(`soccer/uefa.champions`), CAF Champions League (`soccer/caf.champions`),
+**Girabola** (`soccer/girabola` → TheSportsDB) e NBA (`basketball/nba`).
 
 ---
 
@@ -104,7 +117,9 @@ por card gerado** — informação para decidir onde investir mais tempo.
 1. Jogos do dia vindos do `scoreboard` da ESPN para a data escolhida;
 2. Para cada equipa do jogo, busca-se o histórico recente (`teams/{id}/schedule`); se não
    houver jogos suficientes (habitual na NBA fora de época), tenta-se a época anterior com
-   `?season=AAAA`;
+   `?season=AAAA`. **No Girabola** o histórico vem das **últimas 6 rondas**
+   (`eventsround.php?id=5229&r=…`), porque a chave gratuita da TheSportsDB limita os
+   outros endpoints;
 3. Só entram jogos **terminados** com resultado válido; calculam-se:
    - **média marcada em casa** (equipa da casa) e **média sofrida fora** (equipa
      visitante) nos últimos 5 jogos — as médias usam o **contexto de jogo** sempre
@@ -120,6 +135,27 @@ por card gerado** — informação para decidir onde investir mais tempo.
 
 Todos os pedidos usam `AbortController` com **timeout de 8s** e cache em memória, e o
 utilizador nunca fica com o ecrã bloqueado por causa de uma equipa sem dados.
+
+---
+
+## 🧪 Testes
+
+```bash
+cd tools && npm i && node testes.js
+```
+
+`tools/testes.js` corre **67 verificações** em três blocos:
+
+1. **offline** — CSP, `og:image`/`twitter:image` nas 4 páginas, aviso legal literal,
+   CTA `rel="sponsored"`, `.vercelignore`, HTML balanceado e sintaxe do JavaScript;
+2. **fluxo real** — abre o `index.html` num browser virtual (jsdom) e usa as **APIs
+   públicas a sério**: escolhe Futebol, filtra pela Girabola, gera o card de um jogo
+   real (média, amostra `n=`, tendência, aviso legal) e faz a regressão ESPN/NBA;
+3. **imagem partilhada** — desenha o canvas 1080×1350 e confirma que o aviso legal
+   está desenhado **dentro** da imagem.
+
+Requer rede (bate mesmo nas APIs) e `jsdom` + `canvas` locais — ambos em `tools/`,
+que está no `.vercelignore` e no `.gitignore` (`node_modules/`).
 
 ---
 

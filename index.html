@@ -37,7 +37,7 @@
       frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com;
     Para activar o webhook de analytics (n8n), acrescente o domínio em connect-src.
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://a.espncdn.com; connect-src 'self' https://site.api.espn.com https://sports.core.api.espn.com; frame-src 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://a.espncdn.com https://r2.thesportsdb.com; connect-src 'self' https://site.api.espn.com https://sports.core.api.espn.com https://www.thesportsdb.com; frame-src 'none'" />
 
   <!-- Tipografia: Inter (texto) + Roboto Mono (números/dados) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -94,7 +94,7 @@
 
         <div class="hero-kpis">
           <span class="hero-kpi">⚡ <b>Card em segundos</b> · 5 jogos cruzados por equipa</span>
-          <span class="hero-kpi">📈 <b>Números reais</b> · fonte pública ESPN</span>
+          <span class="hero-kpi">📈 <b>Números reais</b> · fontes públicas ESPN/TheSportsDB</span>
           <span class="hero-kpi">📲 <b>1 clique</b> · imagem pronta para o WhatsApp</span>
         </div>
       </div>
@@ -105,13 +105,13 @@
       <div class="painel-topo">
         <span class="painel-passo" aria-hidden="true">1</span>
         <h2 class="painel-titulo" id="titulo-passo-1">Escolhe o desporto</h2>
-        <span class="painel-nota">Dados de jogos do dia: ESPN (fonte pública)</span>
+        <span class="painel-nota">Dados de jogos do dia: ESPN + TheSportsDB (grátis)</span>
       </div>
       <div class="painel-corpo">
         <div class="grelha-desportos" role="group" aria-label="Escolha do desporto">
           <button type="button" class="btn-desporto" data-desporto="futebol" aria-pressed="false">
             <span aria-hidden="true">⚽</span>
-            <span>Futebol<small>Premier League · La Liga · Champions · CAF</small></span>
+            <span>Futebol<small>Premier League · La Liga · Champions · CAF · Girabola</small></span>
           </button>
           <button type="button" class="btn-desporto" data-desporto="nba" aria-pressed="false">
             <span aria-hidden="true">🏀</span>
@@ -224,7 +224,8 @@
    MENTE FRIA — index.html (gerador de Match X-Ray)
    Fluxo em 3 passos:
      1) escolher desporto  ->  2) escolher o jogo do dia  ->  3) Card de Análise
-   Fonte de dados: ESPN (site.api.espn.com) — API pública, sem chave, CORS aberto.
+   Fontes de dados: ESPN (site.api.espn.com) para as competições internacionais e
+   TheSportsDB (thesportsdb.com) para o Girabola — APIs públicas, sem chave, CORS aberto.
    Todo o cálculo estatístico é feito no browser, a partir dos jogos históricos.
    100% vanilla: sem frameworks e sem bibliotecas externas.
    ========================================================================== */
@@ -254,13 +255,20 @@ const ESCALA_BARRA = { futebol: 4, nba: 130 };
 /* Quantos jogos recentes entram no cálculo das médias. */
 const JOGOS_ANALISADOS = 5;
 
-/* Ligas/competições consultadas por desporto (códigos públicos da ESPN). */
+/* Fonte pública do Girabola — a ESPN não publica a liga angolana, por isso o
+   Campeonato Nacional vem da TheSportsDB (gratuita, sem chave, CORS aberto). */
+const API_TDB = "https://www.thesportsdb.com/api/v1/json/123/";
+const TDB_LIGA_GIRABOLA = "5229";
+
+/* Ligas/competições consultadas por desporto. Entradas sem "fonte" usam a ESPN;
+   a entrada com fonte: "tdb" usa a TheSportsDB. */
 const COMPETICOES = {
   futebol: [
     { slug: "soccer/eng.1",          nome: "Premier League" },
     { slug: "soccer/esp.1",          nome: "La Liga" },
     { slug: "soccer/uefa.champions", nome: "Champions League" },
-    { slug: "soccer/caf.champions",  nome: "CAF Champions League" }
+    { slug: "soccer/caf.champions",  nome: "CAF Champions League" },
+    { slug: "soccer/girabola",       nome: "Girabola", fonte: "tdb", ligaId: TDB_LIGA_GIRABOLA }
   ],
   nba: [
     { slug: "basketball/nba", nome: "NBA" }
@@ -499,13 +507,70 @@ function normalizarJogo(evento, competicao) {
   };
 }
 
+/**
+ * Converte um timestamp da TheSportsDB (YYYY-MM-DDTHH:MM:SS, sem fuso declarado)
+ * em ISO completo. A fonte grava as horas em UTC — por isso acrescenta "Z", para
+ * que a hora apresentada seja sempre a hora de Luanda.
+ */
+function isoTdb(evento) {
+  const bruto = evento.strTimestamp || ((evento.dateEvent || "") + "T" + (evento.strTime || "12:00:00"));
+  if (!evento.strTimestamp && !evento.dateEvent) return "";
+  return /(?:Z|[+-]\d{2}:?\d{2})$/.test(bruto) ? bruto : bruto + "Z";
+}
+
+/**
+ * Normaliza um evento da TheSportsDB (Girabola) para o formato interno da app —
+ * o mesmo formato produzido por normalizarJogo(), para que card, filtros e
+ * imagem partilhada funcionem sem qualquer alteração.
+ */
+function normalizarJogoTdb(evento, competicao) {
+  if (!evento.strHomeTeam || !evento.strAwayTeam) return null;
+
+  const jogado = evento.intHomeScore !== null && evento.intHomeScore !== undefined &&
+                 evento.intAwayScore !== null && evento.intAwayScore !== undefined;
+
+  return {
+    id: String(evento.idEvent),
+    fonte: "tdb",
+    liga: competicao.nome,
+    ligaSlug: competicao.slug,
+    // Ronda e época servem para ir buscar o histórico ao fim de poucos pedidos.
+    ronda: parseInt(evento.intRound, 10) || null,
+    temporada: evento.strSeason || null,
+    competicao: jogado ? "Final" : "Agendado",
+    dataISO: isoTdb(evento),
+    estado: jogado ? "post" : "pre",
+    local: evento.strVenue || "",
+    casa: {
+      id: String(evento.idHomeTeam || ""),
+      cor: null, // a TheSportsDB não publica cores por equipa: o card usa as cores do tema
+      nome: evento.strHomeTeam,
+      abrev: "",
+      escudo: evento.strHomeTeamBadge || ""
+    },
+    fora: {
+      id: String(evento.idAwayTeam || ""),
+      cor: null,
+      nome: evento.strAwayTeam,
+      abrev: "",
+      escudo: evento.strAwayTeamBadge || ""
+    }
+  };
+}
+
 /** Vai buscar os jogos de um dia para todas as competições do desporto. */
+/** URL da lista de jogos do dia (ESPN para as ligas internacionais, TDB para a Girabola). */
+function urlJogosDoDia(competicao, iso) {
+  if (competicao.fonte === "tdb") {
+    return API_TDB + "eventsday.php?d=" + iso + "&s=Soccer&l=" + competicao.ligaId;
+  }
+  return API_ESPN + competicao.slug + "/scoreboard?dates=" + paraEspn(iso);
+}
+
 async function carregarJogosDoDia(desporto, iso) {
   const competicoes = COMPETICOES[desporto] || [];
   const pedidos = competicoes.map((competicao) =>
-    pedirJsonComCache(
-      API_ESPN + competicao.slug + "/scoreboard?dates=" + paraEspn(iso)
-    )
+    pedirJsonComCache(urlJogosDoDia(competicao, iso))
       .then((dados) => ({ competicao: competicao, eventos: (dados && dados.events) || [] }))
       .catch((erro) => {
         console.warn("[DADOS] falha na competição " + competicao.nome + ":", erro.message);
@@ -517,8 +582,9 @@ async function carregarJogosDoDia(desporto, iso) {
 
   const jogos = [];
   resultados.forEach((r) => {
+    const tdb = r.competicao.fonte === "tdb";
     r.eventos.forEach((evento) => {
-      const jogo = normalizarJogo(evento, r.competicao);
+      const jogo = tdb ? normalizarJogoTdb(evento, r.competicao) : normalizarJogo(evento, r.competicao);
       if (jogo) jogos.push(jogo);
     });
   });
@@ -836,9 +902,13 @@ function sparkline(equipa, nome) {
 
 /** Orquestra a análise completa de um jogo (o "Match X-Ray"). */
 async function calcularAnalise(jogo) {
+  // Girabola: histórico pela TheSportsDB (rondas); restantes ligas: ESPN.
+  const girabola = jogo.fonte === "tdb";
   const [historicoCasa, historicoFora] = await Promise.all([
-    ultimosJogosEquipa(ESTADO.desporto, jogo.ligaSlug, jogo.casa.id),
-    ultimosJogosEquipa(ESTADO.desporto, jogo.ligaSlug, jogo.fora.id)
+    girabola ? historicoGirabola(jogo, jogo.casa.id)
+             : ultimosJogosEquipa(ESTADO.desporto, jogo.ligaSlug, jogo.casa.id),
+    girabola ? historicoGirabola(jogo, jogo.fora.id)
+             : ultimosJogosEquipa(ESTADO.desporto, jogo.ligaSlug, jogo.fora.id)
   ]);
 
   const casa = calcularEquipa(jogo, jogo.casa.id, historicoCasa);
@@ -888,6 +958,111 @@ async function calcularAnalise(jogo) {
     aviso: aviso,
     geradoEm: new Date().toISOString()
   };
+}
+
+/* ---------------------------------------------------------------------------
+   4b. GIRABOLA — histórico pela TheSportsDB (Secção 4: nunca inventa dados)
+
+   A ESPN não tem a liga angolana, por isso o Campeonato Nacional vem da
+   TheSportsDB. A chave gratuita devolve no máximo 15 eventos por época em
+   eventsseason.php, pelo que o histórico é pedido **por ronda** (eventsround.php):
+   cada ronda tem 8 jogos e cada equipa joga uma vez por ronda — bastam as
+   últimas 6 rondas para cobrir os 5 jogos do cálculo. Todos os pedidos ficam em
+   cache, pelo que analisar vários jogos da mesma ronda não repete pedidos.
+--------------------------------------------------------------------------- */
+
+/** Lê o resultado de um evento terminado da TheSportsDB (null se não for válido). */
+function resultadoTdb(evento) {
+  const golosCasa = parseInt(evento.intHomeScore, 10);
+  const golosFora = parseInt(evento.intAwayScore, 10);
+  if (isNaN(golosCasa) || isNaN(golosFora)) return null;
+  if (!evento.idHomeTeam || !evento.idAwayTeam) return null;
+
+  return {
+    data: isoTdb(evento) || (evento.dateEvent || "") + "T12:00:00Z",
+    casaId: String(evento.idHomeTeam),
+    foraId: String(evento.idAwayTeam),
+    golosCasa: golosCasa,
+    golosFora: golosFora
+  };
+}
+
+/** Ano inicial da época em curso (as épocas angolanas começam em Agosto). */
+function anoInicioEpoca() {
+  const agora = new Date();
+  return agora.getMonth() >= 7 ? agora.getFullYear() : agora.getFullYear() - 1;
+}
+
+/**
+ * Reserva para quando o evento do dia não trouxer a ronda: descobre a ronda em
+ * curso e a época através dos próximos jogos da liga (1 pedido, em cache).
+ */
+async function contextoGirabola() {
+  const dados = await pedirJsonComCache(API_TDB + "eventsnextleague.php?id=" + TDB_LIGA_GIRABOLA);
+  const eventos = (dados && dados.events) || [];
+  const rondas = eventos.map((e) => parseInt(e.intRound, 10)).filter((n) => n > 0);
+  const temporadas = eventos.map((e) => e.strSeason).filter(Boolean);
+
+  if (!rondas.length || !temporadas.length) return null;
+  return { ronda: Math.min.apply(null, rondas), temporada: temporadas.sort()[0] };
+}
+
+/**
+ * Últimos JOGOS_ANALISADOS jogos concluídos de uma equipa na Girabola.
+ * Devolve o mesmo formato de ultimosJogosEquipa() — e, como ela, devolve
+ * apenas o que a fonte realmente registou (sem jogos = lista vazia).
+ */
+async function historicoGirabola(jogo, equipaId) {
+  let ronda = jogo.ronda;
+  let temporada = jogo.temporada;
+
+  if (!ronda || !temporada) {
+    try {
+      const contexto = await contextoGirabola();
+      if (contexto) {
+        ronda = ronda || contexto.ronda;
+        temporada = temporada || contexto.temporada;
+      }
+    } catch (erro) {
+      console.warn("[DADOS] não foi possível identificar a ronda do Girabola:", erro.message);
+    }
+  }
+
+  let eventos = [];
+
+  if (ronda && temporada) {
+    // Últimas 6 rondas (inclui a ronda em curso, caso já haja resultados).
+    const rondas = [];
+    for (let r = ronda; r > ronda - (JOGOS_ANALISADOS + 1) && r >= 1; r--) rondas.push(r);
+
+    const respostas = await Promise.all(rondas.map((r) =>
+      pedirJsonComCache(API_TDB + "eventsround.php?id=" + TDB_LIGA_GIRABOLA +
+          "&r=" + r + "&s=" + encodeURIComponent(temporada))
+        .then((d) => (d && d.events) || [])
+        .catch((erro) => {
+          console.warn("[DADOS] falha na ronda " + r + " do Girabola:", erro.message);
+          return [];
+        })
+    ));
+    eventos = respostas.reduce((acc, lista) => acc.concat(lista), []);
+  } else {
+    // Última reserva: primeira página da época (a fonte devolve 15 eventos).
+    const ano = anoInicioEpoca();
+    const temporadas = [ano + "-" + (ano + 1), (ano - 1) + "-" + ano];
+    const respostas = await Promise.all(temporadas.map((s) =>
+      pedirJsonComCache(API_TDB + "eventsseason.php?id=" + TDB_LIGA_GIRABOLA + "&s=" + s)
+        .then((d) => (d && d.events) || [])
+        .catch(() => [])
+    ));
+    eventos = respostas.reduce((acc, lista) => acc.concat(lista), []);
+  }
+
+  return eventos
+    .map(resultadoTdb)
+    .filter(Boolean)
+    .filter((j) => j.casaId === equipaId || j.foraId === equipaId)
+    .sort((a, b) => new Date(a.data) - new Date(b.data))
+    .slice(-JOGOS_ANALISADOS);
 }
 
 /* ---------------------------------------------------------------------------
