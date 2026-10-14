@@ -55,7 +55,7 @@
   <header class="cabecalho">
     <div class="cabecalho-interno">
       <a class="marca" href="index.html" aria-label="Mente Fria — página inicial">
-        <span class="marca-simbolo" aria-hidden="true">🧠❄️</span>
+        <img class="marca-simbolo" src="assets/favicon.svg" alt="" width="34" height="34" />
         <span class="marca-texto">
           <span class="marca-nome">MENTE FRIA</span>
           <span class="marca-slogan">Não apostes no escuro. Aposta com a Mente Fria.</span>
@@ -98,6 +98,15 @@
           <span class="hero-kpi">📲 <b>1 clique</b> · imagem pronta para o WhatsApp</span>
         </div>
       </div>
+    </section>
+
+    <!-- ============== FAIXA DESPORTIVA (fotos desfocadas) ===============
+         Fotografias do operador em assets/faixa-futebol.jpg e assets/faixa-basket.jpg,
+         aplicadas com desfoque e vêu escuro (decorativa, sem conteúdo informativo). -->
+    <section class="faixa-desportiva" aria-hidden="true">
+      <span class="faixa-foto faixa-foto--futebol"></span>
+      <span class="faixa-foto faixa-foto--basket"></span>
+      <span class="faixa-vem"></span>
     </section>
 
     <!-- ==================== PASSO 1: DESPORTO ==================== -->
@@ -1272,7 +1281,7 @@ function renderizarCard(analise) {
       '<span class="card-scan" aria-hidden="true"></span>' +
 
       '<header class="card-topo">' +
-        '<span class="card-marca">🧠❄️ MENTE FRIA <small>· MATCH X-RAY</small></span>' +
+        '<span class="card-marca"><img class="card-marca-img" src="assets/favicon.svg" alt="" width="19" height="19" /> MENTE FRIA <small>· MATCH X-RAY</small></span>' +
         '<span class="card-desporto">' + (analise.desporto === "nba" ? "🏀 NBA" : "⚽ " + escaparHtml(jogo.liga)) + "</span>" +
       "</header>" +
 
