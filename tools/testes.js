@@ -85,6 +85,18 @@ async function principal() {
     ".vercelignore exclui _arquivo/, tools/ e README.md");
   ok(ler("sitemap.xml").includes("lastmod"), "sitemap.xml tem lastmod");
 
+  // Menu mobile (hambúrguer): o header tem de expor todos os links em ecrãs pequenos
+  ["index.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
+    const h = ler(f);
+    ok(h.includes('id="nav-principal"'), f + ": nav com id nav-principal");
+    ok(h.includes('class="menu-mobile-btn"') && h.includes('aria-controls="nav-principal"'),
+      f + ": botão hambúrguer ligado à nav (aria-controls)");
+  });
+  const cssMenu = ler("assets/style.css");
+  ok(cssMenu.includes(".cabecalho-nav[data-aberto]"), "CSS abre o painel mobile via [data-aberto]");
+  ok(/\.menu-mobile-btn \{[\s\S]*?display: inline-flex;/.test(cssMenu),
+     "botão hambúrguer visível abaixo de 720px");
+
   // HTML equilibrado (fora de <script>/<style>)
   ["index.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
     const corpo = ler(f)

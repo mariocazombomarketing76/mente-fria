@@ -46,13 +46,14 @@
           <span class="marca-slogan">Não apostes no escuro. Aposta com a Mente Fria.</span>
         </span>
       </a>
-      <nav class="cabecalho-nav" aria-label="Navegação principal">
+      <nav class="cabecalho-nav" id="nav-principal" aria-label="Navegação principal">
         <a href="index.html">Gerador</a>
-        <a href="jogo-responsavel.html" class="ocultar-mobile">Jogo Responsável</a>
-        <a href="termos.html" class="ocultar-mobile">Termos</a>
+        <a href="jogo-responsavel.html">Jogo Responsável</a>
+        <a href="termos.html">Termos</a>
         <a href="privacidade.html" aria-current="page">Privacidade</a>
-        <span class="selo-18" title="Conteúdo exclusivo para maiores de 18 anos">🔞 +18</span>
       </nav>
+      <span class="selo-18" title="Conteúdo exclusivo para maiores de 18 anos">🔞 +18</span>
+      <button class="menu-mobile-btn" type="button" aria-expanded="false" aria-controls="nav-principal" aria-label="Abrir menu de navegação">☰</button>
     </div>
   </header>
 
@@ -207,6 +208,29 @@
   </footer>
 
 <script>
+/* Menu mobile (hambúrguer): em ecrãs pequenos os links da barra abrem num painel. */
+(function () {
+  var btn = document.querySelector(".menu-mobile-btn");
+  var nav = document.getElementById("nav-principal");
+  if (!btn || !nav) return;
+  function fechar() {
+    nav.removeAttribute("data-aberto");
+    btn.setAttribute("aria-expanded", "false");
+    btn.setAttribute("aria-label", "Abrir menu de navegação");
+  }
+  btn.addEventListener("click", function () {
+    if (nav.hasAttribute("data-aberto")) { fechar(); return; }
+    nav.setAttribute("data-aberto", "");
+    btn.setAttribute("aria-expanded", "true");
+    btn.setAttribute("aria-label", "Fechar menu de navegação");
+  });
+  document.addEventListener("click", function (e) {
+    if (nav.hasAttribute("data-aberto") && !nav.contains(e.target) && e.target !== btn) fechar();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") fechar();
+  });
+})();
 /* Analytics do rodapé legal (mantém a métrica de interesse nos documentos). */
 const ANALYTICS_WEBHOOK = "";
 function trackEvent(nome, dados) {

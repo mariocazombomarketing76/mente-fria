@@ -110,6 +110,7 @@ a:hover { text-decoration: underline; }
 }
 
 .cabecalho-interno {
+  position: relative;           /* ancora o painel do menu mobile */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -160,6 +161,26 @@ a:hover { text-decoration: underline; }
 .cabecalho-nav a { color: var(--texto-suave); }
 .cabecalho-nav a:hover { color: var(--ciano); text-decoration: none; }
 .cabecalho-nav a[aria-current="page"] { color: var(--ciano); }
+
+/* Botão hambúrguer do telemóvel (escondido no desktop) */
+.menu-mobile-btn {
+  display: none;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--linha-forte);
+  border-radius: var(--raio);
+  background: transparent;
+  color: var(--texto);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.menu-mobile-btn:hover,
+.menu-mobile-btn:focus-visible { color: var(--ciano); border-color: var(--ciano); }
 
 .selo-18 {
   display: inline-flex;
@@ -824,7 +845,30 @@ a:hover { text-decoration: underline; }
    11. RESPONSIVO
    ------------------------------------------------------------------------ */
 @media (max-width: 720px) {
-  .cabecalho-nav .ocultar-mobile { display: none; }
+  /* Menu mobile: os links passam a um painel dropdown aberto pelo botão ☰ */
+  .menu-mobile-btn { display: inline-flex; }
+
+  .cabecalho-nav {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    min-width: 230px;
+    padding: 8px;
+    background: var(--bg-2);
+    border: 1px solid var(--linha);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra);
+    z-index: 70;
+  }
+
+  .cabecalho-nav[data-aberto] { display: flex; }
+  .cabecalho-nav a { padding: 10px 12px; border-radius: var(--raio); font-size: 14px; }
+  .cabecalho-nav a:hover { background: var(--ciano-fraco); }
+
   .painel-nota { display: none; }
   .card-equipa img, .card-equipa .iniciais { width: 38px; height: 38px; }
   .card-equipa-nome { font-size: 14px; }
