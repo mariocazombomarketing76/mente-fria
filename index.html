@@ -471,17 +471,18 @@ async function pedirJsonComCache(url) {
   const dados = await pedirJson(url);
   cache.set(url, dados);
   return dados;
-}
-
-// Função para buscar dados com Cache Inteligente (Dura1 hora)
+}// Função para buscar dados com Cache Inteligente (Dura1 hora)
 async function fetchWithCache(cacheKey, apiUrl, ttlHours = 1) {
     const now = new Date().getTime();
     const cachedData = localStorage.getItem(cacheKey);
 
     if (cachedData) {
-        const parsed = JSON.parse(cachedData);
+        // Cache corrompido não pode partir a página: trata-se como ausente.
+        let parsed = null;
+        try { parsed = JSON.parse(cachedData); }
+        catch (erroCache) { console.warn("Cache inválido (" + cacheKey + "):", erroCache.message); }
         // Se os dados tiverem menos de X horas, usa-os (ZERO chamadas à API)
-        if (now - parsed.timestamp < ttlHours * 60 * 60 * 1000) {
+        if (parsed && now - parsed.timestamp < ttlHours * 60 * 60 * 1000) {
             console.log(`[CACHE HIT] Usando dados guardados para: ${cacheKey}`);
             return parsed.data;
         }
@@ -490,15 +491,19 @@ async function fetchWithCache(cacheKey, apiUrl, ttlHours = 1) {
     // Se não houver cache ou estiver expirado, chama a API
     console.log(`[CACHE MISS] Buscando dados frescos da API para: ${cacheKey}`);
     try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error('Falha na API');
-        const data = await response.json();
+        // pedirJson mantém o timeout de 8 s e as mensagens de erro legíveis do site.
+        const data = await pedirJson(apiUrl);
 
-        // Guarda no localStorage com a hora atual
-        localStorage.setItem(cacheKey, JSON.stringify({
-            timestamp: now,
-            data: data
-        }));
+        // Guarda no localStorage com a hora atual; se a quota estiver cheia,
+        // os dados frescos continuam a ser devolvidos (só não ficam guardados).
+        try {
+            localStorage.setItem(cacheKey, JSON.stringify({
+                timestamp: now,
+                data: data
+            }));
+        } catch (erroEspaco) {
+            console.warn("localStorage sem espaço; dados usados sem guardar:", erroEspaco.message);
+        }
         return data;
     } catch (error) {
         console.error("Erro ao buscar dados:", error);
@@ -635,14 +640,23 @@ function urlJogosDoDia(competicao, iso) {
 
 async function carregarJogosDoDia(desporto, iso) {
   const competicoes = COMPETICOES[desporto] || [];
-  const pedidos = competicoes.map((competicao) =>
-    pedirJsonComCache(urlJogosDoDia(competicao, iso))
+  const pedidos = competicoes.map((competicao) => {
+    const url = urlJogosDoDia(competicao, iso);
+    // TheSportsDB (Girabola): cache persistente de 1 h por dia — chave
+    // "girabola_hoje_<data>" para o resultado não atravessar a meia-noite.
+    // A chave gratuita "123" é partilhada e limitada: cada visita repetida do
+    // mesmo dia faz ZERO pedidos. Se entrar outra competição tdb, acrescentar
+    // o ligaId à chave. ESPN: mantém a cache em memória da sessão.
+    const leitura = competicao.fonte === "tdb"
+      ? fetchWithCache("girabola_hoje_" + iso, url)
+      : pedirJsonComCache(url);
+    return leitura
       .then((dados) => ({ competicao: competicao, eventos: (dados && dados.events) || [] }))
       .catch((erro) => {
         console.warn("[DADOS] falha na competição " + competicao.nome + ":", erro.message);
         return { competicao: competicao, eventos: [], erro: erro.message };
-      })
-  );
+      });
+  });
 
   const resultados = await Promise.all(pedidos);
 
@@ -1064,7 +1078,8 @@ function anoInicioEpoca() {
  * curso e a época através dos próximos jogos da liga (1 pedido, em cache).
  */
 async function contextoGirabola() {
-  const dados = await pedirJsonComCache(API_TDB + "eventsnextleague.php?id=" + TDB_LIGA_GIRABOLA);
+  const dados = await fetchWithCache("girabola_contexto",
+    API_TDB + "eventsnextleague.php?id=" + TDB_LIGA_GIRABOLA, 6);
   const eventos = (dados && dados.events) || [];
   const rondas = eventos.map((e) => parseInt(e.intRound, 10)).filter((n) => n > 0);
   const temporadas = eventos.map((e) => e.strSeason).filter(Boolean);
@@ -1102,7 +1117,9 @@ async function historicoGirabola(jogo, equipaId) {
     for (let r = ronda; r > ronda - (JOGOS_ANALISADOS + 1) && r >= 1; r--) rondas.push(r);
 
     const respostas = await Promise.all(rondas.map((r) =>
-      pedirJsonComCache(API_TDB + "eventsround.php?id=" + TDB_LIGA_GIRABOLA +
+      // Rondas já terminadas não mudam; a ronda em curso muda ao fim do dia.
+      fetchWithCache("girabola_ronda_" + temporada + "_" + r,
+        API_TDB + "eventsround.php?id=" + TDB_LIGA_GIRABOLA +
           "&r=" + r + "&s=" + encodeURIComponent(temporada))
         .then((d) => (d && d.events) || [])
         .catch((erro) => {
@@ -1116,7 +1133,8 @@ async function historicoGirabola(jogo, equipaId) {
     const ano = anoInicioEpoca();
     const temporadas = [ano + "-" + (ano + 1), (ano - 1) + "-" + ano];
     const respostas = await Promise.all(temporadas.map((s) =>
-      pedirJsonComCache(API_TDB + "eventsseason.php?id=" + TDB_LIGA_GIRABOLA + "&s=" + s)
+      fetchWithCache("girabola_epoca_" + s,
+        API_TDB + "eventsseason.php?id=" + TDB_LIGA_GIRABOLA + "&s=" + s, 6)
         .then((d) => (d && d.events) || [])
         .catch(() => [])
     ));

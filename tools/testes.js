@@ -126,7 +126,12 @@ async function principal() {
     pretendToBeVisual: true,
     virtualConsole: vc,
     beforeParse(window) {
-      window.fetch = (url, opts) => { pedidos++; return global.fetch(url, opts); };
+      window.__pedidosTdb = 0;
+      window.fetch = (url, opts) => {
+        pedidos++;
+        if (String(url).indexOf("thesportsdb.com") !== -1) window.__pedidosTdb++;
+        return global.fetch(url, opts);
+      };
       window.AbortController = global.AbortController;
       if (!window.matchMedia) {
         window.matchMedia = () => ({ matches: false, addEventListener() {}, removeEventListener() {} });
@@ -196,6 +201,19 @@ async function principal() {
   ok(W.document.getElementById("lista-jogos").textContent.includes(girabola.casa.nome),
     "a lista mostra as equipas da Girabola");
 
+  // Cache persistente da TheSportsDB (fetchWithCache → localStorage)
+  const chaveDia = "girabola_hoje_2026-10-13";
+  let guardadoDia = null;
+  try { guardadoDia = JSON.parse(W.localStorage.getItem(chaveDia) || "null"); }
+  catch (e) { guardadoDia = null; }
+  ok(!!guardadoDia && Array.isArray(guardadoDia.data.events) && guardadoDia.data.events.length > 0,
+    "lista do dia guardada no localStorage (" + chaveDia + ")");
+  const tdbAntes = ev("window.__pedidosTdb");
+  await ev("carregarJogosDoDia('futebol', '2026-10-13')");
+  const tdbDepois = ev("window.__pedidosTdb");
+  ok(tdbDepois === tdbAntes,
+    "recarregar o mesmo dia não repete pedidos à TheSportsDB (" + tdbAntes + " → " + tdbDepois + ")");
+
   // Gera o card do jogo da Girabola
   ev("window.__jogoGirabola = ESTADO.jogos.find(j => j.liga === 'Girabola')");
   const pedidosAntes = pedidos;
@@ -216,6 +234,9 @@ async function principal() {
   ok(an.casa.vitorias + an.casa.empates + an.casa.derrotas === an.casa.jogos,
     "V+E+D batem certo com o número de jogos");
   ok(pedidosAnalise < 15, "análise da Girabola gasta menos de 15 pedidos (" + pedidosAnalise + ")");
+  const chavesRonda = Object.keys(W.localStorage).filter((k) => k.indexOf("girabola_ronda_") === 0);
+  ok(chavesRonda.length > 0,
+    "rondas do Girabola guardadas no localStorage (" + chavesRonda.length + " chaves)");
 
   const card = W.document.getElementById("card-analise").innerHTML;
   ok(card.includes("Aposta com responsabilidade."), "aviso legal visível no card");

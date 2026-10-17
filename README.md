@@ -64,8 +64,9 @@ navegador do utilizador, sem servidor e sem custos.
 > `eventsseason.php` e **1 resultado** em `eventslast.php` — não chega para a média dos
 > últimos 5 jogos. Cada ronda tem 8 jogos e cada equipa joga uma vez por ronda, pelo que
 > **as últimas 6 rondas em cache** cobrem os 5 jogos do cálculo: ~12 pedidos na primeira
-> análise e 0 (cache) nas seguintes. Se a fonte falhar, o card mostra «Dados
-> insuficientes» — nunca inventa números.
+> análise e 0 (cache) nas seguintes. Com o `fetchWithCache` essa cache passou a valer
+> **entre visitas** (`localStorage`, 1 h), não só dentro da sessão. Se a fonte falhar,
+> o card mostra «Dados insuficientes» — nunca inventa números.
 >
 > A TheSportsDB **não publica cores** para os clubes angolanos: os cards do Girabola usam
 > as cores-padrão do tema (`--cor-casa` / `--cor-fora`).
@@ -133,7 +134,10 @@ por card gerado** — informação para decidir onde investir mais tempo.
 5. Se uma equipa não tiver histórico suficiente, o card mostra **«Dados insuficientes»** —
    nunca inventa números.
 
-Todos os pedidos usam `AbortController` com **timeout de 8s** e cache em memória, e o
+Todos os pedidos usam `AbortController` com **timeout de 8s** e passam por cache:
+**em memória** para a ESPN e **`fetchWithCache` no `localStorage`** para a TheSportsDB
+(TTL de 1 h na lista do dia e nas rondas; 6 h na ronda em curso e na época), pelo que
+visitas repetidas no mesmo dia fazem **zero pedidos** à API gratuita partilhada. O
 utilizador nunca fica com o ecrã bloqueado por causa de uma equipa sem dados.
 
 ---
