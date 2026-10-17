@@ -254,8 +254,12 @@ a:hover { text-decoration: underline; }
 }
 
 /* ---------------------------------------------------------------------------
-   4b. FAIXA DESPORTIVA (fotos de futebol e basquetebol, desfocadas)
-   Fotografias do operador em assets/faixa-futebol.jpg e assets/faixa-basket.jpg.
+   4b. FAIXA DESPORTIVA (slide de fotos desportivas)
+   Fotografias do operador em assets/faixa-*.jpg (1600×360, JPEG leve):
+   futebol (base), basquetebol angolano, Champions, NBA (LeBron vs Curry e
+   Kings), Vinícius Jr e Yamal. A base (futebol) fica sempre visível por baixo;
+   as8 restantes entram em rotação: cada foto tem uma janela de 8 s num ciclo
+   de 64 s (delays negativos para começar já na janela certa).
    Se as imagens faltarem, a arte SVG de fundo mantém o aspecto intacto.
    ------------------------------------------------------------------------ */
 .faixa-desportiva {
@@ -282,12 +286,22 @@ a:hover { text-decoration: underline; }
 }
 
 .faixa-foto--futebol { background-image: url("faixa-futebol.jpg"); opacity: .82; }
-.faixa-foto--basket  { background-image: url("faixa-basket.jpg");  animation: faixa-crossfade 20s ease-in-out infinite; }
 
-@keyframes faixa-crossfade {
-  0%, 44%  { opacity: 0; }
-  52%, 94% { opacity: .82; }
-  100%     { opacity: 0; }
+.faixa-foto--basket        { background-image: url("faixa-basket.jpg");         animation: faixa-ciclo 64s ease-in-out infinite; }
+.faixa-foto--champions     { background-image: url("faixa-champions.jpg");      animation: faixa-ciclo 64s ease-in-out infinite; animation-delay: -8s;  }
+.faixa-foto--nba-kl        { background-image: url("faixa-nba-kl.jpg");         animation: faixa-ciclo 64s ease-in-out infinite; animation-delay: -16s; }
+.faixa-foto--yamal         { background-image: url("faixa-yamal.jpg");          animation: faixa-ciclo 64s ease-in-out infinite; animation-delay: -24s; }
+.faixa-foto--basket-bal    { background-image: url("faixa-basket-bal.jpg");     animation: faixa-ciclo 64s ease-in-out infinite; animation-delay: -32s; }
+.faixa-foto--vinicius      { background-image: url("faixa-vinicius.jpg");       animation: faixa-ciclo 64s ease-in-out infinite; animation-delay: -40s; }
+.faixa-foto--nba-kings     { background-image: url("faixa-nba-kings.jpg");      animation: faixa-ciclo 64s ease-in-out infinite; animation-delay: -48s; }
+.faixa-foto--basket-defesa { background-image: url("faixa-basket-defesa.jpg");  animation: faixa-ciclo 64s ease-in-out infinite; animation-delay: -56s; }
+
+@keyframes faixa-ciclo {
+  0%    { opacity: 0; }
+  1.7%  { opacity: .82; }   /* ~1,1 s a aparecer */
+  12.5% { opacity: .82; }   /* ~6,5 s visível */
+  14.2% { opacity: 0; }     /* ~1,1 s a desaparecer */
+  100%  { opacity: 0; }
 }
 
 .faixa-vem {
@@ -307,7 +321,7 @@ a:hover { text-decoration: underline; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .faixa-foto--basket { animation: none; }
+  .faixa-foto:not(.faixa-foto--futebol) { animation: none; }
 }
 
 .painel {

@@ -10,6 +10,7 @@
 const fs = require("fs");
 const path = require("path");
 const { JSDOM, VirtualConsole } = require("jsdom");
+const { loadImage } = require("canvas");
 
 const RAIZ = path.join(__dirname, "..");
 const ler = (f) => fs.readFileSync(path.join(RAIZ, f), "utf8");
@@ -88,6 +89,22 @@ async function principal() {
     ok(ler(f).indexOf("goloaovivo.ao") === -1,
       f + ": sem o domínio antigo goloaovivo.ao");
   });
+
+  /* Faixa desportiva:9 fotos 1600×360 em rotação (base futebol +8 camadas) */
+  const FAIXAS = ["futebol", "basket", "champions", "nba-kl", "yamal",
+                  "basket-bal", "vinicius", "nba-kings", "basket-defesa"];
+  const estilo = ler("assets/style.css");
+  FAIXAS.forEach((n) => {
+    const jpg = "assets/faixa-" + n + ".jpg";
+    ok(fs.existsSync(path.join(RAIZ, jpg)) && estilo.indexOf("faixa-" + n + ".jpg") !== -1 &&
+       index.indexOf("faixa-foto--" + n) !== -1,
+      "faixa: " + n + " (ficheiro + CSS + camada no index)");
+  });
+  for (const n of FAIXAS) {
+    const faixaImg = await loadImage(path.join(RAIZ, "assets/faixa-" + n + ".jpg"));
+    ok(faixaImg.width === 1600 && faixaImg.height === 360,
+      "faixa: " + n + " com 1600×360 (" + faixaImg.width + "×" + faixaImg.height + ")");
+  }
 
   const vercelignore = ler(".vercelignore");
   ok(vercelignore.includes("_arquivo/") && vercelignore.includes("tools/") && vercelignore.includes("README.md"),
