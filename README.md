@@ -87,7 +87,7 @@ const AFFILIATE_LINKS = {
 };
 
 // Domínio público do site (usado nas mensagens de partilha)
-const SITE_URL = "https://goloaovivo.ao";
+const SITE_URL = "https://mente-fria.goloaovivo.workers.dev";
 
 // Webhook de analytics (n8n). Vazio = só escreve no console
 const ANALYTICS_WEBHOOK = "";
@@ -237,7 +237,7 @@ vercel --prod        # produção
 **Opção B — GitHub + Vercel:** suba esta pasta para um repositório e ligue-o à Vercel
 (Framework Preset: **Other**; sem build command; output = raiz do projecto).
 
-Antes de publicar, substitua `https://goloaovivo.ao` em `SITE_URL`, no `robots.txt`, no
+Antes de publicar, substitua `https://mente-fria.goloaovivo.workers.dev` em `SITE_URL`, no `robots.txt`, no
 `sitemap.xml`, nas meta tags Open Graph (incluindo `og:image`/`twitter:image`) e no
 `tools/gerar-og-image.js` pelo domínio real.
 

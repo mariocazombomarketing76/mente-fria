@@ -87,7 +87,7 @@ ctx.fillText(cta2, 100, ctaY + 60);
 
 // Rodapé
 ctx.fillStyle = "#6e7681"; ctx.font = '22px "DVM", monospace';
-ctx.fillText("goloaovivo.ao", 76, 566);
+ctx.fillText("mente-fria.goloaovivo.workers.dev", 76, 566);
 ctx.textAlign = "right";
 ctx.fillStyle = "#ffa500";
 ctx.fillText("Joga com responsabilidade", L - 76, 566);

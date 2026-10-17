@@ -82,6 +82,13 @@ async function principal() {
     ok(h.includes('property="og:image"') && h.includes('name="twitter:image"'), f + ": og:image + twitter:image");
   });
 
+  // Nenhum domínio obsoleta nas superfícies públicas (SEO, partilhas e imagem OG)
+  ["index.html", "termos.html", "privacidade.html", "jogo-responsavel.html",
+   "robots.txt", "sitemap.xml", "tools/gerar-og-image.js"].forEach((f) => {
+    ok(ler(f).indexOf("goloaovivo.ao") === -1,
+      f + ": sem o domínio antigo goloaovivo.ao");
+  });
+
   const vercelignore = ler(".vercelignore");
   ok(vercelignore.includes("_arquivo/") && vercelignore.includes("tools/") && vercelignore.includes("README.md"),
     ".vercelignore exclui _arquivo/, tools/ e README.md");
