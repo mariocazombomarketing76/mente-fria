@@ -68,6 +68,8 @@ async function principal() {
     "rotas TheSportsDB presentes (eventsday + eventsround)");
   ok(index.includes("const AFFILIATE_LINKS") && index.includes("btag=2532299"),
     "link de afiliado da Bantubet configurado");
+  ok(/async function fetchWithCache\(cacheKey, apiUrl, ttlHours/.test(index),
+    "index.html tem a função fetchWithCache (cache localStorage com TTL)");
   ok(/rel="noopener sponsored"/.test(index), 'CTA com rel="noopener sponsored"');
   ok(index.includes("badge-publicidade"), "selo Publicidade no CTA");
   ok(index.includes("Aposta com responsabilidade."),
@@ -180,8 +182,17 @@ async function principal() {
       "hora de Luanda calculada: " + ev("horaLuanda('" + girabola.dataISO + "')"));
   }
 
-  const chips = W.document.getElementById("filtros-ligas").textContent;
-  ok(chips.includes("Girabola"), "chips de filtro incluem Girabola", chips.trim());
+  // Os chips só aparecem com 2+ ligas (regra do desenho); com uma única liga ficam escondidos.
+  const zonaChips = W.document.getElementById("filtros-ligas");
+  const chips = zonaChips.textContent;
+  const nligas = ev("(function(){var l=[];ESTADO.jogos.forEach(function(j){if(l.indexOf(j.liga)===-1)l.push(j.liga)});return l.length})()");
+  if (nligas < 2) {
+    ok(zonaChips.hidden === true && chips.trim() === "",
+      "chips escondidos com apenas " + nligas + " liga (regra: só com 2+)");
+  } else {
+    ok(zonaChips.hidden === false && chips.includes("Girabola"),
+      "chips de filtro incluem Girabola", chips.trim());
+  }
   ok(W.document.getElementById("lista-jogos").textContent.includes(girabola.casa.nome),
     "a lista mostra as equipas da Girabola");
 

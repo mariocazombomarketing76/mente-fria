@@ -473,6 +473,39 @@ async function pedirJsonComCache(url) {
   return dados;
 }
 
+// Função para buscar dados com Cache Inteligente (Dura1 hora)
+async function fetchWithCache(cacheKey, apiUrl, ttlHours = 1) {
+    const now = new Date().getTime();
+    const cachedData = localStorage.getItem(cacheKey);
+
+    if (cachedData) {
+        const parsed = JSON.parse(cachedData);
+        // Se os dados tiverem menos de X horas, usa-os (ZERO chamadas à API)
+        if (now - parsed.timestamp < ttlHours * 60 * 60 * 1000) {
+            console.log(`[CACHE HIT] Usando dados guardados para: ${cacheKey}`);
+            return parsed.data;
+        }
+    }
+
+    // Se não houver cache ou estiver expirado, chama a API
+    console.log(`[CACHE MISS] Buscando dados frescos da API para: ${cacheKey}`);
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error('Falha na API');
+        const data = await response.json();
+
+        // Guarda no localStorage com a hora atual
+        localStorage.setItem(cacheKey, JSON.stringify({
+            timestamp: now,
+            data: data
+        }));
+        return data;
+    } catch (error) {
+        console.error("Erro ao buscar dados:", error);
+        return null; // O teu código atual já lida com null mostrando "Dados insuficientes"
+    }
+}
+
 /* ---------------------------------------------------------------------------
    3. JOGOS DO DIA (passo 2)
    ------------------------------------------------------------------------ */
