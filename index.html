@@ -480,10 +480,30 @@ async function pedirJsonComCache(url) {
   const dados = await pedirJson(url);
   cache.set(url, dados);
   return dados;
-}// Função para buscar dados com Cache Inteligente (Dura1 hora)
+}
+
+/* Cache Inteligente com localStorage (auditoria de performance de 2026-10-17):
+   1) getItem ANTES de qualquer fetch, agora protegido — se o armazenamento estiver
+      indisponível (modo privado, cookies bloqueados), a função degrada para MISS
+      em vez de lançar erro e partir o carregamento dos dados;
+   2) pedidos DUPLICADOS em paralelo para a mesma chave juntam-se à promessa em
+      curso — a análise da Girabola dispara as mesmas 6 rondas para a casa E para
+      a fora ao mesmo tempo: antes eram 12 pedidos à API, agora são 6;
+   3) falha de escrita logada como [CACHE WRITE FAIL] — era a única forma de o
+      cache nunca encher sem se notar (a causa mais provável de "só vejo MISS,
+      nunca HIT" num browser real). O log [CACHE HIT] mantém-se dentro do if. */
+const pedidosCacheEmCurso = new Map(); // chave → promessa em curso
+
 async function fetchWithCache(cacheKey, apiUrl, ttlHours = 1) {
     const now = new Date().getTime();
-    const cachedData = localStorage.getItem(cacheKey);
+
+    // 1. Ler o localStorage ANTES de qualquer chamada fetch (auditoria: sim).
+    let cachedData = null;
+    try {
+        cachedData = localStorage.getItem(cacheKey);
+    } catch (erroLeitura) {
+        console.warn("[CACHE] localStorage indisponível (" + cacheKey + "):", erroLeitura.message);
+    }
 
     if (cachedData) {
         // Cache corrompido não pode partir a página: trata-se como ausente.
@@ -497,27 +517,40 @@ async function fetchWithCache(cacheKey, apiUrl, ttlHours = 1) {
         }
     }
 
+    // 2. Já há um pedido em curso para ESTA chave? Junta-te a ele em vez de repetir.
+    if (pedidosCacheEmCurso.has(cacheKey)) {
+        console.log(`[CACHE PENDING] Pedido já em curso; a juntar-se: ${cacheKey}`);
+        return pedidosCacheEmCurso.get(cacheKey);
+    }
+
     // Se não houver cache ou estiver expirado, chama a API
     console.log(`[CACHE MISS] Buscando dados frescos da API para: ${cacheKey}`);
-    try {
-        // pedirJson mantém o timeout de 8 s e as mensagens de erro legíveis do site.
-        const data = await pedirJson(apiUrl);
-
-        // Guarda no localStorage com a hora atual; se a quota estiver cheia,
-        // os dados frescos continuam a ser devolvidos (só não ficam guardados).
+    const promessa = (async () => {
         try {
-            localStorage.setItem(cacheKey, JSON.stringify({
-                timestamp: now,
-                data: data
-            }));
-        } catch (erroEspaco) {
-            console.warn("localStorage sem espaço; dados usados sem guardar:", erroEspaco.message);
+            // pedirJson mantém o timeout de 8 s e as mensagens de erro legíveis do site.
+            const data = await pedirJson(apiUrl);
+
+            // 3. Guardar com a hora atual; se falhar (quota/private), os dados frescos
+            //    continuam a ser devolvidos — mas AVISA-se de forma explícita, porque
+            //    sem escrita o HIT nunca vai aparecer neste browser.
+            try {
+                localStorage.setItem(cacheKey, JSON.stringify({
+                    timestamp: now,
+                    data: data
+                }));
+            } catch (erroEspaco) {
+                console.warn("[CACHE WRITE FAIL] " + cacheKey + " não guardado (sem HIT neste browser):", erroEspaco.message);
+            }
+            return data;
+        } catch (error) {
+            console.error("Erro ao buscar dados:", error);
+            return null; // O teu código atual já lida com null mostrando "Dados insuficientes"
+        } finally {
+            pedidosCacheEmCurso.delete(cacheKey);
         }
-        return data;
-    } catch (error) {
-        console.error("Erro ao buscar dados:", error);
-        return null; // O teu código atual já lida com null mostrando "Dados insuficientes"
-    }
+    })();
+    pedidosCacheEmCurso.set(cacheKey, promessa);
+    return promessa;
 }
 
 /* ---------------------------------------------------------------------------
