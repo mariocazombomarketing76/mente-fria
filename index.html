@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mente Fria — Cards de Análise Pré-Jogo (Match X-Ray) para Futebol e NBA</title>
-  <meta name="description" content="Gere Cards de Análise Pré-Jogo (Match X-Ray) com estatísticas reais dos últimos 5 jogos: tendência de golos/pontos, forma recente e partilha directa no WhatsApp. Futebol e NBA. Estatística, não garantia." />
+  <title>Golo Ao Vivo Angola · Mente Fria — Cards de Análise Pré-Jogo (Match X-Ray) para Futebol e NBA</title>
+  <meta name="description" content="Gere Cards de Análise Pré-Jogo (Match X-Ray) do Golo Ao Vivo Angola com estatísticas reais dos últimos 5 jogos: tendência de golos/pontos, forma recente e partilha directa no WhatsApp. Futebol e NBA. Estatística, não garantia." />
   <meta name="theme-color" content="#0d1117" />
   <link rel="canonical" href="https://mente-fria.goloaovivo.workers.dev/" />
 
@@ -13,9 +13,9 @@
 
   <!-- Open Graph: é isto que aparece quando alguém partilha o LINK do site no WhatsApp -->
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Mente Fria" />
+  <meta property="og:site_name" content="Golo Ao Vivo Angola · Mente Fria" />
   <meta property="og:locale" content="pt_AO" />
-  <meta property="og:title" content="Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
+  <meta property="og:title" content="Golo Ao Vivo Angola · Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
   <meta property="og:description" content="Cards de Análise Pré-Jogo com estatísticas reais dos últimos 5 jogos de Futebol e NBA. Tendência, forma recente e partilha no WhatsApp." />
   <meta property="og:url" content="https://mente-fria.goloaovivo.workers.dev/" />
   <!-- Open Graph image: é a imagem que aparece quando alguém partilha o LINK no WhatsApp -->
@@ -24,7 +24,7 @@
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Mente Fria — Análise Pré-Jogo (Match X-Ray)" />
+  <meta name="twitter:title" content="Golo Ao Vivo Angola · Mente Fria — Análise Pré-Jogo (Match X-Ray)" />
   <meta name="twitter:description" content="Estatísticas reais dos últimos 5 jogos, tendência de golos/pontos e partilha no WhatsApp. Futebol e NBA." />
   <meta name="twitter:image" content="https://mente-fria.goloaovivo.workers.dev/assets/og-image.png" />
   <meta name="twitter:image:alt" content="Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
@@ -54,16 +54,17 @@
   <!-- ============================ CABEÇALHO ============================ -->
   <header class="cabecalho">
     <div class="cabecalho-interno">
-      <a class="marca" href="index.html" aria-label="Mente Fria — página inicial">
+      <a class="marca" href="index.html" aria-label="Golo Ao Vivo Angola · Mente Fria — página inicial">
         <img class="marca-simbolo" src="assets/favicon.svg" alt="" width="34" height="34" />
         <span class="marca-texto">
-          <span class="marca-nome">MENTE FRIA</span>
+          <span class="marca-nome">GOLO AO VIVO ANGOLA<span class="marca-ferramenta"> · Mente Fria</span></span>
           <span class="marca-slogan">Não apostes no escuro. Aposta com a Mente Fria.</span>
         </span>
       </a>
 
       <nav class="cabecalho-nav" id="nav-principal" aria-label="Navegação principal">
         <a href="index.html" aria-current="page">Gerador</a>
+        <a href="resultados.html">Resultados</a>
         <a href="jogo-responsavel.html">Jogo Responsável</a>
         <a href="termos.html">Termos</a>
         <a href="privacidade.html">Privacidade</a>
@@ -164,6 +165,24 @@
     <!-- ==================== PASSO 3: CARD MATCH X-RAY ==================== -->
     <section class="zona-card" id="zona-card" aria-labelledby="titulo-card" hidden>
       <h2 class="apenas-leitores" id="titulo-card">Card de análise (Match X-Ray)</h2>
+
+      <!-- Linha real da casa (opcional): se preenchida, a tendência é calculada
+           contra essa linha; se vazia, usa-se a linha estatística de referência.
+           O seletor «Casa» é gerado a partir de MF_CONFIG.BOOKMAKERS e só
+           aparece com 2+ casas ativas. Sem scraping: o valor é escrito à mão. -->
+      <div class="bloco-linha" id="bloco-linha" hidden>
+        <div class="bloco-linha-topo">
+          <label for="campo-linha">Linha da casa <span class="bloco-linha-opcional">(opcional)</span></label>
+          <div class="bloco-linha-campos">
+            <input type="number" id="campo-linha" inputmode="decimal" step="0.5" min="0.01"
+                   placeholder="ex.: 2.5" aria-describedby="linha-nota" />
+            <select id="campo-casa" aria-label="Casa de onde é a linha"></select>
+          </div>
+        </div>
+        <p class="bloco-linha-nota" id="linha-nota">Escreve a linha que vês na casa de apostas. Confirma sempre na casa antes de apostar.</p>
+        <p class="bloco-linha-erro" id="linha-erro" hidden>Valor inválido: escreve apenas um número positivo (ex.: 2.5 ou 220.5). A usar a linha estatística de referência.</p>
+      </div>
+
       <div id="card-xray"></div>
     </section>
 
@@ -173,12 +192,29 @@
       Espaço publicitário · in-article
     </div>
 
+    <!-- ============ ONDE APOSTAR (casas parceiras licenciadas) ============
+         Os botões são gerados a partir de MF_CONFIG.BOOKMAKERS (assets/config.js):
+         uma casa acrescentada ou desactivada aí aparece/desaparece aqui sozinha.
+         Links de afiliado: rel="sponsored noopener noreferrer", sempre iguais,
+         nenhuma casa destacada. Nenhum pedido é feito aos sites das casas. -->
+    <section class="painel" id="onde-apostar" aria-labelledby="titulo-onde-apostar" hidden>
+      <div class="painel-topo">
+        <span class="painel-passo" aria-hidden="true">★</span>
+        <h2 class="painel-titulo" id="titulo-onde-apostar">Onde apostar</h2>
+        <span class="painel-nota">Operadoras licenciadas em Angola</span>
+      </div>
+      <div class="painel-corpo">
+        <div class="onde-apostar-lista" id="onde-apostar-lista"></div>
+        <p class="aviso-comissao" id="onde-apostar-aviso"></p>
+      </div>
+    </section>
+
     <!-- ==================== CONTEÚDO INFORMATIVO (SEO) ==================== -->
     <section class="bloco-texto">
       <h2>Como funciona o Match X-Ray</h2>
       <p>
         O <strong>Match X-Ray</strong> é o Card de Análise Pré-Jogo da Mente Fria. Em vez de te dar um palpite,
-        mostra-te os números que qualquer apostador deveria ver antes de decidir: a média de golos (futebol) ou
+        mostra-te os números para decidires com mais informação: a média de golos (futebol) ou
         pontos (NBA) marcados pela equipa da casa nos últimos 5 jogos, a média sofrida pela equipa visitante no
         mesmo período, a forma recente (vitórias, empates e derrotas) de cada equipa e a tendência de
         <em>Mais</em> ou <em>Menos</em> em relação à linha de referência.
@@ -207,6 +243,13 @@
         dispositivo — nada é enviado para servidores nossos, excepto eventos anónimos de utilização.
         Vê a <a href="privacidade.html">Política de Privacidade</a> e os <a href="termos.html">Termos de Uso</a>.
       </p>
+
+      <h2>Resultados das análises</h2>
+      <p>
+        Publicamos o histórico das linhas analisadas e o total real de cada jogo na página
+        <a href="resultados.html">Resultados</a>, calculado no teu navegador a partir da folha de cálculo
+        partilhada. Estatística, não garantia: resultados passados não preveem resultados futuros.
+      </p>
     </section>
   </main>
 
@@ -219,10 +262,16 @@
       créditos de jogo</strong>. As tendências estatísticas apresentadas são
       informativas, não constituem garantia de resultado. Qualquer problema com
       uma aposta, depósito, levantamento ou fichas adquiridas deve ser reportado
-      directamente à casa de apostas onde a aposta foi realizada (ex: Bantubet),
+      directamente à casa de apostas onde a aposta foi realizada (<span data-casas="—" data-casas-modelo="ex: %s">ex: Bantubet, KwanzaBet</span>),
       nunca a este site.
     </div>
+    <div class="footer-personagem">
+      Edson Almeida é uma personagem virtual do Golo Ao Vivo Angola, criada com inteligência artificial.
+      Mente Fria é a ferramenta de análise do Golo Ao Vivo Angola.
+    </div>
     <div class="footer-links">
+      <a href="resultados.html" data-rodape="resultados">Resultados</a> ·
+      <a href="#onde-apostar" data-rodape="onde-apostar">Onde apostar</a> ·
       <a href="privacidade.html" data-rodape="privacidade">Política de Privacidade</a> ·
       <a href="termos.html" data-rodape="termos">Termos de Uso</a> ·
       <a href="jogo-responsavel.html" data-rodape="jogo-responsavel">Jogo Responsável</a>
@@ -238,6 +287,8 @@
     </div>
   </footer>
 
+<!-- Configuração central (SITE_URL, BOOKMAKERS, RESULTS_CSV_URL): sempre antes do script da página. -->
+<script src="assets/config.js"></script>
 <script>
 /* Menu mobile (hambúrguer): em ecrãs pequenos os links da barra abrem num painel. */
 (function () {
@@ -273,16 +324,15 @@
    ========================================================================== */
 
 /* ---------------------------------------------------------------------------
-   CONFIGURAÇÃO DE AFILIADOS
-   Para adicionar mais parceiros no futuro (ex: Elebet, Premierbet), acrescentar
-   novas entradas aqui — o resto do código não muda.
+   CONFIGURAÇÃO CENTRAL — vive em assets/config.js (carregado acima).
+   SITE_URL, BOOKMAKERS (Bantubet, KwanzaBet, …) e RESULTS_CSV_URL editam-se
+   só nesse ficheiro; daqui tiramos apenas os atalhos usados neste script.
    ------------------------------------------------------------------------ */
-const AFFILIATE_LINKS = {
-  bantubet: "https://bantubet.co.ao/affiliates/?btag=2532299"
-};
+const SITE_URL = MF_CONFIG.SITE_URL;
 
-/* Domínio público do site (usado nas mensagens de partilha). */
-const SITE_URL = "https://mente-fria.goloaovivo.workers.dev";
+/* Casa usada no CTA do card: a primeira ativa de BOOKMAKERS (ordem de
+   configuração). A secção «Onde apostar» mostra sempre todas as ativas. */
+function casaDoCta() { return mfCasaDestaque(); }
 
 /* Webhook de analytics (n8n). Se ficar vazio, só escreve no console. */
 const ANALYTICS_WEBHOOK = "";
@@ -330,6 +380,7 @@ const ESTADO = {
   analise: null,       // análise calculada (alimenta o card e a imagem)
   jogos: [],           // jogos do dia já carregados (alimenta os filtros)
   filtro: "todas",     // competição seleccionada nos filtros
+  linhaCasa: null,     // linha escrita à mão na casa: { valor, casa, hora }
   pedido: 0            // contador para ignorar respostas de pedidos antigos
 };
 
@@ -551,6 +602,78 @@ async function fetchWithCache(cacheKey, apiUrl, ttlHours = 1) {
     })();
     pedidosCacheEmCurso.set(cacheKey, promessa);
     return promessa;
+}
+
+/** Hora de Luanda (HH:MM) — usada nas linhas com hora de introdução. */
+function horaAgoraLuanda() {
+  return horaLuanda(new Date().toISOString());
+}
+
+/**
+ * Lê e valida o campo «Linha da casa».
+ * Devolve { valor, casa, hora } quando o valor é um número positivo,
+ * ou null quando está vazio/inválido (nesse caso usa-se a linha de referência).
+ * O erro é mostrado ao utilizador sem nunca partir a página.
+ */
+function lerCampoLinha() {
+  const campo = el("campo-linha");
+  const erro = el("linha-erro");
+  if (!campo) return null;
+
+  const bruto = String(campo.value || "").trim();
+  if (!bruto) { if (erro) erro.hidden = true; return null; }
+
+  const valor = Number(bruto);
+  if (!isFinite(valor) || valor <= 0) {
+    if (erro) erro.hidden = false;
+    return null;
+  }
+  if (erro) erro.hidden = true;
+
+  // Casa de onde é a linha: com 2+ casas usa-se o seletor; com 1 casa é
+  // implícita; sem casas ativas fica null (o card diz apenas «Linha da casa»).
+  const casas = mfCasasAtivas();
+  const seletor = el("campo-casa");
+  let casa = null;
+  if (casas.length > 1 && seletor && seletor.value) casa = seletor.value;
+  else if (casas.length === 1) casa = casas[0].nome;
+  else if (seletor && seletor.value) casa = seletor.value;
+
+  return { valor: valor, casa: casa, hora: horaAgoraLuanda() };
+}
+
+/**
+ * Rótulo da linha em uso (texto exigido no card):
+ *   • com linha da casa → "Linha da Bantubet: 2.5 (introduzida às 14:32)"
+ *   • sem linha         → "Linha estatística de referência: 2.5 (não é a linha de nenhuma casa)"
+ */
+function rotuloLinha(analise) {
+  const lc = analise.linhaInfo;
+  if (lc) {
+    return "Linha da " + (lc.casa || "casa") + ": " + lc.valor +
+      " (introduzida às " + lc.hora + ")";
+  }
+  return "Linha estatística de referência: " + analise.linha +
+    " (não é a linha de nenhuma casa)";
+}
+
+/**
+ * Reaplica a linha da casa à análise já calculada (sem novos pedidos à API):
+ * a projecção não muda, apenas a linha contra a qual é comparada.
+ */
+function reaplicarLinhaCasa() {
+  const lc = lerCampoLinha();
+  ESTADO.linhaCasa = lc;
+
+  const analise = ESTADO.analise;
+  if (!analise) return;
+
+  analise.linha = lc ? lc.valor : OVER_UNDER_LINE[analise.desporto];
+  analise.linhaInfo = lc;
+  if (analise.projeccao !== null) {
+    analise.tendencia = analise.projeccao >= analise.linha ? "Mais" : "Menos";
+  }
+  renderizarCard(analise, { semScroll: true });
 }
 
 /* ---------------------------------------------------------------------------
@@ -1036,7 +1159,9 @@ async function calcularAnalise(jogo) {
   const casa = calcularEquipa(jogo, jogo.casa.id, historicoCasa);
   const fora = calcularEquipa(jogo, jogo.fora.id, historicoFora);
 
-  const linha = OVER_UNDER_LINE[ESTADO.desporto];
+  // Linha: a escrita à mão na casa (se válida) manda sobre a de referência.
+  const linhaInfo = ESTADO.linhaCasa;
+  const linha = linhaInfo ? linhaInfo.valor : OVER_UNDER_LINE[ESTADO.desporto];
   const unidade = UNIDADE[ESTADO.desporto];
 
   // Números concretos que vão para o card (contexto casa/fora, com amostra).
@@ -1070,6 +1195,7 @@ async function calcularAnalise(jogo) {
     desporto: ESTADO.desporto,
     unidade: unidade,
     linha: linha,
+    linhaInfo: linhaInfo,
     casa: casa,
     fora: fora,
     baseCasa: baseCasa,
@@ -1292,8 +1418,9 @@ function desenharLista() {
   });
 }
 
-/** Desenha o Card de Análise (Match X-Ray) — versão desportiva (v4.2). */
-function renderizarCard(analise) {
+/** Desenha o Card de Análise (Match X-Ray) — versão desportiva (v4.2).
+ *  opcoes.semScroll: re-render por mudança de linha (não salta a página). */
+function renderizarCard(analise, opcoes) {
   const jogo = analise.jogo;
   const unidade = analise.unidade;
 
@@ -1345,13 +1472,16 @@ function renderizarCard(analise) {
       JOGOS_ANALISADOS + " jogos.</p>"
     : "";
 
-  // Medidor: projecção estatística contra a linha de referência.
+  // Medidor: projecção estatística contra a linha em uso (casa ou referência).
   const blocoProjecao = (analise.projeccao !== null)
     ? (function () {
         const max = Math.max(analise.projeccao, analise.linha) * 1.4 || 1;
         const pctProj = Math.min(100, (analise.projeccao / max) * 100);
         const pctLinha = Math.min(100, (analise.linha / max) * 100);
         const casas = analise.desporto === "nba" ? 0 : 1;
+        const rotuloContra = analise.linhaInfo
+          ? "🎯 Contra a linha da " + analise.linhaInfo.casa
+          : "🎯 Contra a linha de referência";
         return '<div class="card-projecao">' +
           '<div class="projecao-num">' +
             '<span class="projecao-valor" data-alvo="' + analise.projeccao + '" data-casas="' + casas + '">0</span>' +
@@ -1359,7 +1489,7 @@ function renderizarCard(analise) {
             '<span class="projecao-rot">PROJEÇÃO · últimos ' + JOGOS_ANALISADOS + " jogos</span>" +
           "</div>" +
           '<div class="projecao-gauge">' +
-            '<div class="projecao-topo"><span class="rotulo">🎯 Contra a linha de referência</span>' +
+            '<div class="projecao-topo"><span class="rotulo">' + escaparHtml(rotuloContra) + '</span>' +
             '<span class="mono">linha ' + analise.linha + "</span></div>" +
             '<div class="gauge">' +
               '<span class="gauge-fill" style="width:' + pctProj.toFixed(1) + '%"></span>' +
@@ -1392,6 +1522,16 @@ function renderizarCard(analise) {
     ";--cor-casa-rgb:" + hexParaRgb(jogo.casa.cor) +
     ";--cor-fora:" + (jogo.fora.cor || "#ffa500") +
     ";--cor-fora-rgb:" + hexParaRgb(jogo.fora.cor || "#ffa500") + ";";
+
+  // CTA de afiliado: usa a primeira casa ativa de BOOKMAKERS (assets/config.js).
+  // Sem casa configurada o card fica sem CTA — as estatísticas não dependem dele.
+  const casaCta = casaDoCta();
+  const ctaHtml = casaCta
+    ? '<a class="btn btn-cta" id="cta-apostar" href="' + escaparHtml(casaCta.link) +
+      '" target="_blank" rel="noopener sponsored">' +
+      '<span class="badge-publicidade">Publicidade</span>' +
+      "Ver Odds Oficiais e Apostar na " + escaparHtml(casaCta.nome) + "</a>"
+    : "";
 
   cardXray.innerHTML =
     '<article class="card-xray" id="card-analise" style="' + estiloCores + '">' +
@@ -1437,6 +1577,7 @@ function renderizarCard(analise) {
       "</div>" +
       notaAmostra +
       blocoProjecao +
+      '<p class="card-linha-info">' + escaparHtml(rotuloLinha(analise)) + "</p>" +
 
       '<div class="sintese">' +
         '<p class="sintese-titulo">Conclusão do Match X-Ray</p>' +
@@ -1446,12 +1587,10 @@ function renderizarCard(analise) {
       "</div>" +
 
       '<p class="aviso-card">' + escaparHtml(analise.aviso) + "</p>" +
+      '<p class="card-credito">Match X-Ray by Mente Fria · Golo Ao Vivo Angola</p>' +
 
       '<div class="card-acoes">' +
-        '<a class="btn btn-cta" id="cta-apostar" href="' + escaparHtml(AFFILIATE_LINKS.bantubet) +
-          '" target="_blank" rel="noopener sponsored">' +
-          '<span class="badge-publicidade">Publicidade</span>' +
-          "Ver Odds Oficiais e Apostar na Bantubet</a>" +
+        ctaHtml +
         '<button type="button" class="btn btn-secundario" id="btn-partilhar">📲 Partilhar no WhatsApp</button>' +
         '<button type="button" class="btn btn-rapido" id="btn-refazer">🔄 Escolher outro jogo</button>' +
       "</div>" +
@@ -1460,7 +1599,6 @@ function renderizarCard(analise) {
   zonaCard.hidden = false;
   activarFallbackEscudos(cardXray);
   animarProjecao();
-
   // Eventos do card
   el("btn-partilhar").addEventListener("click", partilharWhatsApp);
   el("btn-refazer").addEventListener("click", () => {
@@ -1469,15 +1607,20 @@ function renderizarCard(analise) {
     ESTADO.analise = null;
     painelJogos.scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  el("cta-apostar").addEventListener("click", () => {
-    trackEvent("clique_cta_apostar", {
-      jogo: jogo.casa.nome + " vs " + jogo.fora.nome,
-      liga: jogo.liga,
-      tendencia: analise.tendencia
+  if (casaCta && el("cta-apostar")) {
+    el("cta-apostar").addEventListener("click", () => {
+      trackEvent("clique_cta_apostar", {
+        jogo: jogo.casa.nome + " vs " + jogo.fora.nome,
+        liga: jogo.liga,
+        tendencia: analise.tendencia,
+        casa: casaCta.nome
+      });
     });
-  });
+  }
 
-  zonaCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!opcoes || !opcoes.semScroll) {
+    zonaCard.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 /**
@@ -1693,6 +1836,11 @@ function desenharCardNoCanvas(analise) {
   // Fim da última linha + folga
   const fimLinhas = Y_LINHAS + (linhas.length - 1) * LINHA_PASSO + LINHA_ALTURA / 2 + 4;
 
+  // Linha usada no cálculo (casa + hora quando aplicável; senão referência).
+  ctx.fillStyle = "#8b949e";
+  ctx.font = '400 22px "Inter", sans-serif';
+  ctx.fillText(rotuloLinha(analise).slice(0, 84), 78, fimLinhas + 17);
+
   // Conclusão
   const caixaY = fimLinhas + 30;
   ctx.fillStyle = "rgba(0,212,255,0.12)";
@@ -1733,7 +1881,10 @@ function desenharCardNoCanvas(analise) {
     ctx.fillText("PROJEÇÃO " + analise.projeccao + " " + unidade, gx, caixaY + 168);
     ctx.fillStyle = "#ffa500";
     ctx.textAlign = "right";
-    ctx.fillText("LINHA " + analise.linha, gx + gw, caixaY + 168);
+    const rotuloLinhaImg = analise.linhaInfo
+      ? "LINHA DA " + String(analise.linhaInfo.casa || "CASA").toUpperCase() + " " + analise.linha
+      : "LINHA REF. " + analise.linha;
+    ctx.fillText(rotuloLinhaImg, gx + gw, caixaY + 168);
   }
   ctx.textAlign = "left";
 
@@ -1752,6 +1903,13 @@ function desenharCardNoCanvas(analise) {
 
   // Rodapé da imagem (abaixo das caixas, dentro da moldura)
   const yRodape = Math.max(avisoY + ALTURA_AVISO + 52, A - 78);
+  // Crédito da ferramenta (linha pequena, igual à do card do ecrã).
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#6e7681";
+  ctx.font = '400 21px "Inter", sans-serif';
+  ctx.fillText("Match X-Ray by Mente Fria · Golo Ao Vivo Angola", L / 2, yRodape - 28);
+
+  ctx.textAlign = "left";
   ctx.fillStyle = "#6e7681";
   ctx.font = '400 25px "Roboto Mono", monospace';
   ctx.fillText(SITE_URL.replace(/^https?:\/\//, ""), 78, yRodape);
@@ -1945,6 +2103,16 @@ async function escolherJogo(jogo) {
   ESTADO.jogo = jogo;
   ESTADO.analise = null;
 
+  // Campo «Linha da casa»: abre vazio com cada jogo novo (linha de um jogo
+  // não deve vazar para outro) e usa a linha de referência até ser preenchido.
+  ESTADO.linhaCasa = null;
+  const campoLinha = el("campo-linha");
+  if (campoLinha) campoLinha.value = "";
+  const erroLinha = el("linha-erro");
+  if (erroLinha) erroLinha.hidden = true;
+  const blocoLinha = el("bloco-linha");
+  if (blocoLinha) blocoLinha.hidden = false;
+
   trackEvent("jogo_escolhido", {
     jogo: jogo.casa.nome + " vs " + jogo.fora.nome,
     liga: jogo.liga,
@@ -1959,6 +2127,15 @@ async function escolherJogo(jogo) {
 
   try {
     const analise = await calcularAnalise(jogo);
+    // Linha escrita enquanto o cálculo decorria: aplica-se antes de desenhar.
+    ESTADO.linhaCasa = lerCampoLinha();
+    if (ESTADO.linhaCasa) {
+      analise.linha = ESTADO.linhaCasa.valor;
+      analise.linhaInfo = ESTADO.linhaCasa;
+      if (analise.projeccao !== null) {
+        analise.tendencia = analise.projeccao >= analise.linha ? "Mais" : "Menos";
+      }
+    }
     ESTADO.analise = analise;
     renderizarCard(analise);
 
@@ -2007,6 +2184,26 @@ zonaEstadoJogos.addEventListener("click", (evento) => {
   }
   if (evento.target.closest("#btn-procurar-jornada")) procurarProximaJornada();
 });
+
+// Linha da casa: recálculo imediato da tendência contra o valor escrito.
+// "change" cobre blur/Enter; "input" valida sem redesenhar a cada tecla.
+const campoLinhaEl = el("campo-linha");
+if (campoLinhaEl) {
+  campoLinhaEl.addEventListener("change", reaplicarLinhaCasa);
+  campoLinhaEl.addEventListener("input", () => {
+    const bruto = String(campoLinhaEl.value || "").trim();
+    const erro = el("linha-erro");
+    if (!erro) return;
+    // Só acende o aviso quando há texto inválido (vazio = linha de referência).
+    erro.hidden = !(bruto && !(isFinite(Number(bruto)) && Number(bruto) > 0));
+  });
+}
+const campoCasaEl = el("campo-casa");
+if (campoCasaEl) {
+  campoCasaEl.addEventListener("change", () => {
+    if (ESTADO.analise) reaplicarLinhaCasa();
+  });
+}
 
 // Filtros por competição (opção "filtrar por liga").
 el("filtros-ligas").addEventListener("click", (evento) => {

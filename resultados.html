@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resultados — Golo Ao Vivo Angola · Mente Fria</title>
+  <meta name="description" content="Painel público de resultados do Mente Fria (Golo Ao Vivo Angola): histórico das linhas analisadas, total real de cada jogo e taxa de acerto. Estatística, não garantia." />
+  <meta name="theme-color" content="#0d1117" />
+  <link rel="canonical" href="https://mente-fria.goloaovivo.workers.dev/resultados" />
+
+  <!-- Favicon: o símbolo da marca (🧠❄️) na aba do navegador -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" sizes="any" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Golo Ao Vivo Angola · Mente Fria" />
+  <meta property="og:locale" content="pt_AO" />
+  <meta property="og:title" content="Resultados — Golo Ao Vivo Angola · Mente Fria" />
+  <meta property="og:description" content="Histórico público das linhas analisadas, com total real, acertos, falhas e empates na linha. Estatística, não garantia." />
+  <meta property="og:url" content="https://mente-fria.goloaovivo.workers.dev/resultados" />
+  <meta property="og:image" content="https://mente-fria.goloaovivo.workers.dev/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Golo ao Vivo Angola · Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Resultados — Golo Ao Vivo Angola · Mente Fria" />
+  <meta name="twitter:description" content="Histórico público das linhas analisadas, com total real, acertos, falhas e empates na linha." />
+  <meta name="twitter:image" content="https://mente-fria.goloaovivo.workers.dev/assets/og-image.png" />
+  <meta name="twitter:image:alt" content="Golo Ao Vivo Angola · Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
+
+  <!-- CSP: o único pedido externo desta página é o CSV publicado do Google Sheets. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://docs.google.com https://*.googleusercontent.com https://sheets.googleapis.com; frame-src 'none'" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+  <header class="cabecalho">
+    <div class="cabecalho-interno">
+      <a class="marca" href="index.html" aria-label="Golo Ao Vivo Angola · Mente Fria — página inicial">
+        <img class="marca-simbolo" src="assets/favicon.svg" alt="" width="34" height="34" />
+        <span class="marca-texto">
+          <span class="marca-nome">GOLO AO VIVO ANGOLA<span class="marca-ferramenta"> · Mente Fria</span></span>
+          <span class="marca-slogan">Não apostes no escuro. Aposta com a Mente Fria.</span>
+        </span>
+      </a>
+      <nav class="cabecalho-nav" id="nav-principal" aria-label="Navegação principal">
+        <a href="index.html">Gerador</a>
+        <a href="resultados.html" aria-current="page">Resultados</a>
+        <a href="jogo-responsavel.html">Jogo Responsável</a>
+        <a href="termos.html">Termos</a>
+        <a href="privacidade.html">Privacidade</a>
+      </nav>
+      <span class="selo-18" title="Conteúdo exclusivo para maiores de 18 anos">🔞 +18</span>
+      <button class="menu-mobile-btn" type="button" aria-expanded="false" aria-controls="nav-principal" aria-label="Abrir menu de navegação">☰</button>
+    </div>
+  </header>
+
+  <main class="conteudo-principal">
+    <section class="pagina-legal">
+      <div class="pagina-legal-cabeca">
+        <h1>Resultados</h1>
+        <p>Histórico público das linhas analisadas: o que foi previsto e o que aconteceu no jogo.</p>
+      </div>
+
+      <div class="documento">
+        <!-- Resumo agregado (preenchido pelo JavaScript a partir do CSV). -->
+        <div id="zona-resultados">
+          <div class="estado"><span class="pontos-carregando">A carregar resultados</span></div>
+        </div>
+
+        <div class="doc-alerta" id="aviso-permanente">
+          Estatística, não garantia. Resultados passados não preveem resultados futuros.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-disclaimer">
+      🔞 Conteúdo destinado a maiores de 18 anos. O Mente Fria é uma ferramenta de
+      estatísticas e análise desportiva e <strong>NÃO é uma casa de apostas, não
+      processa apostas, não gere fundos de apostadores e não emite fichas ou
+      créditos de jogo</strong>. As tendências estatísticas apresentadas são
+      informativas, não constituem garantia de resultado. Qualquer problema com
+      uma aposta, depósito, levantamento ou fichas adquiridas deve ser reportado
+      directamente à casa de apostas onde a aposta foi realizada (<span data-casas="—" data-casas-modelo="ex: %s">ex: Bantubet, KwanzaBet</span>),
+      nunca a este site.
+    </div>
+    <div class="footer-personagem">
+      Edson Almeida é uma personagem virtual do Golo Ao Vivo Angola, criada com inteligência artificial.
+      Mente Fria é a ferramenta de análise do Golo Ao Vivo Angola.
+    </div>
+    <div class="footer-links">
+      <a href="resultados.html" data-rodape="resultados">Resultados</a> ·
+      <a href="index.html#onde-apostar" data-rodape="onde-apostar">Onde apostar</a> ·
+      <a href="privacidade.html" data-rodape="privacidade">Política de Privacidade</a> ·
+      <a href="termos.html" data-rodape="termos">Termos de Uso</a> ·
+      <a href="jogo-responsavel.html" data-rodape="jogo-responsavel">Jogo Responsável</a>
+    </div>
+    <div class="footer-contact">
+      Contacto: <a href="tel:+244922514198">+244 922 514 198</a> ·
+      <a href="mailto:goloaovivo@gmail.com">goloaovivo@gmail.com</a>
+    </div>
+    <div class="footer-legal-refs">
+      Actividade de jogo regulada em Angola pela Lei n.º 17/24, de 28 de Outubro
+      (Lei da Actividade de Jogos) e supervisionada pelo Instituto de Supervisão
+      de Jogos (ISJ) — <a href="https://isj.minfin.gov.ao/" target="_blank" rel="noopener">isj.minfin.gov.ao</a>.
+    </div>
+  </footer>
+
+<!-- Configuração central (SITE_URL, BOOKMAKERS, RESULTS_CSV_URL): sempre antes do script da página. -->
+<script src="assets/config.js"></script>
+<script>
+/* Menu mobile (hambúrguer): em ecrãs pequenos os links da barra abrem num painel. */
+(function () {
+  var btn = document.querySelector(".menu-mobile-btn");
+  var nav = document.getElementById("nav-principal");
+  if (!btn || !nav) return;
+  function fechar() {
+    nav.removeAttribute("data-aberto");
+    btn.setAttribute("aria-expanded", "false");
+    btn.setAttribute("aria-label", "Abrir menu de navegação");
+  }
+  btn.addEventListener("click", function () {
+    if (nav.hasAttribute("data-aberto")) { fechar(); return; }
+    nav.setAttribute("data-aberto", "");
+    btn.setAttribute("aria-expanded", "true");
+    btn.setAttribute("aria-label", "Fechar menu de navegação");
+  });
+  document.addEventListener("click", function (e) {
+    if (nav.hasAttribute("data-aberto") && !nav.contains(e.target) && e.target !== btn) fechar();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") fechar();
+  });
+})();
+/* Analytics do rodapé legal (mantém a métrica de interesse nos documentos). */
+const ANALYTICS_WEBHOOK = "";
+function trackEvent(nome, dados) {
+  const evento = Object.assign({ evento: nome, pagina: "resultados", ts: new Date().toISOString() }, dados || {});
+  console.log("[ANALYTICS]", evento);
+  if (!ANALYTICS_WEBHOOK) return;
+  try {
+    fetch(ANALYTICS_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(evento),
+      keepalive: true
+    }).catch(() => {});
+  } catch (erro) { console.warn("[ANALYTICS] não foi possível enviar o evento:", erro); }
+}
+document.querySelectorAll("[data-rodape]").forEach((link) => {
+  link.addEventListener("click", () => trackEvent("clique_rodape_legal", { documento: link.dataset.rodape }));
+});
+
+/* =============================================================================
+   PAINEL PÚBLICO DE RESULTADOS
+   Lê o CSV publicado em MF_CONFIG.RESULTS_CSV_URL (Google Sheets) e calcula,
+   no navegador, o resultado de cada linha:
+     • "Acertou"         — (Mais e total > linha) ou (Menos e total < linha)
+     • "Empate na linha" — total == linha
+     • "Falhou"          — restantes casos
+     • "Pendente"        — total real vazio
+   Colunas, por esta ordem: Data, Competição, Jogo, Linha, Tendência, Total real.
+   Sem CSV configurado (placeholder [ ]) ou perante qualquer erro, a página
+   mostra apenas "Painel em preparação" — nunca parte.
+   ========================================================================== */
+
+/** Escapa texto para inserção em HTML. */
+function escaparHtmlRes(valor) {
+  return String(valor == null ? "" : valor)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Converte "2,5" ou "2.5" em número; devolve null quando não é número. */
+function paraNumeroRes(bruto) {
+  const texto = String(bruto == null ? "" : bruto).trim().replace(/\s/g, "");
+  if (!texto) return null;
+  const n = Number(texto.replace(",", "."));
+  return isFinite(n) ? n : null;
+}
+
+/**
+ * Parser de CSV simples e tolerante: linhas \n ou \r\n, campos entre aspas
+ * (permite vírgulas dentro), vírgula como separador. Devolve [[célula,…],…].
+ */
+function partirCsvRes(texto) {
+  const linhas = [];
+  let linha = [], campo = "", dentroAspas = false;
+  const t = String(texto).replace(/^\uFEFF/, "");  // remove BOM do Sheets
+
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (dentroAspas) {
+      if (c === '"') {
+        if (t[i + 1] === '"') { campo += '"'; i++; }
+        else dentroAspas = false;
+      } else campo += c;
+    } else if (c === '"') {
+      dentroAspas = true;
+    } else if (c === ",") {
+      linha.push(campo); campo = "";
+    } else if (c === "\n" || c === "\r") {
+      if (c === "\r" && t[i + 1] === "\n") i++;
+      linha.push(campo); campo = "";
+      linhas.push(linha); linha = [];
+    } else {
+      campo += c;
+    }
+  }
+  if (campo !== "" || linha.length) { linha.push(campo); linhas.push(linha); }
+  return linhas.filter((l) => l.some((c) => String(c).trim() !== ""));
+}
+
+/** Resultado de uma linha do painel (regras do enunciado). */
+function avaliarLinhaRes(linha, tendencia, total) {
+  if (total === null || total === undefined) return "Pendente";
+  const t = String(tendencia || "").trim().toLowerCase();
+  if (linha === null) return "Pendente";     // sem linha não há comparação possível
+  if (total === linha) return "Empate na linha";
+  if ((t === "mais" && total > linha) || (t === "menos" && total < linha)) return "Acertou";
+  return "Falhou";
+}
+
+/** Data em timestamp para ordenar (aaaammdd, dd/mm/aaaa ou ISO); 0 se léxica. */
+function paraTimestampRes(bruto) {
+  const s = String(bruto == null ? "" : bruto).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return Date.UTC(+m[1], +m[2] - 1, +m[3]);
+  m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+  if (m) return Date.UTC(+m[3], +m[2] - 1, +m[1]);
+  const t = Date.parse(s);
+  return isFinite(t) ? t : 0;
+}
+
+/** Transforma as linhas do CSV no modelo do painel (ordenado, mais recente 1.º). */
+function modeloResultados(linhasCsv) {
+  if (!linhasCsv.length) return [];
+
+  // A primeira linha pode ser o cabeçalho (Data, Competição, …) — detecta-se
+  // pela coluna «Data»; nesse caso descarta-se.
+  const primeira = linhasCsv[0].map((c) => String(c).trim().toLowerCase());
+  const comCabecalho = primeira[0] === "data";
+  const dados = comCabecalho ? linhasCsv.slice(1) : linhasCsv;
+
+  const registos = dados.map((l) => {
+    const linhaNum = paraNumeroRes(l[3]);
+    const totalBruto = String(l[5] == null ? "" : l[5]).trim();
+    const totalNum = paraNumeroRes(totalBruto);
+    return {
+      data: String(l[0] == null ? "" : l[0]).trim(),
+      competicao: String(l[1] == null ? "" : l[1]).trim(),
+      jogo: String(l[2] == null ? "" : l[2]).trim(),
+      linha: linhaNum,
+      tendencia: String(l[4] == null ? "" : l[4]).trim(),
+      total: totalBruto === "" ? null : totalNum,
+      resultado: avaliarLinhaRes(linhaNum, l[4], totalBruto === "" ? null : totalNum),
+      ts: paraTimestampRes(l[0])
+    };
+  });
+
+  // Mais recente primeiro; empates de data mantêm a ordem do ficheiro.
+  return registos
+    .map((r, i) => ({ r: r, i: i }))
+    .sort((a, b) => (b.r.ts - a.r.ts) || (a.i - b.i))
+    .map((x) => x.r);
+}
+
+/** Classe CSS suave por resultado. */
+function classeResultado(res) {
+  if (res === "Acertou") return "res-acertou";
+  if (res === "Falhou") return "res-falhou";
+  if (res === "Empate na linha") return "res-empate";
+  return "res-pendente";
+}
+
+/** Escreve o painel completo (resumo + avisos + tabela) na #zona-resultados. */
+function desenharPainelResultados(registos) {
+  const zona = document.getElementById("zona-resultados");
+  if (!zona) return;
+
+  const resolvidos = registos.filter((r) => r.resultado !== "Pendente");
+  const acertos = resolvidos.filter((r) => r.resultado === "Acertou").length;
+  const falhas = resolvidos.filter((r) => r.resultado === "Falhou").length;
+  const empates = resolvidos.filter((r) => r.resultado === "Empate na linha").length;
+  const denom = acertos + falhas;
+  const taxa = denom ? ((acertos / denom) * 100).toFixed(1).replace(".", ",") + "%" : "—";
+
+  if (!registos.length) {
+    zona.innerHTML = '<div class="estado">Ainda não há análises registadas. ' +
+      'Os resultados serão publicados aqui assim que houver jogos concluídos.</div>';
+    return;
+  }
+
+  let html =
+    '<div class="resumo-grelha">' +
+      '<div class="resumo-caixa"><b>' + resolvidos.length + "</b><span>Análises resolvidas</span></div>" +
+      '<div class="resumo-caixa res-acertou"><b>' + acertos + "</b><span>Acertos</span></div>" +
+      '<div class="resumo-caixa res-falhou"><b>' + falhas + "</b><span>Falhas</span></div>" +
+      '<div class="resumo-caixa res-empate"><b>' + empates + "</b><span>Empates na linha</span></div>" +
+      '<div class="resumo-caixa"><b>' + taxa + "</b><span>Taxa de acerto</span></div>" +
+    "</div>";
+
+  // Taxa de acerto = acertos / (acertos + falhas) — empates ficam de fora.
+  html += '<p class="resumo-nota">Taxa de acerto = acertos ÷ (acertos + falhas). ' +
+    "Empates na linha e análises pendentes contam no total, mas não alteram a taxa.</p>";
+
+  if (resolvidos.length < 30) {
+    html += '<div class="estado aviso">Amostra pequena: estes números ainda não provam vantagem estatística.</div>';
+  }
+
+  html += '<div class="tabela-envolutoria"><table class="tabela-resultados">' +
+    "<thead><tr><th>Data</th><th>Competição</th><th>Jogo</th><th>Linha</th><th>Tendência</th>" +
+    "<th>Total real</th><th>Resultado</th></tr></thead><tbody>";
+
+  registos.forEach((r) => {
+    html += "<tr>" +
+      '<td data-label="Data" class="mono">' + escaparHtmlRes(r.data) + "</td>" +
+      '<td data-label="Competição">' + escaparHtmlRes(r.competicao) + "</td>" +
+      '<td data-label="Jogo">' + escaparHtmlRes(r.jogo) + "</td>" +
+      '<td data-label="Linha" class="mono">' + (r.linha === null ? "—" : r.linha) + "</td>" +
+      '<td data-label="Tendência">' + escaparHtmlRes(r.tendencia || "—") + "</td>" +
+      '<td data-label="Total real" class="mono">' + (r.total === null ? "—" : r.total) + "</td>" +
+      '<td data-label="Resultado"><span class="res-selo ' + classeResultado(r.resultado) + '">' +
+        escaparHtmlRes(r.resultado) + "</span></td>" +
+      "</tr>";
+  });
+
+  html += "</tbody></table></div>";
+  html += '<p class="resumo-nota">Total de ' + registos.length + " linha" +
+    (registos.length === 1 ? "" : "s") + " no histórico, do mais recente para o mais antigo. " +
+    "Nenhuma falha é escondida.</p>";
+
+  zona.innerHTML = html;
+}
+
+/** Mensagem neutra quando não há painel para mostrar (configuração/falha). */
+function mostrarPainelPreparacao() {
+  const zona = document.getElementById("zona-resultados");
+  if (!zona) return;
+  zona.innerHTML = '<div class="estado">📋 <strong>Painel em preparação.</strong><br />' +
+    "Os resultados serão publicados assim que a folha de cálculo partilhada estiver ligada.</div>";
+}
+
+/** Arranque: valida a configuração, faz fetch (10 s de timeout) e desenha. */
+async function carregarResultados() {
+  try {
+    if (!mfCsvConfigurado()) {
+      // RESULTS_CSV_URL ainda é um placeholder [ ] — mensagem neutra, sem erro.
+      mostrarPainelPreparacao();
+      return;
+    }
+
+    const controlador = new AbortController();
+    const temporizador = setTimeout(() => controlador.abort(), 10000);
+    let texto;
+    try {
+      const resposta = await fetch(MF_CONFIG.RESULTS_CSV_URL, { signal: controlador.signal });
+      if (!resposta.ok) throw new Error("HTTP " + resposta.status);
+      texto = await resposta.text();
+    } finally {
+      clearTimeout(temporizador);
+    }
+
+    const linhas = partirCsvRes(texto);
+    if (!linhas.length) { mostrarPainelPreparacao(); return; }
+
+    desenharPainelResultados(modeloResultados(linhas));
+    trackEvent("resultados_vistos", { total: linhas.length });
+  } catch (erro) {
+    // Falha de rede/CORS/formato: a página continua de pé com mensagem neutra.
+    console.warn("[RESULTADOS] não foi possível carregar o CSV:", erro);
+    mostrarPainelPreparacao();
+  }
+}
+
+carregarResultados();
+</script>
+</body>
+</html>

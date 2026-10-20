@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Mente Fria — sitemap das 4 páginas públicas.
+  Mente Fria — sitemap das 5 páginas públicas.
   Os URLs estão SEM extensão .html porque o vercel.json tem "cleanUrls": true:
   a Vercel serve /termos em vez de /termos.html (e redirecciona o .html),
   pelo que estes são os endereços canónicos finais.
@@ -8,25 +8,31 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://mente-fria.goloaovivo.workers.dev/</loc>
-    <lastmod>2026-10-12</lastmod>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
+    <loc>https://mente-fria.goloaovivo.workers.dev/resultados</loc>
+    <lastmod>2026-10-20</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mente-fria.goloaovivo.workers.dev/jogo-responsavel</loc>
-    <lastmod>2026-10-12</lastmod>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://mente-fria.goloaovivo.workers.dev/termos</loc>
-    <lastmod>2026-10-12</lastmod>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://mente-fria.goloaovivo.workers.dev/privacidade</loc>
-    <lastmod>2026-10-12</lastmod>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>

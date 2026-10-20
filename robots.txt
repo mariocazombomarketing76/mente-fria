@@ -1,5 +1,5 @@
 # Mente Fria — robots.txt
-# Site estático de uma só finalidade: indexar as 4 páginas públicas.
+# Site estático de uma só finalidade: indexar as 5 páginas públicas.
 
 User-agent: *
 Allow: /

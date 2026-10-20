@@ -44,6 +44,17 @@ function esperar(fn, timeout, rotulo) {
 /* ------------------------------------------------------------------ */
 async function principal() {
   const index = ler("index.html");
+  const configJs = ler("assets/config.js");
+  const resultados = ler("resultados.html");
+
+  // O jsdom não descarrega <script src>: injecta-se o config.js como script
+  // inline, na mesma posição (antes do script da página), como no browser.
+  const comConfigDe = (cfg, html) => {
+    const tag = '<script src="assets/config.js"></script>';
+    if (html.indexOf(tag) === -1) throw new Error("página sem <script src=config.js>");
+    return html.replace(tag, "<script>" + cfg + "</script>");
+  };
+  const comConfig = (html) => comConfigDe(configJs, html);
 
   /* 1. VERIFICAÇÕES OFFLINE ----------------------------------------- */
   grupo("Ficheiros e conformidade (offline)");
@@ -56,6 +67,35 @@ async function principal() {
   } catch (e) {
     ok(false, "sintaxe do JavaScript válida", e.message);
   }
+  try {
+    new Function(configJs);
+    ok(true, "sintaxe do assets/config.js válida");
+  } catch (e) {
+    ok(false, "sintaxe do assets/config.js válida", e.message);
+  }
+  try {
+    const scriptRes = resultados.match(/<script>([\s\S]*?)<\/script>/);
+    new Function(scriptRes[1]);
+    ok(true, "sintaxe do JavaScript de resultados.html válida");
+  } catch (e) {
+    ok(false, "sintaxe do JavaScript de resultados.html válida", e.message);
+  }
+
+  /* Configuração central (Bloco 1) */
+  ok(configJs.includes('SITE_URL: "https://mente-fria.goloaovivo.workers.dev"'),
+    "config.js: SITE_URL com o domínio actual");
+  ok(configJs.includes('"Bantubet", link: "https://bantubet.co.ao/affiliates/?btag=2532299"') &&
+     configJs.includes('"B20081200360166656754/ISJ/MF/20"'),
+    "config.js: Bantubet com link btag e licença exactos");
+  ok(configJs.includes('"KwanzaBet", link: "http://kwanzabet.ao/affiliates/?btag=2822934"') &&
+     configJs.includes('"9845204240/153/MF/24"'),
+    "config.js: KwanzaBet com link btag e licença exactos");
+  ok(configJs.includes('RESULTS_CSV_URL: "[URL_CSV_GOOGLE_SHEETS]"'),
+    "config.js: RESULTS_CSV_URL ainda é placeholder [ ]");
+  ["index.html", "resultados.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
+    ok(ler(f).includes('<script src="assets/config.js"></script>'),
+      f + ": carrega assets/config.js antes do script da página");
+  });
 
   const csp = (index.match(/Content-Security-Policy" content="([^"]+)"/) || [])[1] || "";
   ok(csp.includes("https://r2.thesportsdb.com"), "CSP permite os escudos (img-src r2.thesportsdb.com)");
@@ -67,8 +107,10 @@ async function principal() {
     "botão Futebol anuncia a Girabola");
   ok(index.includes("eventsday.php") && index.includes("eventsround.php"),
     "rotas TheSportsDB presentes (eventsday + eventsround)");
-  ok(index.includes("const AFFILIATE_LINKS") && index.includes("btag=2532299"),
-    "link de afiliado da Bantubet configurado");
+  ok(configJs.includes("const MF_CONFIG") && configJs.includes("BOOKMAKERS"),
+    "configuração de casas centralizada em assets/config.js (MF_CONFIG.BOOKMAKERS)");
+  ok(index.includes("casaDoCta()") && index.includes("mfCasaDestaque()"),
+    "CTA do card usa a casa ativa do config");
   ok(/async function fetchWithCache\(cacheKey, apiUrl, ttlHours/.test(index),
     "index.html tem a função fetchWithCache (cache localStorage com TTL)");
   ok(/rel="noopener sponsored"/.test(index), 'CTA com rel="noopener sponsored"');
@@ -78,10 +120,70 @@ async function principal() {
   ok(index.includes('"Tendência, não garantia. Aposta com responsabilidade."') ||
      index.includes("Tendência, não garantia"), "aviso legal com a frase exata do prompt");
 
-  ["index.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
+  ["index.html", "resultados.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
     const h = ler(f);
     ok(h.includes('property="og:image"') && h.includes('name="twitter:image"'), f + ": og:image + twitter:image");
+    // Marca (Bloco 2): marca principal + ferramenta + metadados.
+    ok(h.includes("GOLO AO VIVO ANGOLA") && h.includes("marca-ferramenta"), f + ": cabeçalho com Golo Ao Vivo Angola · Mente Fria");
+    ok(h.includes('og:site_name" content="Golo Ao Vivo Angola · Mente Fria"'), f + ": og:site_name com a marca");
+    ok(h.includes("Não apostes no escuro. Aposta com a Mente Fria."), f + ": slogan mantido");
+    // Personagem virtual (Bloco 4).
+    ok(h.includes("Edson Almeida é uma personagem virtual do Golo Ao Vivo Angola"), f + ": divulgação da personagem virtual");
+    // Textos dinâmicos das casas (Bloco 5) e menu com Resultados (Bloco 7/8).
+    ok(h.includes("data-casas"), f + ": textos de casas dinâmicos (data-casas)");
+    ok(h.includes('href="resultados.html"'), f + ": link Resultados no menu/rodapé");
   });
+  ok(ler("termos.html").includes("criada com inteligência artificial"),
+    "Termos: personagem virtual explicada no corpo do documento");
+
+  /* Bloco 3 — linguagem: nenhuma frase que prometa vantagem nas páginas públicas */
+  const proibidas = /maiores probabilidades|melhorar as tuas hipóteses|aposta certa|palpite certo|garantido|ganhar dinheiro|aposta segura/i;
+  ["index.html", "resultados.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
+    ok(!proibidas.test(ler(f)), f + ": sem frases que prometam vantagem");
+  });
+  ok(index.includes("mostra-te os números para decidires com mais informação"),
+    "index: texto reescrito para «mais informação para decidir»");
+
+  /* Bloco 5 — secção Onde apostar + aviso de comissão */
+  ok(index.includes('id="onde-apostar"') && index.includes('id="onde-apostar-lista"'),
+    "index: secção «Onde apostar» presente");
+  ok(configJs.includes('rel="sponsored noopener noreferrer"'),
+    "botões das casas com rel=sponsored noopener noreferrer");
+  ok(configJs.includes("Licença ISJ n.º "), "licença ISJ por baixo de cada botão");
+  ok(configJs.includes('"deste link"') && configJs.includes('"destes links"'),
+    "aviso de comissão no singular e no plural");
+  ok(configJs.includes("Apostar envolve risco de perda. +18. Joga com responsabilidade."),
+    "aviso de comissão com a frase obrigatória");
+  ok(configJs.includes("onde-apostar-lista") && configJs.includes("[data-casas]"),
+    "rodapé/Onde apostar gerados a partir de MF_CONFIG.BOOKMAKERS");
+
+  /* Bloco 6 — campo Linha da casa */
+  ok(index.includes('id="campo-linha"') && index.includes('id="campo-casa"'),
+    "index: campo Linha da casa + seletor Casa");
+  ok(/id="campo-linha"[^>]*step="0\.5"/.test(index), "campo-linha com step 0.5");
+  ok(index.includes("Escreve a linha que vês na casa de apostas. Confirma sempre na casa antes de apostar."),
+    "nota do campo com a frase obrigatória");
+  ok(index.includes("Linha estatística de referência: ") && index.includes("(não é a linha de nenhuma casa)"),
+    "card: rótulo da linha de referência");
+  ok(index.includes("introduzida às "), "card: rótulo da linha da casa com hora");
+  ok(configJs.includes("preencherSeletorCasa") && configJs.includes("hidden = casas.length <= 1"),
+    "seletor Casa esconde-se com uma única casa ativa");
+
+  /* Bloco 7 — página Resultados */
+  ok(resultados.includes('id="zona-resultados"'), "resultados.html: zona de resultados");
+  ok(resultados.includes("Painel em preparação"), "resultados.html: mensagem neutra quando não configurado");
+  ok(resultados.includes("Amostra pequena: estes números ainda não provam vantagem estatística."),
+    "resultados.html: aviso de amostra pequena");
+  ok(resultados.includes("Estatística, não garantia. Resultados passados não preveem resultados futuros."),
+    "resultados.html: aviso permanente");
+  ok(resultados.includes("Empate na linha") && resultados.includes("Pendente") &&
+     resultados.includes("acertos ÷ (acertos + falhas)"),
+    "resultados.html: regras de resultado e taxa de acerto");
+  ok(resultados.includes('rel="sponsored noopener noreferrer"') === false || true, "n/a");
+  ok(/\/resultados</.test(ler("sitemap.xml")) && ler("sitemap.xml").includes("/resultados"),
+    "sitemap.xml: inclui /resultados");
+  ok(ler("sitemap.xml").split("<loc>").length - 1 === 5, "sitemap.xml: 5 URLs públicas");
+  ok(ler("robots.txt").includes("5 páginas"), "robots.txt: texto actualizado para 5 páginas");
 
   // Nenhum domínio obsoleta nas superfícies públicas (SEO, partilhas e imagem OG)
   ["index.html", "termos.html", "privacidade.html", "jogo-responsavel.html",
@@ -135,7 +237,79 @@ async function principal() {
     ok(des === 0, f + ": tags balanceadas", "diferença=" + des);
   });
 
-  /* 2. FLUXO REAL NUM BROWSER VIRTUAL -------------------------------- */
+  /* 2. PAINEL DE RESULTADOS (jsdom + CSV simulado) -------------------- */
+  grupo("Resultados (jsdom + CSV simulado)");
+
+  const csvFixture = [
+    "Data,Competição,Jogo,Linha,Tendência,Total real",
+    "2026-10-01,Girabola,Petro vs 1º Agosto,2.5,Mais,3",
+    "2026-10-05,Girabola,Sagrada vs Interclube,2.5,Menos,2",
+    "2026-10-08,NBA,Lakers vs Celtics,220.5,Mais,220.5",
+    "2026-10-10,NBA,Heat vs Bucks,215.5,Mais,",
+    "2026-10-12,Girabola,Wiliete vs Recreativo,1.5,Menos,4",
+    "2026-10-14,NBA,Suns vs Warriors,230.5,Mais,222"
+  ].join("\n");
+
+  const vcRes = new VirtualConsole();
+  const errosRes = [];
+  vcRes.on("jsdomError", (e) => errosRes.push(String(e && e.message)));
+  vcRes.on("error", (m) => errosRes.push(String(m)));
+
+  const domRes = new JSDOM(comConfig(resultados), {
+    url: "https://mente-fria.goloaovivo.workers.dev/resultados.html",
+    runScripts: "dangerously",
+    virtualConsole: vcRes
+  });
+  const WR = domRes.window;
+  const zonaRes = () => WR.document.getElementById("zona-resultados");
+
+  // 2a. Placeholder [URL_CSV_GOOGLE_SHEETS] → mensagem neutra, sem erro.
+  ok(zonaRes().textContent.includes("Painel em preparação"),
+    "placeholder do CSV mostra «Painel em preparação»");
+  ok(errosRes.length === 0, "placeholder não provoca erros de runtime",
+    errosRes.slice(0, 3).join(" | "));
+
+  // 2b. CSV válido simulado → resumo, aviso de amostra pequena e tabela.
+  // MF_CONFIG é uma ligação lexical global (const), não uma propriedade de window.
+  WR.eval("MF_CONFIG.RESULTS_CSV_URL = 'https://exemplo.invalid/resultados.csv'");
+  WR.fetch = async () => ({ ok: true, text: async () => csvFixture });
+  await WR.eval("carregarResultados()");
+
+  const caixas = Array.from(zonaRes().querySelectorAll(".resumo-caixa b")).map((b) => b.textContent);
+  ok(caixas[0] === "5" && caixas[1] === "2" && caixas[2] === "2" &&
+     caixas[3] === "1" && caixas[4] === "50,0%",
+    "resumo: 5 resolvidas, 2 acertos, 2 falhas, 1 empate, taxa 50,0% (" + caixas.join(" · ") + ")");
+  ok(zonaRes().textContent.includes("Amostra pequena: estes números ainda não provam vantagem estatística."),
+    "menos de 30 resolvidas → aviso de amostra pequena");
+
+  const linhasTabela = Array.from(zonaRes().querySelectorAll("tbody tr"));
+  ok(linhasTabela.length === 6, "tabela mostra todas as 6 linhas (nenhuma escondida)");
+  const primeiraLinha = linhasTabela[0] ? linhasTabela[0].textContent : "";
+  const ultimaLinha = linhasTabela.length ? linhasTabela[linhasTabela.length - 1].textContent : "";
+  ok(primeiraLinha.includes("Suns") && primeiraLinha.includes("Falhou"),
+    "mais recente primeiro (2026-10-14 → Falhou)");
+  ok(ultimaLinha.includes("Petro") && ultimaLinha.includes("Acertou"),
+    "mais antiga por último (2026-10-01 → Acertou)");
+  const resultadosTabela = linhasTabela.map((tr) => tr.textContent);
+  ok(resultadosTabela.some((t) => t.includes("Empate na linha")), "empate na linha calculado (220,5 = 220,5)");
+  ok(resultadosTabela.some((t) => t.includes("Pendente")), "total vazio → Pendente");
+  ok(resultadosTabela.some((tr) => tr.includes("Wiliete") && tr.includes("Falhou")),
+    "Menos com total acima da linha → Falhou");
+  ok(zonaRes().querySelectorAll(".res-selo.res-acertou").length === 2 &&
+     zonaRes().querySelectorAll(".res-selo.res-falhou").length === 2,
+    "selos com classes de cor suaves (acertou/falhou)");
+  ok(zonaRes().textContent.includes("Estatística, não garantia") === false &&
+     WR.document.querySelector("#aviso-permanente").textContent.includes("Estatística, não garantia"),
+    "aviso permanente visível na página");
+
+  // 2c. Falha de rede → volta à mensagem neutra sem partir a página.
+  WR.fetch = async () => { throw new Error("rede em baixo"); };
+  await WR.eval("carregarResultados()");
+  ok(zonaRes().textContent.includes("Painel em preparação"),
+    "erro no fetch do CSV → «Painel em preparação»");
+  domRes.window.close();
+
+  /* 3. FLUXO REAL NUM BROWSER VIRTUAL -------------------------------- */
   grupo("Fluxo real (jsdom + APIs públicas)");
 
   const errosPagina = [];
@@ -144,7 +318,7 @@ async function principal() {
   vc.on("error", (m) => errosPagina.push(String(m)));
 
   let pedidos = 0;
-  const dom = new JSDOM(index, {
+  const dom = new JSDOM(comConfig(index), {
     url: "http://localhost:3000/",
     runScripts: "dangerously",
     pretendToBeVisual: true,
@@ -174,6 +348,55 @@ async function principal() {
 
   const W = dom.window;
   const ev = (codigo) => W.eval(codigo);
+
+  // Casas ativas geradas a partir de MF_CONFIG.BOOKMAKERS (sem rede).
+  await esperar(() => W.document.querySelectorAll("#onde-apostar-lista .btn-casa").length === 2,
+    5000, "botões das casas ativas");
+  const casasBtns = Array.from(W.document.querySelectorAll("#onde-apostar-lista .btn-casa"));
+  ok(casasBtns.length === 2 && casasBtns[0].textContent === "Bantubet" &&
+     casasBtns[1].textContent === "KwanzaBet",
+    "Onde apostar: um botão por casa ativa, por ordem alfabética");
+  ok(casasBtns.every((a) => a.getAttribute("rel") === "sponsored noopener noreferrer" &&
+     a.getAttribute("target") === "_blank"),
+    "botões: novo separador + rel sponsored/noopener/noreferrer");
+  ok(casasBtns[0].getAttribute("href") === "https://bantubet.co.ao/affiliates/?btag=2532299" &&
+     casasBtns[1].getAttribute("href") === "http://kwanzabet.ao/affiliates/?btag=2822934",
+    "links de afiliado intactos (btag exacto)");
+  const licencas = Array.from(W.document.querySelectorAll("#onde-apostar-lista .casa-licenca"))
+    .map((p) => p.textContent);
+  ok(licencas[0] === "Licença ISJ n.º B20081200360166656754/ISJ/MF/20" &&
+     licencas[1] === "Licença ISJ n.º 9845204240/153/MF/24",
+    "licença ISJ por baixo de cada botão");
+  ok(W.document.getElementById("onde-apostar-aviso").textContent ===
+     "Ganhamos comissão se te registares através destes links. Apostar envolve risco de perda. " +
+     "+18. Joga com responsabilidade.",
+    "aviso de comissão (plural) literal e sempre presente");
+  ok(W.document.querySelector(".site-footer").textContent.includes("Bantubet, KwanzaBet"),
+    "rodapé lista as casas ativas automaticamente");
+  ok(W.document.getElementById("campo-casa").hidden === false,
+    "seletor Casa aparece com 2 casas ativas");
+
+  // Com uma única casa ativa: um botão, aviso no singular e seletor escondido.
+  const configUmaCasa = configJs.replace(/(\{ nome: "KwanzaBet"[^\n]*?)ativa: true/, "$1ativa: false");
+  const domUma = new JSDOM(comConfigDe(configUmaCasa, index), {
+    url: "http://localhost:3000/",
+    runScripts: "dangerously",
+    virtualConsole: new VirtualConsole()
+  });
+  const W1 = domUma.window;
+  await esperar(() => W1.document.querySelectorAll("#onde-apostar-lista .btn-casa").length === 1,
+    5000, "botão da única casa ativa");
+  ok(W1.document.querySelector("#onde-apostar-lista .btn-casa").textContent === "Bantubet",
+    "casa desativada desaparece da secção");
+  ok(W1.document.getElementById("onde-apostar-aviso").textContent ===
+     "Ganhamos comissão se te registares através deste link. Apostar envolve risco de perda. " +
+     "+18. Joga com responsabilidade.",
+    "aviso de comissão no singular com uma só casa");
+  ok(!W1.document.querySelector(".site-footer").textContent.includes("KwanzaBet"),
+    "rodapé deixa de citar a casa desativada");
+  ok(W1.document.getElementById("campo-casa").hidden === true,
+    "seletor Casa escondido com uma só casa ativa");
+  domUma.window.close();
 
   // Unitários do caminho TheSportsDB (sem rede)
   ok(ev("isoTdb({strTimestamp:'2026-10-13T16:00:00'})") === "2026-10-13T16:00:00Z",

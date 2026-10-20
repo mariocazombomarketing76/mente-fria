@@ -17,11 +17,13 @@ para deploy gratuito na **Vercel**.
 ```
 mente-fria/
 ├── index.html               → gerador de Match X-Ray (página principal)
+├── resultados.html          → painel público de resultados (CSV do Google Sheets)
 ├── privacidade.html         → Política de Privacidade
 ├── termos.html              → Termos de Uso
 ├── jogo-responsavel.html    → Jogo Responsável
 ├── assets/
-│   ├── style.css            → CSS partilhado pelas 4 páginas
+│   ├── config.js            → CONFIGURAÇÃO CENTRAL (domínio, casas, URL do CSV)
+│   ├── style.css            → CSS partilhado pelas 5 páginas
 │   ├── favicon.svg          → favicon (floco de neve ciano na aba do navegador)
 │   ├── og-image.png         → imagem estática 1200×630 para og:image/twitter:image
 │   ├── bg-inicial.svg        → fundo da página inicial (futebol + basquetebol)
@@ -29,11 +31,14 @@ mente-fria/
 │   └── bg-basket.svg         → fundo quando o utilizador escolhe 🏀 NBA
 ├── tools/
 │   ├── gerar-og-image.js    → script que (re)gera o og-image.png (só para manutenção)
-│   └── testes.js            → 67 verificações: offline + fluxo real + imagem partilhada
+│   ├── sincronizar-site-url.js → propaga SITE_URL (config.js) às meta tags, sitemap,
+│   │                            robots.txt e gerador da og-image
+│   └── testes.js            → 201 verificações: offline + resultados + fluxo real +
+│                              imagem partilhada
 ├── vercel.json              → configuração de deploy/cabeçalhos na Vercel
 ├── .vercelignore            → impede o deploy de _arquivo/, tools/ e README.md
 ├── robots.txt               → indexação
-├── sitemap.xml              → sitemap das 4 páginas
+├── sitemap.xml              → sitemap das 5 páginas
 ├── README.md                → este guia
 └── _arquivo/                → versão anterior (backup, não publicada)
 ```
@@ -78,17 +83,38 @@ Premier League (`soccer/eng.1`), La Liga (`soccer/esp.1`), Champions League
 
 ---
 
-## ⚙️ Onde editar (tudo no topo do `index.html`)
+## ⚙️ Onde editar — `assets/config.js` (o único sítio)
 
 ```js
-// Links de afiliado (acrescente novas casas de apostas aqui — o resto do código não muda)
-const AFFILIATE_LINKS = {
-  bantubet: "https://bantubet.co.ao/affiliates/?btag=2532299"
+const MF_CONFIG = {
+  // Domínio público: canonical, og:url, og:image e links absolutos seguem daqui.
+  SITE_URL: "https://mente-fria.goloaovivo.workers.dev",
+
+  // Casas parceiras (programa de afiliados). Acrescente/desactive aqui — a secção
+  // «Onde apostar», o aviso de comissão, os textos do rodapé e o seletor «Casa»
+  // do gerador seguem esta lista automaticamente. Copie o link tal e qual
+  // (nunca altere o parâmetro btag) e indique a licença do ISJ.
+  BOOKMAKERS: [
+    { nome: "Bantubet", link: "https://bantubet.co.ao/affiliates/?btag=2532299",
+      licenca: "B20081200360166656754/ISJ/MF/20", ativa: true },
+    { nome: "KwanzaBet", link: "http://kwanzabet.ao/affiliates/?btag=2822934",
+      licenca: "9845204240/153/MF/24", ativa: true }
+  ],
+
+  // Folha do Google Sheets publicada em CSV (Ficheiro → Partilhar → Publicar na web).
+  // Colunas, por esta ordem: Data, Competição, Jogo, Linha, Tendência, Total real.
+  // Enquanto for um placeholder [ ], a página Resultados diz «Painel em preparação».
+  RESULTS_CSV_URL: "[URL_CSV_GOOGLE_SHEETS]"
 };
+```
 
-// Domínio público do site (usado nas mensagens de partilha)
-const SITE_URL = "https://mente-fria.goloaovivo.workers.dev";
+Para mudar de domínio: altere `SITE_URL` acima e corra
+`node tools/sincronizar-site-url.js` (actualiza canonical/og:url/og:image das 5 páginas,
+`sitemap.xml`, `robots.txt` e o gerador da og-image).
 
+No topo do `index.html` continuam os restantes parâmetros do motor:
+
+```js
 // Webhook de analytics (n8n). Vazio = só escreve no console
 const ANALYTICS_WEBHOOK = "";
 
@@ -148,14 +174,19 @@ utilizador nunca fica com o ecrã bloqueado por causa de uma equipa sem dados.
 cd tools && npm i && node testes.js
 ```
 
-`tools/testes.js` corre **67 verificações** em três blocos:
+`tools/testes.js` corre **201 verificações** em quatro blocos:
 
-1. **offline** — CSP, `og:image`/`twitter:image` nas 4 páginas, aviso legal literal,
-   CTA `rel="sponsored"`, `.vercelignore`, HTML balanceado e sintaxe do JavaScript;
-2. **fluxo real** — abre o `index.html` num browser virtual (jsdom) e usa as **APIs
+1. **offline** — CSP, `og:image`/`twitter:image` nas 5 páginas, aviso legal literal,
+   CTA `rel="sponsored"`, `.vercelignore`, HTML balanceado, sintaxe do JavaScript e
+   auditoria da configuração (links `btag` e licenças exactos, sem frases que prometam
+   vantagem);
+2. **resultados** — abre `resultados.html` num browser virtual: placeholder do CSV →
+   «Painel em preparação», CSV simulado → resumo (acertos, falhas, empates, taxa),
+   aviso de amostra pequena, tabela completa e falha de rede sem partir a página;
+3. **fluxo real** — abre o `index.html` num browser virtual (jsdom) e usa as **APIs
    públicas a sério**: escolhe Futebol, filtra pela Girabola, gera o card de um jogo
    real (média, amostra `n=`, tendência, aviso legal) e faz a regressão ESPN/NBA;
-3. **imagem partilhada** — desenha o canvas 1080×1350 e confirma que o aviso legal
+4. **imagem partilhada** — desenha o canvas 1080×1350 e confirma que o aviso legal
    está desenhado **dentro** da imagem.
 
 Requer rede (bate mesmo nas APIs) e `jsdom` + `canvas` locais — ambos em `tools/`,
@@ -174,6 +205,26 @@ que está no `.vercelignore` e no `.gitignore` (`node_modules/`).
 O aviso `📊 Estatística baseada nos últimos 5 jogos. Tendência, não garantia.` está sempre
 presente **dentro do card e dentro da imagem partilhada**.
 
+O card e a imagem têm ainda a linha de crédito `Match X-Ray by Mente Fria · Golo Ao Vivo
+Angola`. Nenhum card ou imagem partilhada contém links de afiliado.
+
+---
+
+## 📊 Resultados (CSV)
+
+`resultados.html` lê `RESULTS_CSV_URL` (Google Sheets publicado em CSV) e calcula tudo no
+navegador. Colunas, por esta ordem: **Data, Competição, Jogo, Linha, Tendência, Total real**
+(a primeira linha pode ser cabeçalho; `Tendência` = `Mais` ou `Menos`).
+
+- `Acertou` se (Mais e Total > Linha) ou (Menos e Total < Linha);
+- `Empate na linha` se Total = Linha; `Falhou` nos restantes casos;
+- `Pendente` quando o Total real está vazio.
+
+O resumo mostra resolvidas, acertos, falhas, empates e taxa = acertos ÷ (acertos + falhas),
+mais o aviso de amostra pequena abaixo de 30 resolvidas. Nenhuma falha é escondida. Se o
+CSV não carregar (ou `RESULTS_CSV_URL` ainda for o placeholder), a página mostra
+«Painel em preparação» sem erro.
+
 ---
 
 ## ✅ Conformidade com a Vercel
@@ -185,8 +236,8 @@ comando de build nem pasta `dist`.
 | Ficheiro | Papel | Vercel |
 |---|---|---|
 | `index.html` | porta de entrada do site | **obrigatório** |
-| `termos.html`, `privacidade.html`, `jogo-responsavel.html` | páginas adicionais | opcional |
-| `assets/style.css`, `assets/favicon.svg` | CSS e ícone | opcional |
+| `termos.html`, `privacidade.html`, `jogo-responsavel.html`, `resultados.html` | páginas adicionais | opcional |
+| `assets/style.css`, `assets/config.js`, `assets/favicon.svg` | CSS, configuração e ícone | opcional |
 | `robots.txt`, `sitemap.xml` | indexação nos motores de busca | recomendado |
 | `vercel.json` | `cleanUrls`, `trailingSlash` e cabeçalhos de segurança | opcional (recomendado) |
 | `.vercelignore` | exclui `_arquivo/` e `README.md` do deploy | opcional (recomendado) |
@@ -219,7 +270,7 @@ or facilitation of illegal goods and services». Requisitos práticos:
 
 - promover apenas operadores **licenciados** (em Angola, supervisionados pelo ISJ);
 - manter o aviso **+18**, a natureza informativa do serviço e a identificação da publicidade
-  (selo «Publicidade» no CTA) — tudo já implementado nas 4 páginas;
+  (selo «Publicidade» no CTA) — tudo já implementado nas 5 páginas;
 - sendo o site acessível de fora de Angola, não direccionar links de aposta a jurisdições
   onde o operador não esteja licenciado.
 
@@ -237,9 +288,11 @@ vercel --prod        # produção
 **Opção B — GitHub + Vercel:** suba esta pasta para um repositório e ligue-o à Vercel
 (Framework Preset: **Other**; sem build command; output = raiz do projecto).
 
-Antes de publicar, substitua `https://mente-fria.goloaovivo.workers.dev` em `SITE_URL`, no `robots.txt`, no
-`sitemap.xml`, nas meta tags Open Graph (incluindo `og:image`/`twitter:image`) e no
-`tools/gerar-og-image.js` pelo domínio real.
+Antes de publicar num domínio próprio, altere `SITE_URL` em `assets/config.js` e corra
+`node tools/sincronizar-site-url.js` — as meta tags Open Graph (incluindo
+`og:image`/`twitter:image`), o `robots.txt`, o `sitemap.xml` e o `tools/gerar-og-image.js`
+são actualizados de uma vez. (Em runtime, o `config.js` também já corrige canonical,
+`og:url`, `og:image` e `twitter:image` sozinho.)
 
 ---
 
@@ -266,7 +319,7 @@ Tudo vanilla, sem bibliotecas:
 
 O link do site partilhado no WhatsApp/Telegram/facebook usa `assets/og-image.png`
 (1200×630, gerada com o mesmo tema do site). Está referenciada em `og:image` e
-`twitter:image` nas 4 páginas — **sem esta imagem, o `twitter:card=summary_large_image`
+`twitter:image` nas 5 páginas — **sem esta imagem, o `twitter:card=summary_large_image`
 sai sem foto** e a partilha do link tem muito menos impacto.
 
 Para a regerar (só é preciso se mudar o visual):

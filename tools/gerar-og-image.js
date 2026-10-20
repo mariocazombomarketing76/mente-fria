@@ -26,22 +26,22 @@ ctx.strokeRect(30, 30, L - 60, A - 60);
 
 // Marca
 ctx.textBaseline = "middle"; ctx.textAlign = "left";
-ctx.fillStyle = "#00d4ff"; ctx.font = 'bold 44px "DVM", monospace';
-ctx.fillText("MENTE FRIA", 76, 104);
-ctx.fillStyle = "#8b949e"; ctx.font = '24px "DVS", sans-serif';
-ctx.fillText("MATCH X-RAY  ·  ANÁLISE PRÉ-JOGO DE FUTEBOL E NBA", 76, 150);
+ctx.fillStyle = "#00d4ff"; ctx.font = 'bold 40px "DVM", monospace';
+ctx.fillText("GOLO AO VIVO ANGOLA", 76, 96);
+ctx.fillStyle = "#8b949e"; ctx.font = '22px "DVS", sans-serif';
+ctx.fillText("Mente Fria · MATCH X-RAY · FUTEBOL E NBA", 76, 142);
 
 // Selo direita
 ctx.textAlign = "right";
 ctx.fillStyle = "#ffa500"; ctx.font = 'bold 22px "DVM", monospace';
-ctx.fillText("+18", L - 76, 104);
+ctx.fillText("+18", L - 76, 96);
 ctx.fillStyle = "#6e7681"; ctx.font = '20px "DVM", monospace';
 ctx.fillText("ESTATÍSTICA, NÃO GARANTIA", L - 76, 142);
 ctx.textAlign = "left";
 
 // Linha
 ctx.strokeStyle = "rgba(255,255,255,0.14)"; ctx.lineWidth = 2;
-ctx.beginPath(); ctx.moveTo(76, 186); ctx.lineTo(L - 76, 186); ctx.stroke();
+ctx.beginPath(); ctx.moveTo(76, 182); ctx.lineTo(L - 76, 182); ctx.stroke();
 
 // Manchete
 ctx.fillStyle = "#e6edf3"; ctx.font = 'bold 58px "DVS", sans-serif';
@@ -85,9 +85,13 @@ ctx.fillText(cta1, 100, ctaY + 28);
 ctx.font = 'bold 17px "DVM", monospace';
 ctx.fillText(cta2, 100, ctaY + 60);
 
-// Rodapé
+// Rodapé (domínio lido de assets/config.js — fonte da verdade)
+const fsConfig = fs.readFileSync(require("path").join(__dirname, "..", "assets", "config.js"), "utf8");
+const mUrl = fsConfig.match(/SITE_URL:\s*"([^"]+)"/);
+const dominio = (mUrl ? mUrl[1] : "https://mente-fria.goloaovivo.workers.dev")
+  .replace(/^https?:\/\//, "").replace(/\/+$/, "");
 ctx.fillStyle = "#6e7681"; ctx.font = '22px "DVM", monospace';
-ctx.fillText("mente-fria.goloaovivo.workers.dev", 76, 566);
+ctx.fillText(dominio, 76, 566);
 ctx.textAlign = "right";
 ctx.fillStyle = "#ffa500";
 ctx.fillText("Joga com responsabilidade", L - 76, 566);
