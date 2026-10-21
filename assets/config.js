@@ -16,10 +16,10 @@
                         (n.º de licença ISJ) e ativa (true/false).
                         Acrescente, desactive (ativa: false) ou remova
                         entradas SÓ AQUI: os botões de aposta do card (um por
-                        casa ativa, com licença), o aviso de comissão do
-                        rodapé, os textos que citam casas e o seletor «Casa»
-                        seguem esta lista automaticamente. Os botões não
-                        aparecem em mais nenhum sítio do site.
+                        casa ativa, com licença e aviso de comissão), os textos
+                        que citam casas e o seletor «Casa» seguem esta lista
+                        automaticamente. Os botões não aparecem em mais nenhum
+                        sítio do site.
                         Nenhum pedido é feito aos sites das casas.
 
    3) RESULTS_CSV_URL  → folha do Google Sheets publicada em CSV, para a
@@ -70,7 +70,7 @@ function mfCasasAtivas() {
 
 /**
  * Aviso de comissão obrigatório, com o singular/plural ajustado ao número de
- * casas ativas. É o MESMO texto no card e no rodapé de todas as páginas.
+ * casas ativas. Aparece apenas dentro do card, por baixo das opções de aposta.
  */
 function mfAvisoComissao(casas) {
   const lista = casas || mfCasasAtivas();
@@ -121,21 +121,7 @@ function mfNomesLegiveis(casas) {
     });
   }
 
-  /* 2. Aviso de comissão no rodapé de TODAS as páginas (data-aviso-comissao).
-        O mesmo texto é usado dentro do card; aqui fica sempre visível. */
-  function preencherAvisoComissao() {
-    const avisos = document.querySelectorAll("[data-aviso-comissao]");
-    if (!avisos.length) return;
-
-    const casas = mfCasasAtivas();
-    const texto = casas.length ? mfAvisoComissao(casas) : "";
-    avisos.forEach((aviso) => {
-      aviso.textContent = texto;
-      aviso.hidden = !texto;   // sem casas ativas não há comissão a declarar
-    });
-  }
-
-  /* 3. Seletor «Casa» do campo Linha da casa (só existe no index). Quando há
+  /* 2. Seletor «Casa» do campo Linha da casa (só existe no index). Quando há
         uma única casa ativa o seletor não aparece (a casa fica implícita). */
   function preencherSeletorCasa() {
     const seletor = document.getElementById("campo-casa");
@@ -148,7 +134,7 @@ function mfNomesLegiveis(casas) {
     seletor.hidden = casas.length <= 1;
   }
 
-  /* 4. Metadados absolutos (canonical/og:url/og:image) seguem SITE_URL,
+  /* 3. Metadados absolutos (canonical/og:url/og:image) seguem SITE_URL,
         mesmo que as meta tags estáticas ainda apontem para o domínio antigo. */
   function sincronizarMetadados() {
     const base = String(MF_CONFIG.SITE_URL || "").trim().replace(/\/+$/, "");
@@ -170,7 +156,6 @@ function mfNomesLegiveis(casas) {
   function aplicar() {
     try {
       preencherCasas();
-      preencherAvisoComissao();
       preencherSeletorCasa();
       sincronizarMetadados();
     } catch (erro) {

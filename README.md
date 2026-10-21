@@ -91,9 +91,9 @@ const MF_CONFIG = {
   SITE_URL: "https://mente-fria.goloaovivo.workers.dev",
 
   // Casas parceiras (programa de afiliados). Acrescente/desactive aqui — os
-  // botões de aposta DENTRO do card (com licença e aviso de comissão), o aviso
-  // do rodapé, os textos que citam casas e o seletor «Casa» seguem esta lista
-  // automaticamente. Os botões não aparecem em mais nenhum sítio do site.
+  // botões de aposta DENTRO do card (com licença e aviso de comissão), os
+  // textos que citam casas e o seletor «Casa» seguem esta lista
+  // automaticamente. Os botões e o aviso não aparecem fora do card.
   // Copie o link tal e qual (nunca altere o parâmetro btag) e indique a licença do ISJ.
   BOOKMAKERS: [
     { nome: "Bantubet", link: "https://bantubet.co.ao/affiliates/?btag=2532299",

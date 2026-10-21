@@ -156,10 +156,10 @@ async function principal() {
     "aviso de comissão no singular e no plural");
   ok(configJs.includes("Apostar envolve risco de perda. +18. Joga com responsabilidade."),
     "aviso de comissão com a frase obrigatória");
-  ok(configJs.includes("data-aviso-comissao"),
-    "aviso de comissão injetado a partir de MF_CONFIG.BOOKMAKERS");
+  ok(index.includes("mfAvisoComissao(casas)"),
+    "aviso de comissão do card gerado a partir de MF_CONFIG.BOOKMAKERS");
   ["index.html", "resultados.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
-    ok(ler(f).includes("data-aviso-comissao"), f + ": aviso de comissão no rodapé");
+    ok(!ler(f).includes("data-aviso-comissao"), f + ": sem aviso de comissão no rodapé");
   });
 
   /* Bloco 6 — campo Linha da casa */
@@ -358,16 +358,9 @@ async function principal() {
   ok(W.document.querySelectorAll(".btn-casa").length === 0 &&
      W.document.querySelectorAll('a[href*="btag="]').length === 0,
     "home sem botões nem links de casas antes de gerar o card");
-  await esperar(() => {
-    const a = W.document.querySelector(".site-footer [data-aviso-comissao]");
-    return a && a.hidden === false && a.textContent.startsWith("Ganhamos comissão");
-  }, 5000, "aviso de comissão no rodapé da home");
-  const avisoRodape = W.document.querySelector(".site-footer [data-aviso-comissao]");
-  ok(avisoRodape && avisoRodape.hidden === false &&
-     avisoRodape.textContent ===
-       "Ganhamos comissão se te registares através destes links. Apostar envolve risco de perda. " +
-       "+18. Joga com responsabilidade.",
-    "rodapé da home: aviso de comissão (plural) literal e visível");
+  ok(!W.document.querySelector(".site-footer").textContent.includes("Ganhamos comissão") &&
+     !W.document.querySelector("[data-aviso-comissao]"),
+    "rodapé: sem aviso de comissão (fica só no card)");
   ok(W.document.getElementById("campo-casa").hidden === false,
     "seletor Casa aparece com 2 casas ativas");
 
@@ -408,16 +401,14 @@ async function principal() {
     virtualConsole: new VirtualConsole()
   });
   const W1 = domUma.window;
-  await esperar(() => {
-    const a = W1.document.querySelector(".site-footer [data-aviso-comissao]");
-    return a && a.textContent.includes("através deste link");
-  }, 5000, "aviso de comissão no singular");
+  await esperar(() => W1.document.getElementById("campo-casa").hidden === true,
+    5000, "seletor Casa escondido");
   ok(W1.document.querySelectorAll(".btn-casa").length === 0,
     "uma só casa ativa: nenhum botão de aposta na página");
   ok(!W1.document.querySelector(".site-footer").textContent.includes("KwanzaBet"),
     "rodapé deixa de citar a casa desativada");
-  ok(W1.document.getElementById("campo-casa").hidden === true,
-    "seletor Casa escondido com uma só casa ativa");
+  ok(!W1.document.querySelector(".site-footer").textContent.includes("Ganhamos comissão"),
+    "uma só casa ativa: aviso de comissão continua só no card");
   domUma.window.close();
 
   // Unitários do caminho TheSportsDB (sem rede)
