@@ -192,23 +192,6 @@
       Espaço publicitário · in-article
     </div>
 
-    <!-- ============ ONDE APOSTAR (casas parceiras licenciadas) ============
-         Os botões são gerados a partir de MF_CONFIG.BOOKMAKERS (assets/config.js):
-         uma casa acrescentada ou desactivada aí aparece/desaparece aqui sozinha.
-         Links de afiliado: rel="sponsored noopener noreferrer", sempre iguais,
-         nenhuma casa destacada. Nenhum pedido é feito aos sites das casas. -->
-    <section class="painel" id="onde-apostar" aria-labelledby="titulo-onde-apostar" hidden>
-      <div class="painel-topo">
-        <span class="painel-passo" aria-hidden="true">★</span>
-        <h2 class="painel-titulo" id="titulo-onde-apostar">Onde apostar</h2>
-        <span class="painel-nota">Operadoras licenciadas em Angola</span>
-      </div>
-      <div class="painel-corpo">
-        <div class="onde-apostar-lista" id="onde-apostar-lista"></div>
-        <p class="aviso-comissao" id="onde-apostar-aviso"></p>
-      </div>
-    </section>
-
     <!-- ==================== CONTEÚDO INFORMATIVO (SEO) ==================== -->
     <section class="bloco-texto">
       <h2>Como funciona o Match X-Ray</h2>
@@ -269,9 +252,9 @@
       Edson Almeida é uma personagem virtual do Golo Ao Vivo Angola, criada com inteligência artificial.
       Mente Fria é a ferramenta de análise do Golo Ao Vivo Angola.
     </div>
+    <p class="aviso-comissao footer-comissao" data-aviso-comissao hidden></p>
     <div class="footer-links">
       <a href="resultados.html" data-rodape="resultados">Resultados</a> ·
-      <a href="#onde-apostar" data-rodape="onde-apostar">Onde apostar</a> ·
       <a href="privacidade.html" data-rodape="privacidade">Política de Privacidade</a> ·
       <a href="termos.html" data-rodape="termos">Termos de Uso</a> ·
       <a href="jogo-responsavel.html" data-rodape="jogo-responsavel">Jogo Responsável</a>
@@ -329,10 +312,6 @@
    só nesse ficheiro; daqui tiramos apenas os atalhos usados neste script.
    ------------------------------------------------------------------------ */
 const SITE_URL = MF_CONFIG.SITE_URL;
-
-/* Casa usada no CTA do card: a primeira ativa de BOOKMAKERS (ordem de
-   configuração). A secção «Onde apostar» mostra sempre todas as ativas. */
-function casaDoCta() { return mfCasaDestaque(); }
 
 /* Webhook de analytics (n8n). Se ficar vazio, só escreve no console. */
 const ANALYTICS_WEBHOOK = "";
@@ -1418,6 +1397,35 @@ function desenharLista() {
   });
 }
 
+/**
+ * Opções de aposta DENTRO do card: um botão igual por casa ativa, por ordem
+ * alfabética, com a licença ISJ por baixo e o aviso de comissão no fim.
+ * Devolve "" quando não há casas ativas — o card fica sem esta secção.
+ * Nenhum link de afiliado entra na imagem partilhada (só no card em ecrã).
+ */
+function blocoCasasCard() {
+  const casas = mfCasasAtivas();
+  if (!casas.length) return "";
+
+  return '<div class="card-casas" id="card-casas">' +
+    '<p class="card-casas-topo"><span class="card-casas-selo">Publicidade</span> Onde apostar</p>' +
+    '<div class="card-casas-lista">' +
+      casas.map((casa) =>
+        '<div class="casa-bloco">' +
+          '<a class="btn btn-casa" data-casa="' + escaparHtml(casa.nome) + '" href="' +
+            escaparHtml(casa.link) + '" target="_blank" rel="sponsored noopener noreferrer">' +
+            escaparHtml(casa.nome) +
+          "</a>" +
+          (casa.licenca
+            ? '<p class="casa-licenca">Licença ISJ n.º ' + escaparHtml(casa.licenca) + "</p>"
+            : "") +
+        "</div>"
+      ).join("") +
+    "</div>" +
+    '<p class="aviso-comissao card-casas-aviso">' + escaparHtml(mfAvisoComissao(casas)) + "</p>" +
+  "</div>";
+}
+
 /** Desenha o Card de Análise (Match X-Ray) — versão desportiva (v4.2).
  *  opcoes.semScroll: re-render por mudança de linha (não salta a página). */
 function renderizarCard(analise, opcoes) {
@@ -1523,15 +1531,10 @@ function renderizarCard(analise, opcoes) {
     ";--cor-fora:" + (jogo.fora.cor || "#ffa500") +
     ";--cor-fora-rgb:" + hexParaRgb(jogo.fora.cor || "#ffa500") + ";";
 
-  // CTA de afiliado: usa a primeira casa ativa de BOOKMAKERS (assets/config.js).
-  // Sem casa configurada o card fica sem CTA — as estatísticas não dependem dele.
-  const casaCta = casaDoCta();
-  const ctaHtml = casaCta
-    ? '<a class="btn btn-cta" id="cta-apostar" href="' + escaparHtml(casaCta.link) +
-      '" target="_blank" rel="noopener sponsored">' +
-      '<span class="badge-publicidade">Publicidade</span>' +
-      "Ver Odds Oficiais e Apostar na " + escaparHtml(casaCta.nome) + "</a>"
-    : "";
+  // Casas de apostas: uma opção por casa ativa, com licença e aviso de
+  // comissão. Só aqui dentro do card — nunca na página. Sem casas ativas o
+  // bloco não é desenhado e as estatísticas continuam iguais.
+  const ctaHtml = blocoCasasCard();
 
   cardXray.innerHTML =
     '<article class="card-xray" id="card-analise" style="' + estiloCores + '">' +
@@ -1607,16 +1610,16 @@ function renderizarCard(analise, opcoes) {
     ESTADO.analise = null;
     painelJogos.scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  if (casaCta && el("cta-apostar")) {
-    el("cta-apostar").addEventListener("click", () => {
+  cardXray.querySelectorAll(".btn-casa").forEach((botao) => {
+    botao.addEventListener("click", () => {
       trackEvent("clique_cta_apostar", {
         jogo: jogo.casa.nome + " vs " + jogo.fora.nome,
         liga: jogo.liga,
         tendencia: analise.tendencia,
-        casa: casaCta.nome
+        casa: botao.getAttribute("data-casa")
       });
     });
-  }
+  });
 
   if (!opcoes || !opcoes.semScroll) {
     zonaCard.scrollIntoView({ behavior: "smooth", block: "start" });

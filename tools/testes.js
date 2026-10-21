@@ -109,12 +109,13 @@ async function principal() {
     "rotas TheSportsDB presentes (eventsday + eventsround)");
   ok(configJs.includes("const MF_CONFIG") && configJs.includes("BOOKMAKERS"),
     "configuração de casas centralizada em assets/config.js (MF_CONFIG.BOOKMAKERS)");
-  ok(index.includes("casaDoCta()") && index.includes("mfCasaDestaque()"),
-    "CTA do card usa a casa ativa do config");
+  ok(index.includes("blocoCasasCard()") && index.includes("mfCasasAtivas()"),
+    "opções de aposta do card geradas a partir das casas ativas do config");
   ok(/async function fetchWithCache\(cacheKey, apiUrl, ttlHours/.test(index),
     "index.html tem a função fetchWithCache (cache localStorage com TTL)");
-  ok(/rel="noopener sponsored"/.test(index), 'CTA com rel="noopener sponsored"');
-  ok(index.includes("badge-publicidade"), "selo Publicidade no CTA");
+  ok(index.includes('rel="sponsored noopener noreferrer"'),
+    'opções de aposta com rel="sponsored noopener noreferrer"');
+  ok(index.includes("card-casas-selo"), "selo Publicidade nas opções do card");
   ok(index.includes("Aposta com responsabilidade."),
     "aviso legal obrigatório literal no template");
   ok(index.includes('"Tendência, não garantia. Aposta com responsabilidade."') ||
@@ -144,18 +145,22 @@ async function principal() {
   ok(index.includes("mostra-te os números para decidires com mais informação"),
     "index: texto reescrito para «mais informação para decidir»");
 
-  /* Bloco 5 — secção Onde apostar + aviso de comissão */
-  ok(index.includes('id="onde-apostar"') && index.includes('id="onde-apostar-lista"'),
-    "index: secção «Onde apostar» presente");
-  ok(configJs.includes('rel="sponsored noopener noreferrer"'),
-    "botões das casas com rel=sponsored noopener noreferrer");
-  ok(configJs.includes("Licença ISJ n.º "), "licença ISJ por baixo de cada botão");
+  /* Bloco 5 — casas de apostas só dentro do card + aviso de comissão */
+  ok(!index.includes('id="onde-apostar"') && !index.includes("onde-apostar-lista"),
+    "index: sem secção «Onde apostar» fora do card");
+  ["index.html", "resultados.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
+    ok(!ler(f).includes("#onde-apostar"), f + ": rodapé sem link «Onde apostar»");
+  });
+  ok(index.includes("Licença ISJ n.º "), "licença ISJ por baixo de cada opção do card");
   ok(configJs.includes('"deste link"') && configJs.includes('"destes links"'),
     "aviso de comissão no singular e no plural");
   ok(configJs.includes("Apostar envolve risco de perda. +18. Joga com responsabilidade."),
     "aviso de comissão com a frase obrigatória");
-  ok(configJs.includes("onde-apostar-lista") && configJs.includes("[data-casas]"),
-    "rodapé/Onde apostar gerados a partir de MF_CONFIG.BOOKMAKERS");
+  ok(configJs.includes("data-aviso-comissao"),
+    "aviso de comissão injetado a partir de MF_CONFIG.BOOKMAKERS");
+  ["index.html", "resultados.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
+    ok(ler(f).includes("data-aviso-comissao"), f + ": aviso de comissão no rodapé");
+  });
 
   /* Bloco 6 — campo Linha da casa */
   ok(index.includes('id="campo-linha"') && index.includes('id="campo-casa"'),
@@ -349,34 +354,53 @@ async function principal() {
   const W = dom.window;
   const ev = (codigo) => W.eval(codigo);
 
-  // Casas ativas geradas a partir de MF_CONFIG.BOOKMAKERS (sem rede).
-  await esperar(() => W.document.querySelectorAll("#onde-apostar-lista .btn-casa").length === 2,
-    5000, "botões das casas ativas");
-  const casasBtns = Array.from(W.document.querySelectorAll("#onde-apostar-lista .btn-casa"));
-  ok(casasBtns.length === 2 && casasBtns[0].textContent === "Bantubet" &&
-     casasBtns[1].textContent === "KwanzaBet",
-    "Onde apostar: um botão por casa ativa, por ordem alfabética");
-  ok(casasBtns.every((a) => a.getAttribute("rel") === "sponsored noopener noreferrer" &&
-     a.getAttribute("target") === "_blank"),
-    "botões: novo separador + rel sponsored/noopener/noreferrer");
-  ok(casasBtns[0].getAttribute("href") === "https://bantubet.co.ao/affiliates/?btag=2532299" &&
-     casasBtns[1].getAttribute("href") === "http://kwanzabet.ao/affiliates/?btag=2822934",
-    "links de afiliado intactos (btag exacto)");
-  const licencas = Array.from(W.document.querySelectorAll("#onde-apostar-lista .casa-licenca"))
-    .map((p) => p.textContent);
-  ok(licencas[0] === "Licença ISJ n.º B20081200360166656754/ISJ/MF/20" &&
-     licencas[1] === "Licença ISJ n.º 9845204240/153/MF/24",
-    "licença ISJ por baixo de cada botão");
-  ok(W.document.getElementById("onde-apostar-aviso").textContent ===
-     "Ganhamos comissão se te registares através destes links. Apostar envolve risco de perda. " +
-     "+18. Joga com responsabilidade.",
-    "aviso de comissão (plural) literal e sempre presente");
-  ok(W.document.querySelector(".site-footer").textContent.includes("Bantubet, KwanzaBet"),
-    "rodapé lista as casas ativas automaticamente");
+  // Antes de gerar o card: a home não mostra casas nem botões de aposta.
+  ok(W.document.querySelectorAll(".btn-casa").length === 0 &&
+     W.document.querySelectorAll('a[href*="btag="]').length === 0,
+    "home sem botões nem links de casas antes de gerar o card");
+  await esperar(() => {
+    const a = W.document.querySelector(".site-footer [data-aviso-comissao]");
+    return a && a.hidden === false && a.textContent.startsWith("Ganhamos comissão");
+  }, 5000, "aviso de comissão no rodapé da home");
+  const avisoRodape = W.document.querySelector(".site-footer [data-aviso-comissao]");
+  ok(avisoRodape && avisoRodape.hidden === false &&
+     avisoRodape.textContent ===
+       "Ganhamos comissão se te registares através destes links. Apostar envolve risco de perda. " +
+       "+18. Joga com responsabilidade.",
+    "rodapé da home: aviso de comissão (plural) literal e visível");
   ok(W.document.getElementById("campo-casa").hidden === false,
     "seletor Casa aparece com 2 casas ativas");
 
-  // Com uma única casa ativa: um botão, aviso no singular e seletor escondido.
+  // Opções de aposta dentro do card (HTML gerado, sem rede).
+  const blocoDuas = ev("blocoCasasCard()");
+  ok((blocoDuas.match(/class="btn btn-casa"/g) || []).length === 2,
+    "card: uma opção de aposta por casa ativa (2)");
+  ok(blocoDuas.indexOf('data-casa="Bantubet"') < blocoDuas.indexOf('data-casa="KwanzaBet"'),
+    "card: opções por ordem alfabética");
+  ok(blocoDuas.includes('href="https://bantubet.co.ao/affiliates/?btag=2532299"') &&
+     blocoDuas.includes('href="http://kwanzabet.ao/affiliates/?btag=2822934"'),
+    "card: links de afiliado intactos (btag exacto)");
+  ok(blocoDuas.includes("Licença ISJ n.º B20081200360166656754/ISJ/MF/20") &&
+     blocoDuas.includes("Licença ISJ n.º 9845204240/153/MF/24"),
+    "card: licença ISJ por baixo de cada opção");
+  ok((blocoDuas.match(/rel="sponsored noopener noreferrer"/g) || []).length === 2 &&
+     (blocoDuas.match(/target="_blank"/g) || []).length === 2,
+    "card: novo separador + rel sponsored/noopener/noreferrer");
+  ok(blocoDuas.includes("Publicidade") && blocoDuas.includes("Onde apostar"),
+    "card: opções identificadas como «Onde apostar · Publicidade»");
+  ok(blocoDuas.includes("Ganhamos comissão se te registares através destes links."),
+    "card: aviso de comissão (plural) dentro do card");
+
+  // Uma só casa ativa: uma opção, aviso no singular (simulado em memória).
+  const blocoUma = ev("(function(){MF_CONFIG.BOOKMAKERS[1].ativa=false;" +
+    "var h=blocoCasasCard();MF_CONFIG.BOOKMAKERS[1].ativa=true;return h;})()");
+  ok((blocoUma.match(/class="btn btn-casa"/g) || []).length === 1 &&
+     blocoUma.includes('data-casa="Bantubet"') && !blocoUma.includes("KwanzaBet"),
+    "uma casa ativa: uma só opção, sem a desativada");
+  ok(blocoUma.includes("Ganhamos comissão se te registares através deste link. Apostar"),
+    "uma casa ativa: aviso de comissão no singular");
+
+  // Página carregada com a KwanzaBet desativada: rodapé e seletor acompanham.
   const configUmaCasa = configJs.replace(/(\{ nome: "KwanzaBet"[^\n]*?)ativa: true/, "$1ativa: false");
   const domUma = new JSDOM(comConfigDe(configUmaCasa, index), {
     url: "http://localhost:3000/",
@@ -384,14 +408,12 @@ async function principal() {
     virtualConsole: new VirtualConsole()
   });
   const W1 = domUma.window;
-  await esperar(() => W1.document.querySelectorAll("#onde-apostar-lista .btn-casa").length === 1,
-    5000, "botão da única casa ativa");
-  ok(W1.document.querySelector("#onde-apostar-lista .btn-casa").textContent === "Bantubet",
-    "casa desativada desaparece da secção");
-  ok(W1.document.getElementById("onde-apostar-aviso").textContent ===
-     "Ganhamos comissão se te registares através deste link. Apostar envolve risco de perda. " +
-     "+18. Joga com responsabilidade.",
-    "aviso de comissão no singular com uma só casa");
+  await esperar(() => {
+    const a = W1.document.querySelector(".site-footer [data-aviso-comissao]");
+    return a && a.textContent.includes("através deste link");
+  }, 5000, "aviso de comissão no singular");
+  ok(W1.document.querySelectorAll(".btn-casa").length === 0,
+    "uma só casa ativa: nenhum botão de aposta na página");
   ok(!W1.document.querySelector(".site-footer").textContent.includes("KwanzaBet"),
     "rodapé deixa de citar a casa desativada");
   ok(W1.document.getElementById("campo-casa").hidden === true,
@@ -490,9 +512,17 @@ async function principal() {
   ok(card.includes("Girabola"), "card identifica a competição (Girabola)");
   ok(card.includes("n="), "card mostra o tamanho da amostra (n=)");
   ok((card.includes("MENOS de 2.5") || card.includes("MAIS de 2.5")), "selo da tendência no card");
-  ok(card.includes('rel="noopener sponsored"'), 'card: CTA rel="noopener sponsored"');
-  ok(card.includes("btag=2532299"), "card: CTA com o link de afiliado");
+  ok(card.includes('rel="sponsored noopener noreferrer"'),
+    'card: opções de aposta com rel="sponsored noopener noreferrer"');
+  ok(card.includes("btag=2532299") && card.includes("btag=2822934"),
+    "card: as duas casas com os respetivos links de afiliado");
   ok(card.includes("Publicidade"), "card: selo de Publicidade");
+  const botoesCard = W.document.querySelectorAll("#card-casas .btn-casa");
+  ok(botoesCard.length === 2 && W.document.querySelectorAll(".btn-casa").length === 2,
+    "card real: 2 opções e nenhuma casa fora do card");
+  ok(W.document.querySelector("#card-casas .casa-licenca").textContent ===
+     "Licença ISJ n.º B20081200360166656754/ISJ/MF/20",
+    "card real: licença ISJ visível por baixo do botão");
   ok(card.includes("Amostra reduzida") || an.amostraMinima === 5 ||
      an.amostraMinima === null, "amostra total ou aviso de amostra reduzida (min=" + an.amostraMinima + ")");
 

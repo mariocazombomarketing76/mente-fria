@@ -764,12 +764,41 @@ a:hover { text-decoration: underline; }
 }
 
 /* ---------------------------------------------------------------------------
-   7b. ONDE APOSTAR (casas parceiras) — todas iguais, nenhuma destacada
+   7b. CASAS DE APOSTAS DENTRO DO CARD — todas iguais, nenhuma destacada.
+   Os botões não aparecem em nenhuma página fora do card gerado.
    ------------------------------------------------------------------------ */
-.onde-apostar-lista {
+.card-casas {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--linha-forte);
+}
+
+.card-casas-topo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--texto-fraco);
+  font-family: var(--fonte-dados);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.card-casas-selo {
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 165, 0, .55);
+  background: #2b2103;
+  color: var(--ambar-forte);
+  font-size: 9.5px;
+}
+
+.card-casas-lista {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
 }
 
 .casa-bloco { display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -793,7 +822,7 @@ a:hover { text-decoration: underline; }
   word-break: break-word;
 }
 
-/* Aviso de comissão: bem visível, por baixo de todos os botões. */
+/* Aviso de comissão: bem visível, por baixo dos botões e no rodapé. */
 .aviso-comissao {
   margin-top: 16px;
   padding: 11px 13px;
@@ -804,6 +833,21 @@ a:hover { text-decoration: underline; }
   font-size: 13px;
   line-height: 1.55;
   text-align: center;
+}
+
+/* Dentro do card o aviso é mais compacto (o card é estreito no telemóvel). */
+.card-casas-aviso {
+  margin-top: 12px;
+  padding: 9px 11px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* No rodapé acompanha a largura do resto dos avisos legais. */
+.footer-comissao {
+  max-width: 720px;
+  margin: 16px auto 0;
+  font-size: 12px;
 }
 
 .btn-secundario {

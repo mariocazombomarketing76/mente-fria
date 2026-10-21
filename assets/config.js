@@ -15,9 +15,11 @@
                         parceiro — nunca alterar o parâmetro btag), licenca
                         (n.º de licença ISJ) e ativa (true/false).
                         Acrescente, desactive (ativa: false) ou remova
-                        entradas SÓ AQUI: a secção «Onde apostar», o aviso de
-                        comissão, os textos do rodapé que citam casas e o
-                        seletor «Casa» seguem esta lista automaticamente.
+                        entradas SÓ AQUI: os botões de aposta do card (um por
+                        casa ativa, com licença), o aviso de comissão do
+                        rodapé, os textos que citam casas e o seletor «Casa»
+                        seguem esta lista automaticamente. Os botões não
+                        aparecem em mais nenhum sítio do site.
                         Nenhum pedido é feito aos sites das casas.
 
    3) RESULTS_CSV_URL  → folha do Google Sheets publicada em CSV, para a
@@ -67,16 +69,14 @@ function mfCasasAtivas() {
 }
 
 /**
- * Casa que o CTA do card (dentro do gerador) leva: a PRIMEIRA ativa pela ordem
- * de configuração em BOOKMAKERS. Para escolher outra no card, basta mudar a
- * ordem das entradas em assets/config.js — a secção «Onde apostar» mostra
- * sempre TODAS as ativas, por ordem alfabética e em pé de igualdade.
+ * Aviso de comissão obrigatório, com o singular/plural ajustado ao número de
+ * casas ativas. É o MESMO texto no card e no rodapé de todas as páginas.
  */
-function mfCasaDestaque() {
-  const ativas = (MF_CONFIG.BOOKMAKERS || []).filter((c) =>
-    c && c.ativa === true && mfLinkValido(c.link)
-  );
-  return ativas.length ? ativas[0] : null;
+function mfAvisoComissao(casas) {
+  const lista = casas || mfCasasAtivas();
+  const linkOuLinks = lista.length === 1 ? "deste link" : "destes links";
+  return "Ganhamos comissão se te registares através " + linkOuLinks +
+    ". Apostar envolve risco de perda. +18. Joga com responsabilidade.";
 }
 
 /** true quando RESULTS_CSV_URL está preenchido com um endereço real. */
@@ -121,43 +121,18 @@ function mfNomesLegiveis(casas) {
     });
   }
 
-  /* 2. Secção «Onde apostar» (só existe no index): um botão igual por casa
-        ativa, com a respetiva licença e o aviso de comissão por baixo. */
-  function preencherOndeApostar() {
-    const zona = document.getElementById("onde-apostar-lista");
-    const aviso = document.getElementById("onde-apostar-aviso");
-    if (!zona) return;
+  /* 2. Aviso de comissão no rodapé de TODAS as páginas (data-aviso-comissao).
+        O mesmo texto é usado dentro do card; aqui fica sempre visível. */
+  function preencherAvisoComissao() {
+    const avisos = document.querySelectorAll("[data-aviso-comissao]");
+    if (!avisos.length) return;
 
     const casas = mfCasasAtivas();
-    const seccao = document.getElementById("onde-apostar");
-
-    if (!casas.length) {
-      // Sem casas configuradas/ativas, a secção esconde-se por completo.
-      if (seccao) seccao.hidden = true;
-      zona.innerHTML = "";
-      if (aviso) aviso.textContent = "";
-      return;
-    }
-    if (seccao) seccao.hidden = false;
-
-    zona.innerHTML = casas.map((casa) =>
-      '<div class="casa-bloco">' +
-        '<a class="btn btn-casa" href="' + mfEscaparHtml(casa.link) + '" ' +
-           'target="_blank" rel="sponsored noopener noreferrer">' +
-          mfEscaparHtml(casa.nome) +
-        "</a>" +
-        (casa.licenca
-          ? '<p class="casa-licenca">Licença ISJ n.º ' + mfEscaparHtml(casa.licenca) + "</p>"
-          : "") +
-      "</div>"
-    ).join("");
-
-    if (aviso) {
-      // Singular quando só há uma casa ativa; plural com duas ou mais.
-      const linkOuLinks = casas.length === 1 ? "deste link" : "destes links";
-      aviso.textContent = "Ganhamos comissão se te registares através " + linkOuLinks +
-        ". Apostar envolve risco de perda. +18. Joga com responsabilidade.";
-    }
+    const texto = casas.length ? mfAvisoComissao(casas) : "";
+    avisos.forEach((aviso) => {
+      aviso.textContent = texto;
+      aviso.hidden = !texto;   // sem casas ativas não há comissão a declarar
+    });
   }
 
   /* 3. Seletor «Casa» do campo Linha da casa (só existe no index). Quando há
@@ -195,7 +170,7 @@ function mfNomesLegiveis(casas) {
   function aplicar() {
     try {
       preencherCasas();
-      preencherOndeApostar();
+      preencherAvisoComissao();
       preencherSeletorCasa();
       sincronizarMetadados();
     } catch (erro) {
