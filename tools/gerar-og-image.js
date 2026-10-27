@@ -71,7 +71,7 @@ chips.forEach((t) => {
 void LIMITE;
 
 // Bloco CTA âmbar (largura calculada a partir do texto — nunca transborda)
-const cta1 = "Cards de análise para partilhar no WhatsApp";
+const cta1 = "Cards de análise para partilhar no WhatsApp e no Facebook";
 const cta2 = "PUBLICIDADE · LINK DE AFILIADO";
 ctx.font = 'bold 26px "DVS", sans-serif';
 const w1 = ctx.measureText(cta1).width;
