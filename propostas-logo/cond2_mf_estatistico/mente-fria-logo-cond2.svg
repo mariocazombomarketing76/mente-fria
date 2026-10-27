@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Mente Fria - Monograma MF">
+  <title>Mente Fria - Monograma MF com elemento estatístico/desportivo</title>
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#151b25"/>
+      <stop offset="1" stop-color="#0d1117"/>
+    </linearGradient>
+    <linearGradient id="cyan2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22e5ff"/>
+      <stop offset="1" stop-color="#00d4ff"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="url(#bg2)" stroke="url(#cyan2)" stroke-width="10"/>
+  <!-- Forma geométrica angular -->
+  <g transform="translate(256,230)">
+    <path d="M -110 -90 L -50 -90 L -50 -10 L -10 -70 L 30 -70 L 30 10 L 70 -50 L 110 -50 L 70 30 L 30 30 L 30 110 L -10 50 L -50 50 L -50 130 L -110 70 Z" fill="none" stroke="url(#cyan2)" stroke-width="14" stroke-linejoin="round"/>
+    <!-- Barras estatísticas -->
+    <g transform="translate(0,120)" stroke="url(#cyan2)" stroke-width="10" stroke-linecap="round">
+      <line x1="-70" y1="20" x2="-70" y2="-40"/>
+      <line x1="-35" y1="20" x2="-35" y2="-10"/>
+      <line x1="0" y1="20" x2="0" y2="-60"/>
+      <line x1="35" y1="20" x2="35" y2="-25"/>
+      <line x1="70" y1="20" x2="70" y2="-45"/>
+    </g>
+    <!-- Pontos de tendência -->
+    <circle cx="-70" cy="80" r="5" fill="url(#cyan2)"/>
+    <circle cx="0" cy="60" r="5" fill="url(#cyan2)"/>
+    <circle cx="70" cy="75" r="5" fill="url(#cyan2)"/>
+  </g>
+  <text x="256" y="450" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" text-anchor="middle" fill="#00d4ff" letter-spacing="6px">MENTE FRIA</text>
+</svg>

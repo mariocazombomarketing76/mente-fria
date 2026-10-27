@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Mente Fria - Cérebro + Bola de Futebol">
+  <title>Mente Fria - Cérebro integrado numa bola de futebol</title>
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#151b25"/>
+      <stop offset="1" stop-color="#0d1117"/>
+    </linearGradient>
+    <linearGradient id="cyan1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22e5ff"/>
+      <stop offset="1" stop-color="#00d4ff"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="96" fill="url(#bg1)" stroke="url(#cyan1)" stroke-width="10"/>
+  <!-- Bola de futebol -->
+  <g transform="translate(256,256)">
+    <circle r="150" fill="none" stroke="url(#cyan1)" stroke-width="12"/>
+    <polygon points="0,-150 43,-46 138,-46 69,18 86,124 0,60 -86,124 -69,18 -138,-46 -43,-46" fill="none" stroke="url(#cyan1)" stroke-width="10" opacity="0.9"/>
+    <line x1="0" y1="-150" x2="0" y2="60" stroke="url(#cyan1)" stroke-width="8" opacity="0.7"/>
+    <line x1="43" y1="-46" x2="-69" y2="18" stroke="url(#cyan1)" stroke-width="8" opacity="0.7"/>
+    <line x1="138" y1="-46" x2="-43" y2="-46" stroke="url(#cyan1)" stroke-width="8" opacity="0.7"/>
+    <line x1="69" y1="18" x2="43" y2="-46" stroke="url(#cyan1)" stroke-width="8" opacity="0.7"/>
+    <!-- Cérebro integrado no centro superior -->
+    <g transform="translate(0,-28)">
+      <path d="M -28 -10 C -42 -28, -18 -48, 0 -38 C 18 -48, 42 -28, 28 -10 C 38 4, 26 22, 0 18 C -26 22, -38 4, -28 -10 Z" fill="none" stroke="url(#cyan1)" stroke-width="10" stroke-linejoin="round"/>
+      <path d="M 0 -38 L 0 18" stroke="url(#cyan1)" stroke-width="6" opacity="0.6"/>
+      <path d="M -14 -24 C -6 -16, 6 -16, 14 -24" stroke="url(#cyan1)" stroke-width="6" fill="none" opacity="0.7"/>
+      <circle cx="-16" cy="-6" r="4" fill="url(#cyan1)"/>
+      <circle cx="16" cy="-6" r="4" fill="url(#cyan1)"/>
+    </g>
+  </g>
+  <text x="256" y="450" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700" text-anchor="middle" fill="#00d4ff" letter-spacing="6px">MENTE FRIA</text>
+</svg>
