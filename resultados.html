@@ -348,6 +348,36 @@ function mostrarPainelPreparacao() {
     "Os resultados serão publicados assim que a folha de cálculo partilhada estiver ligada.</div>";
 }
 
+/** Tenta obter o CSV com fallback para proxy CORS (útil em alguns navegadores móveis). */
+async function obterCsv() {
+  const url = MF_CONFIG.RESULTS_CSV_URL;
+  const controlador = new AbortController();
+  const temporizador = setTimeout(() => controlador.abort(), 10000);
+  try {
+    // Tentativa directa
+    try {
+      const resposta = await fetch(url, { signal: controlador.signal, cache: "no-store" });
+      if (resposta.ok) return await resposta.text();
+      throw new Error("HTTP " + resposta.status);
+    } catch (erroDireto) {
+      console.warn("[RESULTADOS] fetch directo falhou, a tentar proxy:", erroDireto.message);
+      // Fallback: allorigins.win
+      const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+      const ctrl2 = new AbortController();
+      const t2 = setTimeout(() => ctrl2.abort(), 10000);
+      try {
+        const resposta2 = await fetch(proxyUrl, { signal: ctrl2.signal, cache: "no-store" });
+        if (!resposta2.ok) throw new Error("PROXY_HTTP " + resposta2.status);
+        return await resposta2.text();
+      } finally {
+        clearTimeout(t2);
+      }
+    }
+  } finally {
+    clearTimeout(temporizador);
+  }
+}
+
 /** Arranque: valida a configuração, faz fetch (10 s de timeout) e desenha. */
 async function carregarResultados() {
   try {
@@ -357,15 +387,19 @@ async function carregarResultados() {
       return;
     }
 
-    const controlador = new AbortController();
-    const temporizador = setTimeout(() => controlador.abort(), 10000);
     let texto;
     try {
-      const resposta = await fetch(MF_CONFIG.RESULTS_CSV_URL, { signal: controlador.signal });
-      if (!resposta.ok) throw new Error("HTTP " + resposta.status);
-      texto = await resposta.text();
-    } finally {
-      clearTimeout(temporizador);
+      texto = await obterCsv();
+    } catch (erro) {
+      console.warn("[RESULTADOS] não foi possível carregar o CSV:", erro);
+      const zona = document.getElementById("zona-resultados");
+      if (zona) {
+        zona.innerHTML = '<div class="estado">📋 <strong>Painel em preparação.</strong><br />' +
+          "Não foi possível carregar os resultados neste dispositivo/rede. (<small>" +
+          escaparHtmlRes(String(erro && erro.message ? erro.message : erro)) +
+          "</small>)</div>";
+      }
+      return;
     }
 
     const linhas = partirCsvRes(texto);
