@@ -1592,6 +1592,62 @@ body.fundo-nba .fundo-desporto     { opacity: .55; background-image: url("assets
 .spark-legenda .p-max { margin-left: auto; }
 
 /* ============================================================================
+   15b. AÇÕES NA PÁGINA RESULTADOS (partilha + casas licenciadas)
+   ========================================================================== */
+.resultados-acoes {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.resultados-acoes-frase {
+  text-align: center;
+  color: var(--texto-suave);
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.resultados-bloco {
+  border: 1px solid var(--linha);
+  border-radius: var(--raio);
+  background: linear-gradient(180deg, rgba(0, 212, 255, .06) 0%, rgba(255, 255, 255, .01) 100%);
+  padding: 16px;
+  box-shadow: var(--sombra);
+}
+
+.resultados-bloco-titulo {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  text-align: center;
+  letter-spacing: .02em;
+}
+
+.resultados-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.resultados-botoes .btn {
+  min-width: 140px;
+  text-align: center;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .resultados-botoes {
+    flex-direction: column;
+    width: 100%;
+  }
+  .resultados-botoes .btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* ============================================================================
    16. NÚMERO GIGANTE DA PROJEÇÃO (placar) + medidor ao lado
    ========================================================================== */
 .card-projecao { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; }

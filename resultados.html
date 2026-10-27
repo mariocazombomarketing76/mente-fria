@@ -337,7 +337,60 @@ function desenharPainelResultados(registos) {
     (registos.length === 1 ? "" : "s") + " no histórico, do mais recente para o mais antigo. " +
     "Nenhuma falha é escondida.</p>";
 
+  // Secção após tabela, antes do aviso legal final
+  html += '<section class="resultados-acoes">';
+  html += '  <p class="resultados-acoes-frase">Consulte o histórico, partilhe os resultados e aposte sempre de forma responsável.</p>';
+
+  html += '  <div class="resultados-bloco">';
+  html += '    <h3 class="resultados-bloco-titulo">Partilhar Resultados</h3>';
+  html += '    <div class="resultados-botoes">';
+  html += '      <button type="button" class="btn btn-secundario" id="btn-partilhar-resultados-whatsapp">WhatsApp</button>';
+  html += '      <button type="button" class="btn btn-secundario btn-facebook" id="btn-partilhar-resultados-facebook">Facebook</button>';
+  html += '    </div>';
+  html += '  </div>';
+
+  html += '  <div class="resultados-bloco">';
+  html += '    <h3 class="resultados-bloco-titulo">Casas licenciadas em Angola</h3>';
+  html += '    <div class="resultados-botoes">';
+  try {
+    const casas = typeof mfCasasAtivas === "function" ? mfCasasAtivas() : (MF_CONFIG.BOOKMAKERS || []);
+    const casasAtivas = (casas || []).filter((c) => c && c.ativa !== false && c.link);
+    if (casasAtivas.length) {
+      casasAtivas.forEach((casa) => {
+        const nome = String(casa.nome || "");
+        const link = String(casa.link || "");
+        html += '      <a class="btn btn-primario" href="' + mfEscaparHtml(link) + '" target="_blank" rel="noopener sponsored" data-casa-resultados="' + mfEscaparHtml(nome) + '">' + mfEscaparHtml(nome) + '</a>';
+      });
+    } else {
+      // Fallback directo conforme pedido
+      html += '      <a class="btn btn-primario" href="https://bantubet.co.ao/affiliates/?btag=2532299" target="_blank" rel="noopener sponsored" data-casa-resultados="Bantubet">Bantubet</a>';
+      html += '      <a class="btn btn-primario" href="http://kwanzabet.ao/affiliates/?btag=2822934" target="_blank" rel="noopener sponsored" data-casa-resultados="KwanzaBet">KwanzaBet</a>';
+    }
+  } catch (e) {
+    html += '      <a class="btn btn-primario" href="https://bantubet.co.ao/affiliates/?btag=2532299" target="_blank" rel="noopener sponsored" data-casa-resultados="Bantubet">Bantubet</a>';
+    html += '      <a class="btn btn-primario" href="http://kwanzabet.ao/affiliates/?btag=2822934" target="_blank" rel="noopener sponsored" data-casa-resultados="KwanzaBet">KwanzaBet</a>';
+  }
+  html += '    </div>';
+  html += '  </div>';
+
+  html += '</section>';
+
   zona.innerHTML = html;
+
+  // Liga eventos dos botões após injectar no DOM
+  try {
+    const btnW = document.getElementById("btn-partilhar-resultados-whatsapp");
+    const btnF = document.getElementById("btn-partilhar-resultados-facebook");
+    if (btnW) btnW.addEventListener("click", partilharResultadosWhatsApp);
+    if (btnF) btnF.addEventListener("click", partilharResultadosFacebook);
+    document.querySelectorAll("a[data-casa-resultados]").forEach((a) => {
+      a.addEventListener("click", function () {
+        try { trackEvent("clique_casa_resultados", { casa: this.getAttribute("data-casa-resultados") }); } catch (e) {}
+      });
+    });
+  } catch (e) {
+    console.warn("[RESULTADOS] erro ao ligar eventos de partilha/casas:", e);
+  }
 }
 
 /** Mensagem neutra quando não há painel para mostrar (configuração/falha). */
@@ -376,6 +429,26 @@ async function obterCsv() {
   } finally {
     clearTimeout(temporizador);
   }
+}
+
+/* =============================================================================
+   PARTILHA DA PÁGINA RESULTADOS
+   ========================================================================== */
+function urlResultados() {
+  return "https://mente-fria.goloaovivo.workers.dev/resultados";
+}
+
+function partilharResultadosWhatsApp() {
+  const url = urlResultados();
+  const texto = "Veja o histórico de resultados e desempenho do sistema Mente Fria:\n" + url;
+  try { trackEvent("partilha_whatsapp_resultados", { url: url }); } catch (e) {}
+  window.open("https://wa.me/?text=" + encodeURIComponent(texto), "_blank", "noopener");
+}
+
+function partilharResultadosFacebook() {
+  const url = urlResultados();
+  try { trackEvent("partilha_facebook_resultados", { url: url }); } catch (e) {}
+  window.open("https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(url), "_blank", "noopener");
 }
 
 /** Arranque: valida a configuração, faz fetch (10 s de timeout) e desenha. */
