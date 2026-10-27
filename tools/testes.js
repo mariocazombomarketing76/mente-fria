@@ -111,6 +111,23 @@ async function principal() {
     "configuração de casas centralizada em assets/config.js (MF_CONFIG.BOOKMAKERS)");
   ok(index.includes("blocoCasasCard()") && index.includes("mfCasasAtivas()"),
     "opções de aposta do card geradas a partir das casas ativas do config");
+
+  /* Partilha social (WhatsApp + Facebook) e Open Graph do card */
+  ok(index.includes('<meta property="og:title" content="Match X-Ray by Mente Fria" />'),
+    "index: og:title «Match X-Ray by Mente Fria»");
+  ok(index.includes('content="Estatística dos últimos 5 jogos para decidires com mais informação. ' +
+     'Estatística, não garantia. +18"'),
+    "index: og:description com o texto sugerido");
+  ok(index.includes('id="btn-partilhar"') && index.includes("📲 Partilhar no WhatsApp"),
+    "botão do WhatsApp mantém-se igual");
+  ok(index.includes('id="btn-partilhar-facebook"') && index.includes("Partilhar no Facebook"),
+    "novo botão «Partilhar no Facebook» no card");
+  ok(index.includes('https://www.facebook.com/sharer/sharer.php?u='),
+    "Facebook: sharer oficial só com o parâmetro u");
+  ok(index.includes('analise.jogo.fora.nome + ". Vê mais em " + linkPartilha("whatsapp")'),
+    "texto do WhatsApp usa o link com UTM do WhatsApp");
+  ok(!/btag/.test(index.slice(index.indexOf("function linkPartilha"), index.indexOf("function partilharFacebook"))),
+    "links de partilha sem parâmetros de afiliado");
   ok(/async function fetchWithCache\(cacheKey, apiUrl, ttlHours/.test(index),
     "index.html tem a função fetchWithCache (cache localStorage com TTL)");
   ok(index.includes('rel="sponsored noopener noreferrer"'),
@@ -124,6 +141,11 @@ async function principal() {
   ["index.html", "resultados.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
     const h = ler(f);
     ok(h.includes('property="og:image"') && h.includes('name="twitter:image"'), f + ": og:image + twitter:image");
+    // Open Graph completo, com a imagem genérica da marca, para o Facebook.
+    ok(['og:title', 'og:description', 'og:image', 'og:url'].every((p) => h.includes('property="' + p + '"')),
+      f + ": as 4 meta Open Graph (title, description, image, url)");
+    ok(h.includes('og:image" content="https://mente-fria.goloaovivo.workers.dev/assets/og-image.png"'),
+      f + ": og:image é a imagem genérica da marca");
     // Marca (Bloco 2): marca principal + ferramenta + metadados.
     ok(h.includes("GOLO AO VIVO ANGOLA") && h.includes("marca-ferramenta"), f + ": cabeçalho com Golo Ao Vivo Angola · Mente Fria");
     ok(h.includes('og:site_name" content="Golo Ao Vivo Angola · Mente Fria"'), f + ": og:site_name com a marca");
@@ -341,6 +363,21 @@ async function principal() {
       }
       window.Element.prototype.scrollIntoView = function () {};
       window.open = () => null;
+      // Regista o texto desenhado na imagem, para validar o rodapé.
+      window.__textosCanvas = [];
+      const ctxOriginal = window.HTMLCanvasElement.prototype.getContext;
+      window.HTMLCanvasElement.prototype.getContext = function (tipo) {
+        const ctx = ctxOriginal.apply(this, arguments);
+        if (tipo === "2d" && ctx && !ctx.__mfTextoRegistado) {
+          const escrever = ctx.fillText.bind(ctx);
+          ctx.fillText = function (texto) {
+            window.__textosCanvas.push(String(texto));
+            return escrever.apply(null, arguments);
+          };
+          ctx.__mfTextoRegistado = true;
+        }
+        return ctx;
+      };
       // Regista o último canvas criado para conseguirmos inspeccionar a imagem.
       const orig = window.document.createElement.bind(window.document);
       window.document.createElement = (tag) => {
@@ -363,6 +400,23 @@ async function principal() {
     "rodapé: sem aviso de comissão (fica só no card)");
   ok(W.document.getElementById("campo-casa").hidden === false,
     "seletor Casa aparece com 2 casas ativas");
+
+  // Partilha: links com UTM, só o site e sem afiliados.
+  const linkWa = ev("linkPartilha('whatsapp')");
+  const linkFb = ev("linkPartilha('facebook')");
+  ok(linkWa === "https://mente-fria.goloaovivo.workers.dev/?utm_source=whatsapp&utm_medium=share&utm_campaign=card",
+    "WhatsApp: link com utm_source=whatsapp, medium=share, campaign=card", linkWa);
+  ok(linkFb === "https://mente-fria.goloaovivo.workers.dev/?utm_source=facebook&utm_medium=share&utm_campaign=card",
+    "Facebook: link com utm_source=facebook, medium=share, campaign=card", linkFb);
+  const urlSharer = ev("linkPartilhaFacebook()");
+  ok(urlSharer === "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(linkFb),
+    "Facebook: sharer com o link codificado (sem texto pré-preenchido)", urlSharer);
+  ok(urlSharer.indexOf("utm_source%3Dfacebook") !== -1 &&
+     urlSharer.indexOf("utm_medium%3Dshare") !== -1 &&
+     urlSharer.indexOf("utm_campaign%3Dcard") !== -1,
+    "Facebook: UTM sobrevivem à codificação do URL");
+  ok(!/btag|bantubet|kwanzabet/i.test(linkWa + linkFb + urlSharer),
+    "nenhum link partilhado tem afiliados nem nomes de casas");
 
   // Opções de aposta dentro do card (HTML gerado, sem rede).
   const blocoDuas = ev("blocoCasasCard()");
@@ -520,8 +574,13 @@ async function principal() {
   /* 3. IMAGEM PARTILHADA --------------------------------------------- */
   grupo("Imagem partilhada (canvas 1080×1350)");
   try {
+    W.__textosCanvas = [];
     ev("desenharCardNoCanvas(ESTADO.analise)");
     const canvas = W.__ultimoCanvas;
+    ok(W.__textosCanvas.includes("Estatística, não garantia. +18. Joga com responsabilidade."),
+      "imagem: rodapé com «Estatística, não garantia. +18. Joga com responsabilidade.»");
+    ok(W.__textosCanvas.includes("Mente Fria · Golo Ao Vivo Angola"),
+      "imagem: rodapé com a marca «Mente Fria · Golo Ao Vivo Angola»");
     ok(canvas && canvas.width === 1080 && canvas.height === 1350, "canvas 1080×1350");
     const dados = canvas.getContext("2d").getImageData(0, 950, 1080, 400).data;
     let claros = 0;

@@ -11,21 +11,25 @@
   <!-- Favicon: o símbolo da marca (🧠❄️) na aba do navegador -->
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" sizes="any" />
 
-  <!-- Open Graph: é isto que aparece quando alguém partilha o LINK do site no WhatsApp -->
+  <!--
+    Open Graph: é isto que aparece quando alguém partilha o LINK do site no
+    WhatsApp ou no Facebook. O título/descrição são os do card partilhado;
+    a imagem é a genérica da marca (assets/og-image.png, 1200×630).
+  -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Golo Ao Vivo Angola · Mente Fria" />
   <meta property="og:locale" content="pt_AO" />
-  <meta property="og:title" content="Golo Ao Vivo Angola · Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
-  <meta property="og:description" content="Cards de Análise Pré-Jogo com estatísticas reais dos últimos 5 jogos de Futebol e NBA. Tendência, forma recente e partilha no WhatsApp." />
+  <meta property="og:title" content="Match X-Ray by Mente Fria" />
+  <meta property="og:description" content="Estatística dos últimos 5 jogos para decidires com mais informação. Estatística, não garantia. +18" />
   <meta property="og:url" content="https://mente-fria.goloaovivo.workers.dev/" />
-  <!-- Open Graph image: é a imagem que aparece quando alguém partilha o LINK no WhatsApp -->
+  <!-- Open Graph image: é a imagem que aparece quando alguém partilha o LINK no WhatsApp/Facebook -->
   <meta property="og:image" content="https://mente-fria.goloaovivo.workers.dev/assets/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Golo Ao Vivo Angola · Mente Fria — Análise Pré-Jogo (Match X-Ray)" />
-  <meta name="twitter:description" content="Estatísticas reais dos últimos 5 jogos, tendência de golos/pontos e partilha no WhatsApp. Futebol e NBA." />
+  <meta name="twitter:title" content="Match X-Ray by Mente Fria" />
+  <meta name="twitter:description" content="Estatística dos últimos 5 jogos para decidires com mais informação. Estatística, não garantia. +18" />
   <meta name="twitter:image" content="https://mente-fria.goloaovivo.workers.dev/assets/og-image.png" />
   <meta name="twitter:image:alt" content="Mente Fria — Não apostes no escuro. Aposta com a Mente Fria." />
 
@@ -1594,6 +1598,7 @@ function renderizarCard(analise, opcoes) {
       '<div class="card-acoes">' +
         ctaHtml +
         '<button type="button" class="btn btn-secundario" id="btn-partilhar">📲 Partilhar no WhatsApp</button>' +
+        '<button type="button" class="btn btn-secundario btn-facebook" id="btn-partilhar-facebook">📘 Partilhar no Facebook</button>' +
         '<button type="button" class="btn btn-rapido" id="btn-refazer">🔄 Escolher outro jogo</button>' +
       "</div>" +
     "</article>";
@@ -1603,6 +1608,7 @@ function renderizarCard(analise, opcoes) {
   animarProjecao();
   // Eventos do card
   el("btn-partilhar").addEventListener("click", partilharWhatsApp);
+  el("btn-partilhar-facebook").addEventListener("click", partilharFacebook);
   el("btn-refazer").addEventListener("click", () => {
     zonaCard.hidden = true;
     ESTADO.jogo = null;
@@ -1903,22 +1909,24 @@ function desenharCardNoCanvas(analise) {
   const avisoLinhas = quebrarTexto(ctx, analise.aviso, L - 200);
   avisoLinhas.slice(0, 4).forEach((l, i) => ctx.fillText(l, 104, avisoY + 46 + i * 36));
 
-  // Rodapé da imagem (abaixo das caixas, dentro da moldura)
+  // Rodapé da imagem (abaixo das caixas, dentro da moldura): aviso literal,
+  // por cima da marca à esquerda e do domínio à direita. Sem links de casas.
   const yRodape = Math.max(avisoY + ALTURA_AVISO + 52, A - 78);
-  // Crédito da ferramenta (linha pequena, igual à do card do ecrã).
+
   ctx.textAlign = "center";
-  ctx.fillStyle = "#6e7681";
-  ctx.font = '400 21px "Inter", sans-serif';
-  ctx.fillText("Match X-Ray by Mente Fria · Golo Ao Vivo Angola", L / 2, yRodape - 28);
+  ctx.fillStyle = "#ffd591";
+  ctx.font = '500 24px "Inter", sans-serif';
+  ctx.fillText("Estatística, não garantia. +18. Joga com responsabilidade.", L / 2, yRodape - 30);
 
   ctx.textAlign = "left";
-  ctx.fillStyle = "#6e7681";
-  ctx.font = '400 25px "Roboto Mono", monospace';
-  ctx.fillText(SITE_URL.replace(/^https?:\/\//, ""), 78, yRodape);
+  ctx.fillStyle = "#8b949e";
+  ctx.font = '400 21px "Inter", sans-serif';
+  ctx.fillText("Mente Fria · Golo Ao Vivo Angola", 78, yRodape);
 
   ctx.textAlign = "right";
-  ctx.fillStyle = "#ffa500";
-  ctx.fillText("+18 · Joga com responsabilidade", L - 78, yRodape);
+  ctx.fillStyle = "#6e7681";
+  ctx.font = '400 20px "Roboto Mono", monospace';
+  ctx.fillText(SITE_URL.replace(/^https?:\/\//, ""), L - 78, yRodape);
   ctx.textAlign = "left";
 
   return canvas;
@@ -1936,24 +1944,53 @@ function canvasParaBlob(canvas) {
 }
 
 /**
- * Abre o WhatsApp numa nova separador sem depender de permissões de pop-up:
- * um clique em âncora é naveração normal, enquanto window.open() é bloqueado
- * por muitos navegadores quando já passou um gesto assíncrono do utilizador.
+ * Link do site com os parâmetros de medição da partilha (UTM).
+ * O que é partilhado é só o site: nunca leva links de casas de apostas.
  */
-function abrirWhatsApp(texto) {
-  const url = "https://wa.me/?text=" + encodeURIComponent(texto);
+function linkPartilha(origem) {
+  const base = String(SITE_URL || "").replace(/\/+$/, "");
+  return base + "/?utm_source=" + encodeURIComponent(origem) +
+    "&utm_medium=share&utm_campaign=card";
+}
+
+/** Abre um endereço numa janela nova (âncora: não depende de pop-ups). */
+function abrirNovaJanela(url) {
   try {
     const a = document.createElement("a");
     a.href = url;
     a.target = "_blank";
-    a.rel = "noopener";
+    a.rel = "noopener noreferrer";
     document.body.appendChild(a);
     a.click();
     a.remove();
   } catch (erro) {
-    console.warn("[PARTILHA] não foi possível abrir o WhatsApp:", erro);
-    window.location.href = url;
+    console.warn("[PARTILHA] não foi possível abrir a janela nova:", erro);
+    window.open(url, "_blank", "noopener,noreferrer");
   }
+}
+
+/**
+ * Abre o WhatsApp numa nova janela sem depender de permissões de pop-up: um
+ * clique em âncora é navegação normal, enquanto window.open() é bloqueado por
+ * muitos navegadores quando já passou um gesto assíncrono do utilizador.
+ */
+function abrirWhatsApp(texto) {
+  abrirNovaJanela("https://wa.me/?text=" + encodeURIComponent(texto));
+}
+
+/** URL do sharer do Facebook: apenas o link do site, já codificado. */
+function linkPartilhaFacebook() {
+  return "https://www.facebook.com/sharer/sharer.php?u=" +
+    encodeURIComponent(linkPartilha("facebook"));
+}
+
+/**
+ * Partilha no Facebook: só o link do site (o Facebook não aceita texto
+ * pré-preenchido no sharer). Abre sempre numa janela nova.
+ */
+function partilharFacebook() {
+  abrirNovaJanela(linkPartilhaFacebook());
+  trackEvent("partilha_facebook", { jogo: ESTADO.analise ? ESTADO.analise.jogo.id : null });
 }
 
 /** Descarrega a imagem gerada (fallback de desktop / navegadores antigos). */
@@ -1979,7 +2016,7 @@ async function partilharWhatsApp() {
   if (!analise) return;
 
   const texto = "Análise gerada pela Mente Fria 🧠❄️ — " + analise.jogo.casa.nome + " vs " +
-    analise.jogo.fora.nome + ". Vê mais em " + SITE_URL;
+    analise.jogo.fora.nome + ". Vê mais em " + linkPartilha("whatsapp");
 
   botao.disabled = true;
   const rotuloOriginal = botao.textContent;

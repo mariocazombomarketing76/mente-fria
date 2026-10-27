@@ -4,8 +4,9 @@
 
 Ferramenta estática que gera **Cards de Análise Pré-Jogo (Match X-Ray)** para jogos de
 **Futebol** e **NBA**: escolhe o desporto → escolhe o jogo do dia → recebe um card com a
-forma recente das duas equipas, a tendência de Mais/Menos e um botão de partilha para o
-WhatsApp (com **imagem real do card**, gerada por canvas no próprio dispositivo).
+forma recente das duas equipas, a tendência de Mais/Menos e botões de partilha para o
+WhatsApp (com **imagem real do card**, gerada por canvas no próprio dispositivo) e para o
+Facebook (só o link do site, com parâmetros UTM de medição).
 
 Site 100% **vanilla** (HTML + CSS + JS, sem frameworks nem bibliotecas externas), pronto
 para deploy gratuito na **Vercel**.
@@ -33,8 +34,8 @@ mente-fria/
 │   ├── gerar-og-image.js    → script que (re)gera o og-image.png (só para manutenção)
 │   ├── sincronizar-site-url.js → propaga SITE_URL (config.js) às meta tags, sitemap,
 │   │                            robots.txt e gerador da og-image
-│   └── testes.js            → 201 verificações: offline + resultados + fluxo real +
-│                              imagem partilhada
+│   └── testes.js            → 240 verificações: offline + resultados + fluxo real +
+│                              imagem partilhada + partilha social
 ├── vercel.json              → configuração de deploy/cabeçalhos na Vercel
 ├── .vercelignore            → impede o deploy de _arquivo/, tools/ e README.md
 ├── robots.txt               → indexação
@@ -133,7 +134,12 @@ const JOGOS_ANALISADOS = 5;
 
 `desporto_escolhido`, `filtro_liga`, `jogo_escolhido`, `card_gerado`, `clique_cta_apostar`,
 `partilha_whatsapp` (com o modo: `nativo_com_imagem` ou `descarga_mais_wa_me`),
-`partilha_whatsapp_cancelada`, `partilha_whatsapp_erro` e `clique_rodape_legal`.
+`partilha_whatsapp_cancelada`, `partilha_whatsapp_erro`, `partilha_facebook` e
+`clique_rodape_legal`.
+
+O link partilhado leva sempre `?utm_source=whatsapp` ou `?utm_source=facebook`,
+`utm_medium=share` e `utm_campaign=card` — o que permite medir de que rede veio a visita.
+Nenhum texto ou link partilhado inclui casas de apostas.
 
 Ao fim de 1–2 semanas, estes dados dizem **qual desporto/liga gera mais cliques de afiliado
 por card gerado** — informação para decidir onde investir mais tempo.
@@ -175,9 +181,11 @@ utilizador nunca fica com o ecrã bloqueado por causa de uma equipa sem dados.
 cd tools && npm i && node testes.js
 ```
 
-`tools/testes.js` corre **201 verificações** em quatro blocos:
+`tools/testes.js` corre **240 verificações** em quatro blocos:
 
-1. **offline** — CSP, `og:image`/`twitter:image` nas 5 páginas, aviso legal literal,
+1. **offline** — CSP, as 4 meta Open Graph (`og:title`, `og:description`, `og:image`,
+   `og:url`) e `twitter:image` nas 5 páginas, aviso legal literal, partilha WhatsApp +
+   Facebook com UTM e sem afiliados,
    CTA `rel="sponsored"`, `.vercelignore`, HTML balanceado, sintaxe do JavaScript e
    auditoria da configuração (links `btag` e licenças exactos, sem frases que prometam
    vantagem);
@@ -187,8 +195,8 @@ cd tools && npm i && node testes.js
 3. **fluxo real** — abre o `index.html` num browser virtual (jsdom) e usa as **APIs
    públicas a sério**: escolhe Futebol, filtra pela Girabola, gera o card de um jogo
    real (média, amostra `n=`, tendência, aviso legal) e faz a regressão ESPN/NBA;
-4. **imagem partilhada** — desenha o canvas 1080×1350 e confirma que o aviso legal
-   está desenhado **dentro** da imagem.
+4. **imagem partilhada** — desenha o canvas 1080×1350 e confirma que o aviso legal e a
+   marca («Mente Fria · Golo Ao Vivo Angola») estão desenhados **dentro** da imagem.
 
 Requer rede (bate mesmo nas APIs) e `jsdom` + `canvas` locais — ambos em `tools/`,
 que está no `.vercelignore` e no `.gitignore` (`node_modules/`).
@@ -318,10 +326,19 @@ Tudo vanilla, sem bibliotecas:
 
 ## 🖼️ Imagem de partilha do link (og:image)
 
-O link do site partilhado no WhatsApp/Telegram/facebook usa `assets/og-image.png`
+O link do site partilhado no WhatsApp/Telegram/Facebook usa `assets/og-image.png`
 (1200×630, gerada com o mesmo tema do site). Está referenciada em `og:image` e
 `twitter:image` nas 5 páginas — **sem esta imagem, o `twitter:card=summary_large_image`
 sai sem foto** e a partilha do link tem muito menos impacto.
+
+A home tem `og:title` «Match X-Ray by Mente Fria» e a descrição «Estatística dos últimos
+5 jogos para decidires com mais informação. Estatística, não garantia. +18», que é o
+cartão que aparece quando o link é colado no Facebook. As restantes páginas mantêm o
+`og:title`/`og:description` próprios, todas com a mesma imagem da marca.
+
+O botão «Partilhar no Facebook» abre `https://www.facebook.com/sharer/sharer.php?u=…`
+numa janela nova. O Facebook não aceita texto pré-preenchido, por isso vai **só o link**
+(com UTM); a pré-visualização vem das meta tags Open Graph acima.
 
 Para a regerar (só é preciso se mudar o visual):
 
