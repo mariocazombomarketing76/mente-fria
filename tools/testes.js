@@ -90,8 +90,8 @@ async function principal() {
   ok(configJs.includes('"KwanzaBet", link: "http://kwanzabet.ao/affiliates/?btag=2822934"') &&
      configJs.includes('"9845204240/153/MF/24"'),
     "config.js: KwanzaBet com link btag e licença exactos");
-  ok(configJs.includes('RESULTS_CSV_URL: "[URL_CSV_GOOGLE_SHEETS]"'),
-    "config.js: RESULTS_CSV_URL ainda é placeholder [ ]");
+  ok(/RESULTS_CSV_URL: "https:\/\/docs\.google\.com\/spreadsheets\/d\/[^"]+export\?format=csv/.test(configJs),
+    "config.js: RESULTS_CSV_URL aponta para a folha real (export CSV)");
   ["index.html", "resultados.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
     ok(ler(f).includes('<script src="assets/config.js"></script>'),
       f + ": carrega assets/config.js antes do script da página");
@@ -282,7 +282,12 @@ async function principal() {
   vcRes.on("jsdomError", (e) => errosRes.push(String(e && e.message)));
   vcRes.on("error", (m) => errosRes.push(String(m)));
 
-  const domRes = new JSDOM(comConfig(resultados), {
+  // Este bloco arranca com a configuração em placeholder (funcionalidade
+  // desligada); o CSV real é injectado em 2b. Assim o comportamento neutro
+  // continua coberto mesmo com a folha já configurada em produção.
+  const configSemCsv = configJs.replace(/RESULTS_CSV_URL: "[^"]*"/,
+    'RESULTS_CSV_URL: "[URL_CSV_GOOGLE_SHEETS]"');
+  const domRes = new JSDOM(comConfigDe(configSemCsv, resultados), {
     url: "https://mente-fria.goloaovivo.workers.dev/resultados.html",
     runScripts: "dangerously",
     virtualConsole: vcRes
