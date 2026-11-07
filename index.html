@@ -653,7 +653,9 @@ function reaplicarLinhaCasa() {
   analise.linha = lc ? lc.valor : OVER_UNDER_LINE[analise.desporto];
   analise.linhaInfo = lc;
   if (analise.projeccao !== null) {
-    analise.tendencia = analise.projeccao >= analise.linha ? "Mais" : "Menos";
+    if (analise.projeccao > analise.linha) analise.tendencia = "Mais";
+    else if (analise.projeccao < analise.linha) analise.tendencia = "Menos";
+    else analise.tendencia = "Empate na linha";
   }
   renderizarCard(analise, { semScroll: true });
 }
@@ -1220,8 +1222,9 @@ async function calcularAnalise(jogo) {
 
   return {
     jogo, desporto: ESTADO.desporto, unidade, linha, linhaInfo, casa, fora, baseCasa, baseFora, amostraMinima,
-    lambdaCasa: lambdaCasa ? Math.round(lambdaCasa * 10) / 10 : null,
-    lambdaFora: lambdaFora ? Math.round(lambdaFora * 10) / 10 : null,
+    // Zero golos esperados é um valor válido: só null (sem dados) fica null.
+    lambdaCasa: lambdaCasa === null ? null : Math.round(lambdaCasa * 10) / 10,
+    lambdaFora: lambdaFora === null ? null : Math.round(lambdaFora * 10) / 10,
     projeccao, probMais, probMenos, tendencia, aviso,
     geradoEm: new Date().toISOString()
   };
@@ -1560,10 +1563,35 @@ function renderizarCard(analise, opcoes) {
     : "A fonte de dados não devolveu histórico suficiente para as duas equipas.";
 
   // Selo grande da tendência (componente visual dominante da conclusão).
+  // "Empate na linha" tem cor própria: nem âmbar de "Mais" nem ciano de "Menos".
+  const classeTendencia = analise.tendencia === "Mais" ? "mais"
+    : (analise.tendencia === "Menos" ? "menos" : "neutro");
   const badgeTendencia = analise.tendencia
-    ? '<span class="sintese-tipo ' + (analise.tendencia === "Mais" ? "mais" : "menos") + '">' +
+    ? '<span class="sintese-tipo ' + classeTendencia + '">' +
       analise.tendencia.toUpperCase() + " de " + analise.linha + " " + unidade + "</span>"
     : '<span class="sintese-tipo sem-dados">DADOS INSUFICIENTES</span>';
+
+  // Detalhes do modelo Nível 2: golos esperados por equipa e probabilidade de
+  // Mais/Menos por Poisson. Só o futebol tem Poisson (na NBA os campos são null)
+  // e as análises antigas guardadas no browser não trazem estes valores.
+  const temProbabilidades = typeof analise.probMais === "number" && typeof analise.probMenos === "number";
+  const blocoDetalhes = temProbabilidades
+    ? '<div class="detalhes-estatisticos" style="margin-top: 12px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem;">' +
+        '<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">' +
+          '<span>Golos Esperados (Casa):</span>' +
+          '<strong>' + (analise.lambdaCasa !== null ? analise.lambdaCasa : "N/A") + '</strong>' +
+        '</div>' +
+        '<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">' +
+          '<span>Golos Esperados (Fora):</span>' +
+          '<strong>' + (analise.lambdaFora !== null ? analise.lambdaFora : "N/A") + '</strong>' +
+        '</div>' +
+        '<div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-top: 6px;">' +
+          '<span>Probabilidade calculada:</span>' +
+          '<strong style="color: #4ade80;">Mais: ' + analise.probMais + '%</strong>' +
+          '<strong style="color: #f87171;">Menos: ' + analise.probMenos + '%</strong>' +
+        '</div>' +
+      '</div>'
+    : "";
 
   // Cores das equipas (opção "identidade visual por jogo") + espírito desportivo.
   const estiloCores = "--cor-casa:" + (jogo.casa.cor || "#00d4ff") +
@@ -1628,6 +1656,7 @@ function renderizarCard(analise, opcoes) {
         badgeTendencia +
         '<p class="sintese-sub">' + escaparHtml(sinteseSub) + "</p>" +
       "</div>" +
+      blocoDetalhes +
 
       '<p class="aviso-card">' + escaparHtml(analise.aviso) + "</p>" +
       '<p class="card-credito">Match X-Ray by Mente Fria · Golo Ao Vivo Angola</p>' +
@@ -2209,7 +2238,9 @@ async function escolherJogo(jogo) {
       analise.linha = ESTADO.linhaCasa.valor;
       analise.linhaInfo = ESTADO.linhaCasa;
       if (analise.projeccao !== null) {
-        analise.tendencia = analise.projeccao >= analise.linha ? "Mais" : "Menos";
+        if (analise.projeccao > analise.linha) analise.tendencia = "Mais";
+        else if (analise.projeccao < analise.linha) analise.tendencia = "Menos";
+        else analise.tendencia = "Empate na linha";
       }
     }
     ESTADO.analise = analise;

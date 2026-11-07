@@ -561,7 +561,8 @@ async function principal() {
   ok(an.baseCasa && an.baseCasa.n >= 2, "média da casa com amostra (n=" + (an.baseCasa && an.baseCasa.n) + ")");
   ok(an.baseFora && an.baseFora.n >= 2, "média sofrida fora com amostra (n=" + (an.baseFora && an.baseFora.n) + ")");
   ok(Number.isFinite(an.projeccao), "projecção calculada: " + an.projeccao + " " + an.unidade);
-  ok(an.tendencia === "Mais" || an.tendencia === "Menos", "tendência válida: " + an.tendencia);
+  ok(["Mais", "Menos", "Empate na linha"].indexOf(an.tendencia) !== -1,
+    "tendência válida: " + an.tendencia);
   ok(an.linha === 2.5 && an.unidade === "golos", "linha 2.5 golos (futebol)");
   ok(an.casa.mediaMarcados >= 0 && an.casa.mediaSofridos >= 0, "médias marcadas/sofridas são números válidos");
   ok(an.casa.vitorias + an.casa.empates + an.casa.derrotas === an.casa.jogos,
@@ -575,7 +576,7 @@ async function principal() {
   ok(card.includes("Aposta com responsabilidade."), "aviso legal visível no card");
   ok(card.includes("Girabola"), "card identifica a competição (Girabola)");
   ok(card.includes("n="), "card mostra o tamanho da amostra (n=)");
-  ok((card.includes("MENOS de 2.5") || card.includes("MAIS de 2.5")), "selo da tendência no card");
+  ok(/(MAIS|MENOS|EMPATE NA LINHA) de 2\.5 golos/.test(card), "selo da tendência no card");
   ok(card.includes('rel="sponsored noopener noreferrer"'),
     'card: opções de aposta com rel="sponsored noopener noreferrer"');
   ok(card.includes("btag=2532299") && card.includes("btag=2822934"),
@@ -589,6 +590,34 @@ async function principal() {
     "card real: licença ISJ visível por baixo do botão");
   ok(card.includes("Amostra reduzida") || an.amostraMinima === 5 ||
      an.amostraMinima === null, "amostra total ou aviso de amostra reduzida (min=" + an.amostraMinima + ")");
+
+  /* Detalhes do modelo Nível 2 (Poisson + golos esperados) no card */
+  ok(Number.isInteger(an.probMais) && Number.isInteger(an.probMenos) && an.probMais + an.probMenos === 100,
+    "Poisson: probabilidades complementares (Mais " + an.probMais + "% + Menos " + an.probMenos + "% = 100)");
+  ok(Number.isFinite(an.lambdaCasa) && Number.isFinite(an.lambdaFora),
+    "golos esperados por equipa (" + an.lambdaCasa + " + " + an.lambdaFora + ")");
+  ok(card.includes("detalhes-estatisticos") && card.includes("Golos Esperados (Casa)") &&
+     card.includes("Golos Esperados (Fora)"), "card mostra os golos esperados das duas equipas");
+  ok(card.includes("Probabilidade calculada") && card.includes("Mais: " + an.probMais + "%") &&
+     card.includes("Menos: " + an.probMenos + "%"),
+    "card mostra as probabilidades Mais/Menos calculadas (" + an.probMais + "% / " + an.probMenos + "%)");
+
+  const classeEsperada = an.tendencia === "Mais" ? "mais" : (an.tendencia === "Menos" ? "menos" : "neutro");
+  ok(W.document.querySelector(".sintese-tipo").className === "sintese-tipo " + classeEsperada,
+    "selo da tendência com a classe certa (" + classeEsperada + ")");
+  ok(/\.sintese-tipo\.neutro\s*\{/.test(ler("assets/style.css")),
+    "CSS tem a classe neutro do empate na linha");
+
+  // Empate na linha: escrever a linha da casa igual à projecção tem de manter o empate
+  // (o antigo >= transformava-o em "Mais").
+  ev("document.getElementById('campo-linha').value = '" + an.projeccao + "'; reaplicarLinhaCasa();");
+  ok(ev("ESTADO.analise.tendencia") === "Empate na linha",
+    "linha igual à projecção: tendência fica «Empate na linha» (" + ev("ESTADO.analise.tendencia") + ")");
+  const seloEmpate = W.document.querySelector(".sintese-tipo");
+  ok(seloEmpate.className === "sintese-tipo neutro" && /^EMPATE NA LINHA de /.test(seloEmpate.textContent),
+    "selo do empate na linha com a classe neutro", seloEmpate.textContent);
+  ev("document.getElementById('campo-linha').value = ''; reaplicarLinhaCasa();");
+  ok(ev("ESTADO.analise.linha") === 2.5, "limpar a linha volta à referência de 2.5 golos");
 
   /* 3. IMAGEM PARTILHADA --------------------------------------------- */
   grupo("Imagem partilhada (canvas 1080×1350)");

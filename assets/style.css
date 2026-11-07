@@ -1485,6 +1485,8 @@ body {
 
 .sintese-tipo.mais { background: rgba(255, 165, 0, .14); color: var(--ambar-forte); border-color: rgba(255, 165, 0, .45); }
 .sintese-tipo.menos { background: rgba(0, 212, 255, .12); color: var(--ciano); border-color: rgba(0, 212, 255, .4); }
+/* Empate na linha: nem âmbar de "Mais" nem ciano de "Menos" (cinza de empate já usado nos resultados). */
+.sintese-tipo.neutro { background: var(--cinza-empate); color: var(--bg); border-color: var(--cinza-empate); }
 .sintese-tipo.sem-dados { background: rgba(139, 148, 158, .12); color: var(--texto-suave); border-color: var(--linha-forte); }
 
 /* CTA mais imponente */
