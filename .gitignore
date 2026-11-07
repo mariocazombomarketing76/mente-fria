@@ -6,3 +6,6 @@
 .DS_Store
 Thumbs.db
 node_modules/
+
+# Estado local do Wrangler (dev/preview)
+.wrangler/

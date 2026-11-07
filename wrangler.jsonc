@@ -1,0 +1,37 @@
+/* =============================================================================
+   MENTE FRIA — deploy no Cloudflare Workers (Workers Static Assets)
+
+   Site estático puro: não há `main`, o Worker serve apenas os ficheiros do
+   repositório. Esta configuração espelha a que está efectivamente a servir
+   https://mente-fria.goloaovivo.workers.dev (name, compatibility_date,
+   observability e assets.directory), agora versionada no repositório para que
+   o deploy deixe de depender de um ficheiro que só existia na máquina local.
+
+   Comportamento em produção, reproduzido em `wrangler dev`:
+     • /termos.html  → 307 para /termos   (html_handling auto-trailing-slash)
+     • caminho inexistente → 404 sem corpo (not_found_handling por omissão)
+
+   Publicar:   npx wrangler@4 deploy
+   Pré-visualizar localmente (workerd):   npx wrangler@4 dev
+
+   O `name` tem de coincidir com o Worker já existente na conta — mudá-lo cria
+   um Worker novo e muda o endereço *.workers.dev. Numa conta nova, autenticar
+   com `npx wrangler login` ou definir CLOUDFLARE_API_TOKEN.
+
+   O `.assetsignore` (lido a partir da raiz dos assets) impede que `tools/`,
+   `_arquivo/`, `propostas-logo/`, o README e os ficheiros de configuração
+   sejam publicados — como acontecia até aqui.
+   ========================================================================== */
+
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mente-fria",
+  "compatibility_date": "2026-10-23",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": ".",
+    "html_handling": "auto-trailing-slash"
+  }
+}

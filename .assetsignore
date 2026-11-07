@@ -1,0 +1,13 @@
+# Ficheiros do repositório que NÃO fazem parte do site publicado.
+# Lido automaticamente pelo Wrangler (Workers Static Assets); formato .gitignore.
+.git
+.gitignore
+.assetsignore
+.vercelignore
+vercel.json
+wrangler.jsonc
+README.md
+tools
+_arquivo
+propostas-logo
+*.patch

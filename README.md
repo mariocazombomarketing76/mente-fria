@@ -8,8 +8,10 @@ forma recente das duas equipas, a tendência de Mais/Menos e botões de partilha
 WhatsApp (com **imagem real do card**, gerada por canvas no próprio dispositivo) e para o
 Facebook (só o link do site, com parâmetros UTM de medição).
 
-Site 100% **vanilla** (HTML + CSS + JS, sem frameworks nem bibliotecas externas), pronto
-para deploy gratuito na **Vercel**.
+Site 100% **vanilla** (HTML + CSS + JS, sem frameworks nem bibliotecas externas),
+publicado como site estático no **Cloudflare Workers**:
+<https://mente-fria.goloaovivo.workers.dev>. Código-fonte:
+<https://github.com/mariocazombomarketing76/mente-fria> (ramo `main`).
 
 ---
 
@@ -36,7 +38,9 @@ mente-fria/
 │   │                            robots.txt e gerador da og-image
 │   └── testes.js            → 240 verificações: offline + resultados + fluxo real +
 │                              imagem partilhada + partilha social
-├── vercel.json              → configuração de deploy/cabeçalhos na Vercel
+├── wrangler.jsonc           → deploy no Cloudflare Workers (produção)
+├── .assetsignore            → ficheiros do repo que não vão para o site publicado
+├── vercel.json              → cabeçalhos para um eventual deploy na Vercel
 ├── .vercelignore            → impede o deploy de _arquivo/, tools/ e README.md
 ├── robots.txt               → indexação
 ├── sitemap.xml              → sitemap das 5 páginas
@@ -283,7 +287,28 @@ or facilitation of illegal goods and services». Requisitos práticos:
 - sendo o site acessível de fora de Angola, não direccionar links de aposta a jurisdições
   onde o operador não esteja licenciado.
 
-## 🚀 Deploy na Vercel
+## 🚀 Deploy em produção — Cloudflare Workers
+
+O site está publicado como **Workers Static Assets**: não há Worker script (`main`), o
+Cloudflare serve os ficheiros do repositório tal como estão.
+
+```bash
+npx wrangler@4 dev        # pré-visualização local (workerd)
+npx wrangler@4 deploy     # publica em https://mente-fria.goloaovivo.workers.dev
+```
+
+O `wrangler.jsonc` fixa `html_handling: "auto-trailing-slash"`, pelo que `/termos.html`
+redirecciona (307) para `/termos` — exactamente os endereços que o `sitemap.xml` e o
+canonical anunciam. O `.assetsignore` mantém fora do site `tools/`, `_arquivo/`,
+`propostas-logo/`, o `README.md` e os ficheiros de configuração.
+
+O campo `name` tem de continuar `mente-fria`: mudá-lo cria outro Worker e outro endereço
+`*.workers.dev`. Numa conta nova, autenticar antes com `npx wrangler login` ou definir
+`CLOUDFLARE_API_TOKEN`.
+
+---
+
+## 🚀 Alternativa: deploy na Vercel
 
 **Opção A — CLI:**
 

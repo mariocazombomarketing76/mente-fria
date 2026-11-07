@@ -92,6 +92,20 @@ async function principal() {
     "config.js: KwanzaBet com link btag e licença exactos");
   ok(/RESULTS_CSV_URL: "https:\/\/docs\.google\.com\/spreadsheets\/d\/[^"]+export\?format=csv/.test(configJs),
     "config.js: RESULTS_CSV_URL aponta para a folha real (export CSV)");
+
+  /* Deploy verificado a partir do repo: sem estes dois ficheiros o Worker volta
+     a publicar README, tools/ e _arquivo/ (aconteceu até 07/11/2026). */
+  const wrangler = ler("wrangler.jsonc");
+  ok(/"name": "mente-fria"/.test(wrangler) && /"directory": "\."/.test(wrangler),
+    "wrangler.jsonc: Worker 'mente-fria' com os assets na raiz");
+  ok(/"compatibility_date": "\d{4}-\d{2}-\d{2}"/.test(wrangler),
+    "wrangler.jsonc: data de compatibilidade fixada");
+  const assetsIgnore = ler(".assetsignore").split("\n").map((l) => l.trim());
+  const internos = ["README.md", "tools", "_arquivo", "propostas-logo", "wrangler.jsonc", "vercel.json"];
+  const emFalta = internos.filter((f) => !assetsIgnore.includes(f));
+  ok(emFalta.length === 0, ".assetsignore: ficheiros internos fora do site publicado",
+    "em falta: " + emFalta.join(", "));
+
   ["index.html", "resultados.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
     ok(ler(f).includes('<script src="assets/config.js"></script>'),
       f + ": carrega assets/config.js antes do script da página");
