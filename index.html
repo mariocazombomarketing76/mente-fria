@@ -1036,6 +1036,33 @@ function sequencia(equipa) {
   return partes.length ? partes.join(" ") : "—";
 }
 
+// ============================================================================
+// FUNÇÕES AUXILIARES: MATEMÁTICA E POISSON (Modelo Nível 2 Corrigido)
+// ============================================================================
+function factorial(n) {
+  if (n === 0 || n === 1) return 1;
+  let result = 1;
+  for (let i = 2; i <= n; i++) result *= i;
+  return result;
+}
+
+function poissonProbability(k, lambda) {
+  return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
+}
+
+function calcularProbabilidadePoisson(lambdaTotal, linha) {
+  const maxGolosMenos = Math.floor(linha);
+  let probMenos = 0;
+  for (let k = 0; k <= maxGolosMenos; k++) {
+    probMenos += poissonProbability(k, lambdaTotal);
+  }
+  const probMais = 1 - probMenos;
+  return {
+    probMais: Math.round(probMais * 100),
+    probMenos: Math.round(probMenos * 100)
+  };
+}
+
 /**
  * Calcula os indicadores de uma equipa a partir dos seus últimos jogos.
  * Devolve null quando não há dados suficientes (nunca inventa valores).
@@ -1045,14 +1072,11 @@ function calcularEquipa(jogo, idEquipa, historico) {
 
   const marcados = [];
   const sofridos = [];
-  // Médias por contexto: jogos em casa e jogos fora (Secção 4 do prompt:
-  // "média marcada pela equipa da casa" / "média sofrida fora pela visitante").
   const emCasa = { marcados: [], sofridos: [] };
   const foraDeCasa = { marcados: [], sofridos: [] };
-  let vitorias = 0;
-  let empates = 0;
-  let derrotas = 0;
-  const letras = []; // V/E/D por jogo (ordem cronológica) — alimenta as pílulas do card
+
+  let vitorias = 0, empates = 0, derrotas = 0;
+  const letras = [];
 
   historico.forEach((j) => {
     const emCasaJogo = j.casaId === idEquipa;
@@ -1061,8 +1085,14 @@ function calcularEquipa(jogo, idEquipa, historico) {
 
     marcados.push(marcou);
     sofridos.push(sofreu);
-    (emCasaJogo ? emCasa : foraDeCasa).marcados.push(marcou);
-    (emCasaJogo ? emCasa : foraDeCasa).sofridos.push(sofreu);
+
+    if (emCasaJogo) {
+      emCasa.marcados.push(marcou);
+      emCasa.sofridos.push(sofreu);
+    } else {
+      foraDeCasa.marcados.push(marcou);
+      foraDeCasa.sofridos.push(sofreu);
+    }
 
     if (marcou > sofreu) { vitorias++; letras.push("V"); }
     else if (marcou === sofreu) { empates++; letras.push("E"); }
@@ -1073,17 +1103,15 @@ function calcularEquipa(jogo, idEquipa, historico) {
     jogos: historico.length,
     mediaMarcados: media(marcados),
     mediaSofridos: media(sofridos),
-    mediaTotal: Math.round(media(marcados.concat(sofridos)) * 10) / 10,
-    // Contagem de jogos em cada contexto (para o card mostrar o tamanho da amostra)
-    sequenciaJogos: letras,
-    serie: { marcados: marcados.slice(), sofridos: sofridos.slice() },
     jogosEmCasa: emCasa.marcados.length,
-    jogosFora: foraDeCasa.sofridos.length,
+    jogosFora: foraDeCasa.marcados.length,
     mediaMarcadosEmCasa: media(emCasa.marcados),
+    mediaSofridosEmCasa: media(emCasa.sofridos),
+    mediaMarcadosFora: media(foraDeCasa.marcados),
     mediaSofridosFora: media(foraDeCasa.sofridos),
-    vitorias: vitorias,
-    empates: empates,
-    derrotas: derrotas
+    vitorias, empates, derrotas,
+    sequenciaJogos: letras,
+    serie: { marcados: marcados.slice(), sofridos: sofridos.slice() }
   };
 }
 
@@ -1129,7 +1157,6 @@ function sparkline(equipa, nome) {
 
 /** Orquestra a análise completa de um jogo (o "Match X-Ray"). */
 async function calcularAnalise(jogo) {
-  // Girabola: histórico pela TheSportsDB (rondas); restantes ligas: ESPN.
   const girabola = jogo.fonte === "tdb";
   const [historicoCasa, historicoFora] = await Promise.all([
     girabola ? historicoGirabola(jogo, jogo.casa.id)
@@ -1141,51 +1168,61 @@ async function calcularAnalise(jogo) {
   const casa = calcularEquipa(jogo, jogo.casa.id, historicoCasa);
   const fora = calcularEquipa(jogo, jogo.fora.id, historicoFora);
 
-  // Linha: a escrita à mão na casa (se válida) manda sobre a de referência.
   const linhaInfo = ESTADO.linhaCasa;
   const linha = linhaInfo ? linhaInfo.valor : OVER_UNDER_LINE[ESTADO.desporto];
   const unidade = UNIDADE[ESTADO.desporto];
 
-  // Números concretos que vão para o card (contexto casa/fora, com amostra).
-  const baseCasa = casa
-    ? escolherMedia(casa.mediaMarcadosEmCasa, casa.jogosEmCasa,
-                    casa.mediaMarcados, casa.jogos, "em casa", "em todos os jogos")
-    : null;
-  const baseFora = fora
-    ? escolherMedia(fora.mediaSofridosFora, fora.jogosFora,
-                    fora.mediaSofridos, fora.jogos, "fora", "em todos os jogos")
-    : null;
+  // CORREÇÃO CRÍTICA: Usar a média por equipa (ex: 2.5/2 = 1.25) para cálculos de força
+  const mediaJogoLiga = ESTADO.desporto === 'futebol' ? 2.5 : 220.0;
+  const mediaPorEquipa = mediaJogoLiga / 2;
 
-  // Menor amostra usada no card (para avisar quando é reduzida).
-  const amostras = [baseCasa, baseFora].filter(Boolean).map((b) => b.n);
-  const amostraMinima = amostras.length ? Math.min.apply(null, amostras) : null;
-
-  // Aviso obrigatório sempre visível no card.
-  const aviso = "📊 Estatística baseada nos últimos " + JOGOS_ANALISADOS +
-    " jogos. Tendência, não garantia. Aposta com responsabilidade.";
-
-  // Tendência (Secção 3): média marcada pela casa + média sofrida pela visitante.
   let projeccao = null;
   let tendencia = null;
-  if (baseCasa && baseFora) {
-    projeccao = Math.round((baseCasa.valor + baseFora.valor) * 10) / 10;
-    tendencia = projeccao >= linha ? "Mais" : "Menos";
+  let probMais = null;
+  let probMenos = null;
+  let lambdaCasa = null;
+  let lambdaFora = null;
+
+  if (casa && fora) {
+    const gf_casa = casa.jogosEmCasa >= 2 ? casa.mediaMarcadosEmCasa : casa.mediaMarcados;
+    const ga_casa = casa.jogosEmCasa >= 2 ? casa.mediaSofridosEmCasa : casa.mediaSofridos;
+    const gf_fora = fora.jogosFora >= 2 ? fora.mediaMarcadosFora : fora.mediaMarcados;
+    const ga_fora = fora.jogosFora >= 2 ? fora.mediaSofridosFora : fora.mediaSofridos;
+
+    const forcaAtaqueCasa = gf_casa / mediaPorEquipa;
+    const forcaDefesaCasa = ga_casa / mediaPorEquipa;
+    const forcaAtaqueFora = gf_fora / mediaPorEquipa;
+    const forcaDefesaFora = ga_fora / mediaPorEquipa;
+
+    lambdaCasa = forcaAtaqueCasa * forcaDefesaFora * mediaPorEquipa;
+    lambdaFora = forcaAtaqueFora * forcaDefesaCasa * mediaPorEquipa;
+    projeccao = Math.round((lambdaCasa + lambdaFora) * 10) / 10;
+
+    if (ESTADO.desporto === 'futebol') {
+      const probs = calcularProbabilidadePoisson(lambdaCasa + lambdaFora, linha);
+      probMais = probs.probMais;
+      probMenos = probs.probMenos;
+    }
+
+    // CORREÇÃO UI: Usar "Empate na linha" para alinhar com a terminologia existente da app
+    if (projeccao > linha) tendencia = "Mais";
+    else if (projeccao < linha) tendencia = "Menos";
+    else tendencia = "Empate na linha";
   }
 
+  const baseCasa = casa ? escolherMedia(casa.mediaMarcadosEmCasa, casa.jogosEmCasa, casa.mediaMarcados, casa.jogos, "em casa", "geral") : null;
+  const baseFora = fora ? escolherMedia(fora.mediaSofridosFora, fora.jogosFora, fora.mediaSofridos, fora.jogos, "fora", "geral") : null;
+
+  const amostras = [baseCasa, baseFora].filter(Boolean).map((b) => b.n);
+  const amostraMinima = amostras.length ? Math.min(...amostras) : null;
+
+  const aviso = "📊 Estatística baseada nos últimos " + JOGOS_ANALISADOS + " jogos. Tendência, não garantia. Aposta com responsabilidade.";
+
   return {
-    jogo: jogo,
-    desporto: ESTADO.desporto,
-    unidade: unidade,
-    linha: linha,
-    linhaInfo: linhaInfo,
-    casa: casa,
-    fora: fora,
-    baseCasa: baseCasa,
-    baseFora: baseFora,
-    amostraMinima: amostraMinima,
-    projeccao: projeccao,
-    tendencia: tendencia,
-    aviso: aviso,
+    jogo, desporto: ESTADO.desporto, unidade, linha, linhaInfo, casa, fora, baseCasa, baseFora, amostraMinima,
+    lambdaCasa: lambdaCasa ? Math.round(lambdaCasa * 10) / 10 : null,
+    lambdaFora: lambdaFora ? Math.round(lambdaFora * 10) / 10 : null,
+    projeccao, probMais, probMenos, tendencia, aviso,
     geradoEm: new Date().toISOString()
   };
 }
