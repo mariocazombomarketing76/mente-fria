@@ -101,7 +101,7 @@ async function principal() {
   ok(/"compatibility_date": "\d{4}-\d{2}-\d{2}"/.test(wrangler),
     "wrangler.jsonc: data de compatibilidade fixada");
   const assetsIgnore = ler(".assetsignore").split("\n").map((l) => l.trim());
-  const internos = ["README.md", "tools", "_arquivo", "propostas-logo", "wrangler.jsonc", "vercel.json"];
+  const internos = ["README.md", "tools", "worker", "_arquivo", "propostas-logo", "wrangler.jsonc", "vercel.json"];
   const emFalta = internos.filter((f) => !assetsIgnore.includes(f));
   ok(emFalta.length === 0, ".assetsignore: ficheiros internos fora do site publicado",
     "em falta: " + emFalta.join(", "));
@@ -110,6 +110,47 @@ async function principal() {
     ok(ler(f).includes('<script src="assets/config.js"></script>'),
       f + ": carrega assets/config.js antes do script da página");
   });
+
+  /* 1b. MATEMÁTICA OFFLINE (determinística, sem rede) ---------------- */
+  grupo("Poisson e linhas (offline, sem APIs)");
+
+  // Extrai o bloco de matemática do index (de factorial a calcularEquipa) e
+  // avalia-o isolado: os valores ficam provados sem depender da internet.
+  const inicioMat = index.indexOf("function factorial(n)");
+  const fimMat = index.indexOf("function calcularEquipa(jogo");
+  ok(inicioMat > 0 && fimMat > inicioMat, "bloco de matemática localizado no index");
+  const M = new Function(
+    "const LIMITES_MODELO={lambda:40,linha:400,jogosBaseline:6};\n" +
+    index.slice(inicioMat, fimMat) +
+    "\nreturn {calcularProbabilidadePoisson,poissonCdf,poissonProbability,linhaValida};"
+  )();
+
+  // Valores de referência do enunciado (λ = 2.5).
+  const pi2 = M.calcularProbabilidadePoisson(2.5, 2.0);
+  ok(pi2 && pi2.probMenos === 29 && pi2.probPush === 26 && pi2.probMais === 45,
+    "λ=2.5 linha 2.0 → Menos 28,73% / Push 25,65% / Mais 45,62%", JSON.stringify(pi2));
+  ok(pi2.probMais + pi2.probPush + pi2.probMenos === 100,
+    "linha inteira: as três probabilidades somam 100 (push NÃO entra no Menos)");
+  const pm25 = M.calcularProbabilidadePoisson(2.5, 2.5);
+  ok(pm25 && pm25.probMenos === 54 && pm25.probMais === 46 && pm25.probPush === 0,
+    "λ=2.5 linha 2.5 → Menos 54,38% / Mais 45,62% (sem push)", JSON.stringify(pm25));
+  ok(Math.abs(M.poissonCdf(2, 2.5) * 100 - 54.38) < 0.01, "CDF exacta λ=2.5 até 2 = 54,38%");
+  ok(Math.abs(M.poissonCdf(1, 2.5) * 100 - 28.73) < 0.01, "CDF exacta λ=2.5 até 1 = 28,73%");
+  ok(Math.abs(M.poissonProbability(2, 2.5) * 100 - 25.65) < 0.01, "P(X=2) exacta λ=2.5 = 25,65%");
+  ok(M.calcularProbabilidadePoisson(2.5, 3.5).probMenos === 76, "λ=2.5 linha 3.5 → Menos 76%");
+
+  // Parâmetros inválidos: recusados, nunca «estimados».
+  ok(M.calcularProbabilidadePoisson(2.5, 2.25) === null, "linha de quarto (2.25) recusada");
+  ok(M.calcularProbabilidadePoisson(2.5, 2.75) === null, "linha de quarto (2.75) recusada");
+  ok(M.calcularProbabilidadePoisson(-1, 2.5) === null, "λ negativo recusado");
+  ok(M.calcularProbabilidadePoisson(NaN, 2.5) === null, "λ não numérico recusado");
+  ok(M.calcularProbabilidadePoisson(Infinity, 2.5) === null, "λ infinito recusado");
+  ok(M.calcularProbabilidadePoisson(500, 2.5) === null, "λ fora do domínio recusado");
+  ok(M.calcularProbabilidadePoisson(2.5, 0) === null, "linha zero recusada");
+  ok(M.calcularProbabilidadePoisson(2.5, 9000) === null, "linha absurda recusada");
+  ok(Number.isFinite(M.poissonProbability(180, 2.5)) && M.poissonProbability(180, 2.5) >= 0,
+    "k=180 não devolve NaN (sem overflow do factorial)");
+  ok(M.poissonCdf(200, 2.5) <= 1 && M.poissonCdf(200, 2.5) > 0.99, "CDF grande satura em 1 sem estourar");
 
   const csp = (index.match(/Content-Security-Policy" content="([^"]+)"/) || [])[1] || "";
   ok(csp.includes("https://r2.thesportsdb.com"), "CSP permite os escudos (img-src r2.thesportsdb.com)");
@@ -220,7 +261,8 @@ async function principal() {
   ok(resultados.includes("Empate na linha") && resultados.includes("Pendente") &&
      resultados.includes("acertos ÷ (acertos + falhas)"),
     "resultados.html: regras de resultado e taxa de acerto");
-  ok(resultados.includes('rel="sponsored noopener noreferrer"') === false || true, "n/a");
+  ok(resultados.indexOf("btag=") === -1,
+    "resultados.html: sem links de afiliado escritos no código (só via MF_CONFIG)");
   ok(/\/resultados</.test(ler("sitemap.xml")) && ler("sitemap.xml").includes("/resultados"),
     "sitemap.xml: inclui /resultados");
   ok(ler("sitemap.xml").split("<loc>").length - 1 === 5, "sitemap.xml: 5 URLs públicas");
@@ -608,16 +650,47 @@ async function principal() {
   ok(/\.sintese-tipo\.neutro\s*\{/.test(ler("assets/style.css")),
     "CSS tem a classe neutro do empate na linha");
 
-  // Empate na linha: escrever a linha da casa igual à projecção tem de manter o empate
-  // (o antigo >= transformava-o em "Mais").
-  ev("document.getElementById('campo-linha').value = '" + an.projeccao + "'; reaplicarLinhaCasa();");
+  // Empate na linha: a projecção real tem 1 casa decimal (ex.: 2.4) e não é uma
+  // linha válida, por isso força-se o valor EXACTO igual à linha (2.5).
+  ev("ESTADO.analise.projeccao = 2.5; ESTADO.analise.projeccaoExacta = 2.5; " +
+     "document.getElementById('campo-linha').value = '2.5'; reaplicarLinhaCasa();");
   ok(ev("ESTADO.analise.tendencia") === "Empate na linha",
-    "linha igual à projecção: tendência fica «Empate na linha» (" + ev("ESTADO.analise.tendencia") + ")");
+    "projecção exacta igual à linha: tendência fica «Empate na linha» (" + ev("ESTADO.analise.tendencia") + ")");
   const seloEmpate = W.document.querySelector(".sintese-tipo");
   ok(seloEmpate.className === "sintese-tipo neutro" && /^EMPATE NA LINHA de /.test(seloEmpate.textContent),
     "selo do empate na linha com a classe neutro", seloEmpate.textContent);
+
+  // Mudar a linha tem de RECALCULAR as probabilidades (antes só mudava o texto).
+  const probsAntes = ev("[ESTADO.analise.probMais, ESTADO.analise.probMenos]");
+  const pedidosAntesLinha = pedidos;
+  ev("ESTADO.analise.projeccao = 2.3; ESTADO.analise.projeccaoExacta = 2.3; " +
+     "document.getElementById('campo-linha').value = '3.5'; reaplicarLinhaCasa();");
+  ok(ev("ESTADO.analise.probMenos") > probsAntes[1],
+    "linha 2.5 → 3.5 recalcula Menos para cima (" + probsAntes[1] + "% → " + ev("ESTADO.analise.probMenos") + "%)");
+  ok(ev("ESTADO.analise.tendencia") === "Menos", "linha 3.5 com projecção 2.3 → tendência Menos");
+  ok(pedidos === pedidosAntesLinha, "mudar a linha NÃO faz novos pedidos à API (" + (pedidos - pedidosAntesLinha) + ")");
+  ok(W.document.getElementById("card-analise").innerHTML.indexOf("Mais: " + ev("ESTADO.analise.probMais") + "%") !== -1,
+    "card redesenhado com as probabilidades da linha nova");
+
+  // Linha inteira: existe push e as três somam 100.
+  ev("document.getElementById('campo-linha').value = '2'; reaplicarLinhaCasa();");
+  ok(ev("ESTADO.analise.tipoLinha") === "inteira" && ev("ESTADO.analise.probPush") >= 0,
+    "linha inteira (2): push calculado (" + ev("ESTADO.analise.probPush") + "%)");
+  ok(ev("ESTADO.analise.probMais + ESTADO.analise.probPush + ESTADO.analise.probMenos") === 100,
+    "linha inteira: Mais + Push + Menos = 100");
+  ok(W.document.querySelector(".detalhe-probs .push") !== null,
+    "card mostra o Push quando a linha é inteira");
+
+  // Linha de quarto: recusada com aviso, sem inventar probabilidades.
+  ev("document.getElementById('campo-linha').value = '2.25'; reaplicarLinhaCasa();");
+  ok(ev("ESTADO.analise.linha") === 2.5, "2.25 recusada: volta à referência de 2.5");
+  ok(W.document.getElementById("linha-erro").hidden === false &&
+     /quarto/i.test(W.document.getElementById("linha-erro").textContent),
+    "aviso explica que a linha de quarto não é suportada");
+
   ev("document.getElementById('campo-linha').value = ''; reaplicarLinhaCasa();");
-  ok(ev("ESTADO.analise.linha") === 2.5, "limpar a linha volta à referência de 2.5 golos");
+  ok(ev("ESTADO.analise.linha") === 2.5 && ev("ESTADO.analise.tipoLinha") === "meio",
+    "limpar a linha volta à referência de 2.5 golos (meio ponto)");
 
   /* 3. IMAGEM PARTILHADA --------------------------------------------- */
   grupo("Imagem partilhada (canvas 1080×1350)");
@@ -627,6 +700,12 @@ async function principal() {
     const canvas = W.__ultimoCanvas;
     ok(W.__textosCanvas.includes("Estatística, não garantia. +18. Joga com responsabilidade."),
       "imagem: rodapé com «Estatística, não garantia. +18. Joga com responsabilidade.»");
+    ok(W.__textosCanvas.some((t) => /Mais \/ Menos \(Poisson\)/.test(t)) &&
+       W.__textosCanvas.some((t) => /% \/ \d+%/.test(t)),
+      "imagem: probabilidades Poisson também no cartão exportado",
+      W.__textosCanvas.filter((t) => t.indexOf("%") !== -1).join(" | "));
+    ok(W.__textosCanvas.some((t) => /modelo \d+\.\d+\.\d+/.test(t)),
+      "imagem: versão do modelo visível no cartão exportado");
     ok(W.__textosCanvas.includes("Mente Fria · Golo Ao Vivo Angola"),
       "imagem: rodapé com a marca «Mente Fria · Golo Ao Vivo Angola»");
     ok(canvas && canvas.width === 1080 && canvas.height === 1350, "canvas 1080×1350");
@@ -677,7 +756,9 @@ async function principal() {
     ok(cart.includes("Aposta com responsabilidade."), "card NBA renderiza com o aviso legal");
     ok(cart.includes("pontos"), "card NBA usa a unidade 'pontos'");
     const pjogos = ev("ESTADO.analise.casa ? ESTADO.analise.casa.jogos : 0");
-    ok(true, "análise ESPN/NBA concluída (jogos da casa: " + pjogos + ")");
+    const projNba = ev("ESTADO.analise.projeccao");
+    ok(Number.isFinite(projNba) && pjogos > 0,
+      "análise ESPN/NBA concluída com projecção numérica (" + projNba + " pontos, n=" + pjogos + ")");
   }
 
   ok(errosPagina.length === 0, "sem erros de runtime no browser virtual",

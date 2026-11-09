@@ -36,8 +36,11 @@ mente-fria/
 │   ├── gerar-og-image.js    → script que (re)gera o og-image.png (só para manutenção)
 │   ├── sincronizar-site-url.js → propaga SITE_URL (config.js) às meta tags, sitemap,
 │   │                            robots.txt e gerador da og-image
-│   └── testes.js            → 240 verificações: offline + resultados + fluxo real +
-│                              imagem partilhada + partilha social
+│   ├── testes.js            → ~281 verificações: offline + matemática + resultados +
+│   │                          fluxo real (APIs) + imagem partilhada
+│   └── testes-worker.mjs    → 35 verificações do Worker /api, sem rede
+├── worker/
+│   └── index.mjs            → Worker /api/fonte: allowlist + cache de borda + TTL
 ├── wrangler.jsonc           → deploy no Cloudflare Workers (produção)
 ├── .assetsignore            → ficheiros do repo que não vão para o site publicado
 ├── vercel.json              → cabeçalhos para um eventual deploy na Vercel
@@ -52,8 +55,10 @@ mente-fria/
 
 ## 🔌 Fonte de dados
 
-Duas APIs públicas, **sem chave** e com CORS aberto — todo o cálculo é feito no
-navegador do utilizador, sem servidor e sem custos.
+Duas APIs públicas, **sem chave** e com CORS aberto. O cálculo estatístico continua a ser
+feito **no navegador do utilizador**; só os pedidos às fontes passam por um pequeno Worker
+em `/api/*` que os guarda em cache de borda (secção «Cache partilhada»), para que vários
+visitantes do mesmo jogo não multipliquem chamadas à API gratuita.
 
 **ESPN** (`site.api.espn.com`) — ligas internacionais e NBA:
 
@@ -152,58 +157,118 @@ por card gerado** — informação para decidir onde investir mais tempo.
 
 ## 🧮 Como as estatísticas são calculadas
 
-1. Jogos do dia vindos do `scoreboard` da ESPN para a data escolhida;
-2. Para cada equipa do jogo, busca-se o histórico recente (`teams/{id}/schedule`); se não
-   houver jogos suficientes (habitual na NBA fora de época), tenta-se a época anterior com
-   `?season=AAAA`. **No Girabola** o histórico vem das **últimas 6 rondas**
-   (`eventsround.php?id=5229&r=…`), porque a chave gratuita da TheSportsDB limita os
-   outros endpoints;
-3. Só entram jogos **terminados** com resultado válido; calculam-se:
-   - **média marcada em casa** (equipa da casa) e **média sofrida fora** (equipa
-     visitante) nos últimos 5 jogos — as médias usam o **contexto de jogo** sempre
-     que há pelo menos 2 jogos nesse contexto, e só então caem para a média geral
-     (o card indica qual dos dois está a ser usado);
-   - **forma recente** (sequência de V/E/D em futebol, V/D em NBA);
-   - cada número é apresentado com o seu **tamanho de amostra** (`n=`) e, quando
-     `n < 5`, o card acrescenta um aviso de *amostra reduzida*;
-4. **Tendência:** `média marcada em casa + média sofrida fora` comparada com
-   `OVER_UNDER_LINE` → «Tendência: Mais de X» ou «Tendência: Menos de X»;
-5. Se uma equipa não tiver histórico suficiente, o card mostra **«Dados insuficientes»** —
-   nunca inventa números.
+Modelo **2.1.0** (`MODEL_VERSION` no topo do `index.html`; subir sempre que a metodologia
+mudar).
 
-Todos os pedidos usam `AbortController` com **timeout de 8s** e passam por cache:
-**em memória** para a ESPN e **`fetchWithCache` no `localStorage`** para a TheSportsDB
-(TTL de 1 h na lista do dia e nas rondas; 6 h na ronda em curso e na época), pelo que
-visitas repetidas no mesmo dia fazem **zero pedidos** à API gratuita partilhada. O
-utilizador nunca fica com o ecrã bloqueado por causa de uma equipa sem dados.
+1. **Jogos do dia** — `scoreboard` da ESPN (ligas internacionais e NBA) e
+   `eventsday.php` da TheSportsDB (Girabola).
+2. **Histórico de cada equipa** — `teams/{id}/schedule`, época em curso e, se faltar
+   amostra, as duas épocas anteriores. No Girabola são **rondas**
+   (`eventsround.php`), alargadas para trás quando há jogos adiados. Só entram jogos
+   **efetivamente terminados**: `state: "post"`, sem estados de cancelado/adiado, com
+   ids, data e resultados numéricos plausíveis. **0-0 é aceite** — é um resultado real;
+   o que se rejeita é o jogo que não se jogou. Duplicados são descartados e a escolha é
+   sempre pelos **5 jogos mais recentes por data**, não pela ronda nem pelo volume de
+   registos da fonte.
+3. **Modelo** —
+   `λ_casa = ataque_casa × defesa_fora × média_por_equipa` (e o simétrico para a
+   visitante), com as médias no contexto (casa/fora) quando há ≥2 jogos nesse contexto.
+   A `média_por_equipa` vem da **amostra real** (golos/pontos por jogo das duas equipas,
+   deduplicados); com menos de 6 jogos usa-se a referência de 2,5 golos / 220 pontos e o
+   card **di-lo**. Projecção = `λ_casa + λ_fora`.
+4. **Poisson (futebol)** —
+   linha de meio ponto (2,5): Menos = P(0..2), Mais = P(3+), sem push;
+   linha inteira (2): Menos = P(<2), **Push = P(=2)**, Mais = P(>2) — o push nunca é
+   somado ao Menos;
+   linhas de quarto (2,25 / 2,75) são **recusadas com aviso**, porque exigem dividir a
+   aposta por duas linhas e liquidar meia-vitória.
+   As percentagens são inteiros que somam **exatamente 100** (maior resto).
+5. **Tendência** — comparação da projecção **exata** com a linha (o arredondamento a uma
+   casa decimal não cria empates). Mudar a linha no campo «Linha da casa» **recalcula
+   probabilidades, tendência e selo sem novos pedidos à API**.
+6. **NBA** — mesmo esqueleto, sem Poisson: é um modelo **experimental** de médias de
+   pontos marcados/sofridos (sem ritmo nem eficiência ofensiva/defensiva), e o card
+   identifica-o como tal. Não há validação histórica de calibração.
+7. Sem histórico suficiente: «Dados insuficientes». Com amostra curta: aviso de amostra
+   reduzida, `n=` por média e confiança da amostra calculada sobre os **quatro**
+   conjuntos (casa, casa em casa, visitante, visitante fora). Confiança = suficiência de
+   dados, **não** probabilidade de acertar.
+
+Todos os pedidos usam `AbortController` com **timeout de 8 s** e passam por dois níveis
+de cache: memória da sessão (10 min, com deduplicação de pedidos simultâneos) e
+`fetchWithCache` no `localStorage` para a TheSportsDB — e, acima de tudo, a cache de
+borda do Worker. O utilizador nunca fica com o ecrã bloqueado por falta de dados.
+
+---
+
+## 🧊 Cache partilhada (`/api`)
+
+```
+Navegador → (estático) Workers Static Assets
+          → /api/fonte?u=<url da fonte>  (Worker, só /api/*)
+          → cache de borda (TTL por tipo de dado)
+          → ESPN / TheSportsDB
+          → normalização e cálculo no navegador
+```
+
+**O Worker não é um proxy aberto.** Aceita apenas `GET /api/fonte` com um `u` que tem de
+ser HTTPS, de um dos dois anfitriões conhecidos, num caminho de uma lista fechada e com
+parâmetros validados por padrão (sem repetidos, sem desconhecidos). Recusa origens
+cruzadas (403), métodos que não GET (405) e mais de 60 pedidos/minuto por IP (429).
+
+| Tipo de dado | TTL |
+|---|---:|
+| Jogos do dia (hoje) | 15 min |
+| Jogos de dias passados | 24 h |
+| Calendário futuro | 6 h |
+| Histórico de equipa (ESPN) | 12 h |
+| Rondas do Girabola | 6 h |
+| Época do Girabola | 7 dias |
+
+- **Stale-if-error:** se a fonte falhar mas existir cópia em cache, o Worker devolve-a com
+  `X-MF-Estado: stale` e `X-MF-Aviso` — nunca dados antigos apresentados como frescos.
+- **Sem cache e fonte em baixo:** 502 explícito; o site mostra a mensagem de erro habitual.
+- **Onde está a cache:** `Cache API` do Cloudflare, que é **por centro de dados**, não uma
+  base global. Dois utilizadores em continentes diferentes podem gerar duas chamadas. É
+  cache de borda partilhada; não prometemos mais do que isso.
+- **Limites do plano gratuito (Workers Free):** 100 000 pedidos/dia ao Worker, 10 ms de CPU
+  por pedido (este Worker só faz I/O e validação) e a chave pública `123` da TheSportsDB,
+  que é partilhada e limitada — daí os TTL longos nas rondas/épocas.
+- **Clientes sem Worker** (ficheiro local, Vercel sem função): `MF_CONFIG.API_PROXY: ""`
+  ou o primeiro 404 desligam o proxy e os pedidos seguem diretamente para a fonte.
 
 ---
 
 ## 🧪 Testes
 
 ```bash
-cd tools && npm i && node testes.js
+cd tools && npm ci            # jsdom + canvas (canvas precisa de `npm rebuild canvas`)
+node testes.js                # 281 verificações (usa as APIs reais)
+node testes-worker.mjs        # 35 verificações do Worker, SEM rede
 ```
 
-`tools/testes.js` corre **240 verificações** em quatro blocos:
+`tools/testes.js` corre em seis blocos:
 
-1. **offline** — CSP, as 4 meta Open Graph (`og:title`, `og:description`, `og:image`,
-   `og:url`) e `twitter:image` nas 5 páginas, aviso legal literal, partilha WhatsApp +
-   Facebook com UTM e sem afiliados,
-   CTA `rel="sponsored"`, `.vercelignore`, HTML balanceado, sintaxe do JavaScript e
-   auditoria da configuração (links `btag` e licenças exactos, sem frases que prometam
-   vantagem);
-2. **resultados** — abre `resultados.html` num browser virtual: placeholder do CSV →
-   «Painel em preparação», CSV simulado → resumo (acertos, falhas, empates, taxa),
-   aviso de amostra pequena, tabela completa e falha de rede sem partir a página;
-3. **fluxo real** — abre o `index.html` num browser virtual (jsdom) e usa as **APIs
-   públicas a sério**: escolhe Futebol, filtra pela Girabola, gera o card de um jogo
-   real (média, amostra `n=`, tendência, aviso legal) e faz a regressão ESPN/NBA;
-4. **imagem partilhada** — desenha o canvas 1080×1350 e confirma que o aviso legal e a
-   marca («Mente Fria · Golo Ao Vivo Angola») estão desenhados **dentro** da imagem.
+1. **offline** — sintaxe, CSP, meta Open Graph nas 5 páginas, aviso legal literal,
+   `rel="sponsored"`, `.assetsignore`, HTML balanceado, configuração central
+   (links `btag` e licenças), links de afiliado **só** via `MF_CONFIG`;
+2. **matemática (sem rede)** — Poisson determinística: λ=2,5 na linha 2,0 dá
+   28,73 % / 25,65 % / 45,62 % e na linha 2,5 dá 54,38 % / 45,62 %; push separado;
+   soma 100; linhas de quarto e λ inválidos recusados; `k=180` sem overflow;
+3. **resultados** — `resultados.html` num browser virtual: placeholder → «Painel em
+   preparação», CSV simulado → resumo, aviso de amostra pequena, tabela e falha de rede;
+4. **fluxo real** — `index.html` em jsdom contra as **APIs reais**: Girabola completa
+   (card, `n=`, selo, casas), mudança de linha sem pedidos, linha inteira com push,
+   2,25 recusada, empate na linha, regressão ESPN/NBA;
+5. **imagem partilhada** — canvas 1080×1350 com aviso legal, marca, probabilidades e
+   versão do modelo **dentro** da imagem;
+6. **economia de pedidos** — a segunda análise do mesmo dia não repete chamadas.
 
-Requer rede (bate mesmo nas APIs) e `jsdom` + `canvas` locais — ambos em `tools/`,
-que está no `.vercelignore` e no `.gitignore` (`node_modules/`).
+`tools/testes-worker.mjs` não toca na internet: substitui `fetch` e a Cache API por
+dublês e prova a allowlist (proxy fechado), os TTL, hit/miss, stale-if-error, 502 sem
+cache, 403 de origem cruzada, 405 de método e o limite de 60 pedidos/minuto.
+
+Ambos exigem `jsdom` + `canvas` locais (em `tools/`, fora do site publicado).
 
 ---
 
@@ -289,18 +354,28 @@ or facilitation of illegal goods and services». Requisitos práticos:
 
 ## 🚀 Deploy em produção — Cloudflare Workers
 
-O site está publicado como **Workers Static Assets**: não há Worker script (`main`), o
-Cloudflare serve os ficheiros do repositório tal como estão.
+O site é **Workers Static Assets + um Worker mínimo em `/api/*`**. Os ficheiros
+continuam a ser servidos directamente pelo Cloudflare; só os pedidos a `/api/*` passam
+pelo script `worker/index.mjs`.
 
 ```bash
-npx wrangler@4 dev        # pré-visualização local (workerd)
-npx wrangler@4 deploy     # publica em https://mente-fria.goloaovivo.workers.dev
+npx wrangler@4 dev --port 8787 --ip 127.0.0.1   # pré-visualização local (workerd)
+npx wrangler@4 deploy --dry-run --outdir /tmp/mf-build   # valida bundle sem publicar
+npx wrangler@4 deploy                            # publica em produção
 ```
 
-O `wrangler.jsonc` fixa `html_handling: "auto-trailing-slash"`, pelo que `/termos.html`
-redirecciona (307) para `/termos` — exactamente os endereços que o `sitemap.xml` e o
-canonical anunciam. O `.assetsignore` mantém fora do site `tools/`, `_arquivo/`,
-`propostas-logo/`, o `README.md` e os ficheiros de configuração.
+O `wrangler.jsonc` define `main`, `assets.binding: "ASSETS"`,
+`run_worker_first: ["/api/*"]` **selectivo** (nunca `true` nem `"*"`: encaminharia HTML,
+CSS e imagens pelo Worker e gastaria os 100 000 pedidos/dia) e
+`html_handling: "auto-trailing-slash"` — `/termos.html` redirecciona (307) para
+`/termos`, exactamente os endereços do `sitemap.xml` e do canonical. O `.assetsignore`
+mantém fora do site `tools/`, `worker/`, `_arquivo/`, `propostas-logo/`, o `README.md` e
+os ficheiros de configuração.
+
+Conferir depois de publicar: `GET /api/estado` deve devolver
+`{"ok":true,"versao":"1.0.0"}`. Se `/api/*` devolver 404, o site continua a funcionar
+(passa a falar directamente com as fontes, sem cache partilhada) — mas perde-se a
+economia de chamadas.
 
 O campo `name` tem de continuar `mente-fria`: mudá-lo cria outro Worker e outro endereço
 `*.workers.dev`. Numa conta nova, autenticar antes com `npx wrangler login` ou definir
