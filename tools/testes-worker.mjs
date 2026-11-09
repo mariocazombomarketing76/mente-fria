@@ -9,7 +9,8 @@
    o stale-if-error, o limite de frequência e a origem cruzada.
    ========================================================================== */
 
-import worker, { validarAlvo, ttlPara, limiteExcedido, VERSAO_API } from "../worker/index.mjs";
+import worker from "../worker/index.mjs";
+import { validarAlvo, ttlPara, limiteExcedido, VERSAO_API } from "../worker/nucleo.mjs";
 
 let total = 0;
 let falhas = 0;
