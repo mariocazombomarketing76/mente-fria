@@ -265,8 +265,27 @@ function modeloResultados(linhasCsv) {
     };
   });
 
+  // Uma linha sem data legível ou sem jogo não é um registo: é lixo de
+  // folha (linha em branco, nota, cabeçalho repetido). Entrava no painel e
+  // contava para a taxa de acerto — passa a ser descartada.
+  const validos = registos.filter((r) => r.jogo && r.ts > 0);
+
+  // Deduplicação: a mesma data + jogo é o mesmo registo, mesmo que a folha o
+  // tenha repetido (recolha manual, linha copiada). Fica a primeira ocorrência.
+  const vistos = Object.create(null);
+  const unicos = validos.filter((r) => {
+    const chave = (r.data + "|" + r.jogo).toLowerCase();
+    if (vistos[chave]) return false;
+    vistos[chave] = true;
+    return true;
+  });
+  if (validos.length !== registos.length || unicos.length !== validos.length) {
+    console.warn("[RESULTADOS] linhas ignoradas:", registos.length - validos.length,
+      "· duplicadas:", validos.length - unicos.length);
+  }
+
   // Mais recente primeiro; empates de data mantêm a ordem do ficheiro.
-  return registos
+  return unicos
     .map((r, i) => ({ r: r, i: i }))
     .sort((a, b) => (b.r.ts - a.r.ts) || (a.i - b.i))
     .map((x) => x.r);
@@ -349,29 +368,30 @@ function desenharPainelResultados(registos) {
   html += '    </div>';
   html += '  </div>';
 
-  html += '  <div class="resultados-bloco">';
-  html += '    <h3 class="resultados-bloco-titulo">Casas licenciadas em Angola</h3>';
-  html += '    <div class="resultados-botoes">';
+  // Sem casas ativas não se desenha a secção (nem o título): um bloco vazio
+  // com «Casas licenciadas» seria publicidade a nada.
+  let botoesCasas = "";
   try {
     const casas = typeof mfCasasAtivas === "function" ? mfCasasAtivas() : (MF_CONFIG.BOOKMAKERS || []);
-    const casasAtivas = (casas || []).filter((c) => c && c.ativa !== false && c.link);
-    if (casasAtivas.length) {
-      casasAtivas.forEach((casa) => {
-        const nome = String(casa.nome || "");
-        const link = String(casa.link || "");
-        html += '      <a class="btn btn-primario" href="' + mfEscaparHtml(link) + '" target="_blank" rel="noopener sponsored" data-casa-resultados="' + mfEscaparHtml(nome) + '">' + mfEscaparHtml(nome) + '</a>';
-      });
-    } else {
-      // Fallback directo conforme pedido
-      html += '      <a class="btn btn-primario" href="https://bantubet.co.ao/affiliates/?btag=2532299" target="_blank" rel="noopener sponsored" data-casa-resultados="Bantubet">Bantubet</a>';
-      html += '      <a class="btn btn-primario" href="http://kwanzabet.ao/affiliates/?btag=2822934" target="_blank" rel="noopener sponsored" data-casa-resultados="KwanzaBet">KwanzaBet</a>';
-    }
+    // Só aparecem casas ATIVAS na configuração central. Não há links de
+    // reserva escritos aqui: quando MF_CONFIG diz que não há casas (ativa:
+    // false), esta secção desaparece — antes mostrava na mesma os dois links
+    // de afiliado, contradizendo a configuração.
+    const casasAtivas = (casas || []).filter((c) => c && c.ativa === true && c.link);
+    casasAtivas.forEach((casa) => {
+      const nome = String(casa.nome || "");
+      const link = String(casa.link || "");
+      botoesCasas += '      <a class="btn btn-primario" href="' + mfEscaparHtml(link) + '" target="_blank" rel="noopener sponsored" data-casa-resultados="' + mfEscaparHtml(nome) + '">' + mfEscaparHtml(nome) + '</a>';
+    });
   } catch (e) {
-    html += '      <a class="btn btn-primario" href="https://bantubet.co.ao/affiliates/?btag=2532299" target="_blank" rel="noopener sponsored" data-casa-resultados="Bantubet">Bantubet</a>';
-    html += '      <a class="btn btn-primario" href="http://kwanzabet.ao/affiliates/?btag=2822934" target="_blank" rel="noopener sponsored" data-casa-resultados="KwanzaBet">KwanzaBet</a>';
+    console.warn("[RESULTADOS] casas de apostas não desenhadas:", e && e.message);
   }
-  html += '    </div>';
-  html += '  </div>';
+  if (botoesCasas) {
+    html += '  <div class="resultados-bloco">';
+    html += '    <h3 class="resultados-bloco-titulo">Casas licenciadas em Angola</h3>';
+    html += '    <div class="resultados-botoes">' + botoesCasas + '</div>';
+    html += '  </div>';
+  }
 
   html += '</section>';
 
@@ -401,33 +421,45 @@ function mostrarPainelPreparacao() {
     "Os resultados serão publicados assim que a folha de cálculo partilhada estiver ligada.</div>";
 }
 
-/** Tenta obter o CSV com fallback para proxy CORS (útil em alguns navegadores móveis). */
+/** true se o texto parece CSV (tem separador e não é uma página HTML de erro). */
+function pareceCsvRes(texto) {
+  const t = String(texto || "").trim();
+  if (!t || t.charAt(0) === "<") return false;   // HTML de erro/consentimento
+  return t.indexOf(",") !== -1;
+}
+
+/**
+ * Tenta obter o CSV: directamente e, se o navegador bloquear por CORS, através
+ * do proxy público allorigins.win.
+ *
+ * Notas de manutenção: allorigins é um serviço de terceiros, gratuito e SEM
+ * garantias (pode limitar tráfego, atrasar ou desaparecer). Só é usado para a
+ * URL configurada em RESULTS_CSV_URL — nunca para endereços arbitrários — e a
+ * página degrada para «Painel em preparação» se ambos falharem. Se um dia
+ * houver um /api/csv no Worker, este é o único sítio a mudar.
+ */
 async function obterCsv() {
   const url = MF_CONFIG.RESULTS_CSV_URL;
-  const controlador = new AbortController();
-  const temporizador = setTimeout(() => controlador.abort(), 10000);
-  try {
-    // Tentativa directa
+
+  const pedir = async (endereco, rotulo) => {
+    const controlador = new AbortController();
+    const temporizador = setTimeout(() => controlador.abort(), 10000);
     try {
-      const resposta = await fetch(url, { signal: controlador.signal, cache: "no-store" });
-      if (resposta.ok) return await resposta.text();
-      throw new Error("HTTP " + resposta.status);
-    } catch (erroDireto) {
-      console.warn("[RESULTADOS] fetch directo falhou, a tentar proxy:", erroDireto.message);
-      // Fallback: allorigins.win
-      const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
-      const ctrl2 = new AbortController();
-      const t2 = setTimeout(() => ctrl2.abort(), 10000);
-      try {
-        const resposta2 = await fetch(proxyUrl, { signal: ctrl2.signal, cache: "no-store" });
-        if (!resposta2.ok) throw new Error("PROXY_HTTP " + resposta2.status);
-        return await resposta2.text();
-      } finally {
-        clearTimeout(t2);
-      }
+      const resposta = await fetch(endereco, { signal: controlador.signal, cache: "no-store" });
+      if (!resposta.ok) throw new Error(rotulo + " HTTP " + resposta.status);
+      const texto = await resposta.text();
+      if (!pareceCsvRes(texto)) throw new Error(rotulo + " devolveu conteúdo que não é CSV");
+      return texto;
+    } finally {
+      clearTimeout(temporizador);
     }
-  } finally {
-    clearTimeout(temporizador);
+  };
+
+  try {
+    return await pedir(url, "DIRETO");
+  } catch (erroDireto) {
+    console.warn("[RESULTADOS] fetch directo falhou, a tentar proxy:", erroDireto.message);
+    return pedir("https://api.allorigins.win/raw?url=" + encodeURIComponent(url), "PROXY");
   }
 }
 
@@ -435,7 +467,8 @@ async function obterCsv() {
    PARTILHA DA PÁGINA RESULTADOS
    ========================================================================== */
 function urlResultados() {
-  return "https://mente-fria.goloaovivo.workers.dev/resultados";
+  const base = String((MF_CONFIG && MF_CONFIG.SITE_URL) || "").replace(/\/+$/, "");
+  return (base || "https://mente-fria.goloaovivo.workers.dev") + "/resultados";
 }
 
 function partilharResultadosWhatsApp() {
