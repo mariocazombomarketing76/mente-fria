@@ -1148,7 +1148,7 @@ async function ultimosJogosEquipa(desporto, ligaSlug, equipaId) {
   // Os metadados viajam com a lista (propriedades no array) para a análise
   // poder avisar quando o histórico veio de outra competição ou de outra época.
   const finalizar = () => {
-    const finais = melhores.slice(-JOGOS_ANALISADOS);
+    const finais = ultimosJogos(melhores);
     finais.liga = ligaEscolhida;
     finais.temporada = temporadaEscolhida;
     finais.fallback = !!ligaEscolhida && ligaEscolhida !== ligaSlug;
@@ -1274,20 +1274,38 @@ function poissonCdf(kMax, lambda) {
 
 /** Converte probabilidades (0..1) em percentagens inteiras que somam 100. */
 function arredondarPercentagens(valores) {
-  const bruto = valores.map((v) => (isFinite(v) && v > 0 ? v * 100 : 0));
-  const inteiros = bruto.map(Math.floor);
-  let resto = 100 - inteiros.reduce((a, b) => a + b, 0);
+  // Duas casas decimais (pedido de revisão): trabalha-se em centésimos de ponto
+  // percentual e usa-se o método do maior resto, para o total ser exactamente
+  // 100,00 (28,73 + 25,65 + 45,62) e não 99,99 nem 100,01.
+  const bruto = valores.map((v) => (isFinite(v) && v > 0 ? v * 10000 : 0));
+  const centesimos = bruto.map(Math.floor);
+  let resto = 10000 - centesimos.reduce((a, b) => a + b, 0);
   const ordem = bruto
     .map((v, i) => ({ i: i, fracao: v - Math.floor(v) }))
     .filter((o) => bruto[o.i] > 0)
     .sort((a, b) => b.fracao - a.fracao);
-  for (let j = 0; resto > 0 && j < ordem.length; j++) { inteiros[ordem[j].i]++; resto--; }
+  let j = 0;
+  while (resto > 0 && ordem.length) {
+    centesimos[ordem[j % ordem.length].i]++;
+    resto--;
+    j++;
+  }
   // Resto negativo só é possível com entradas > 100 no total: devolve-se ao maior.
   if (resto < 0) {
-    const maior = inteiros.indexOf(Math.max.apply(null, inteiros));
-    inteiros[maior] += resto;
+    const maior = centesimos.indexOf(Math.max.apply(null, centesimos));
+    centesimos[maior] += resto;
   }
-  return inteiros;
+  return centesimos.map((c) => c / 100);
+}
+
+/** «1 golo» / «2 golos» — a unidade acompanha o número. */
+function unidadeDe(valor, unidade) {
+  return valor === 1 && unidade === "golos" ? "golo" : unidade;
+}
+
+/** 45.62 → "45,62" (vírgula decimal portuguesa, sempre duas casas). */
+function formatarPct(valor) {
+  return (Math.round(valor * 100) / 100).toFixed(2).replace(".", ",");
 }
 
 /**
@@ -1455,6 +1473,39 @@ function confiancaDaAmostra(casa, fora, observacoes) {
   return { nivel: nivel, minimo: minimo, observacoes: observacoes || 0, conjuntos: conjuntos };
 }
 
+/**
+ * Média de golos/pontos por jogo que serve de base ao modelo.
+ * Usa a média da AMOSTRA (as duas equipas, jogos deduplicados) só quando há
+ * jogos suficientes; abaixo disso usa a referência e di-lo no card. Os limites
+ * impedem que 6 jogos atípicos definam uma média implausível.
+ * Devolve { valor, origem, amostra }.
+ */
+function mediaCompeticao(amostra, desporto) {
+  const referencia = BASELINE_REFERENCIA[desporto];
+  const n = amostra && Number.isFinite(amostra.n) ? amostra.n : 0;
+  if (!amostra || n < LIMITES_MODELO.jogosBaseline || !Number.isFinite(amostra.valor)) {
+    return { valor: referencia, origem: "referência", amostra: n, limitada: false, bruto: null };
+  }
+  const valor = Math.min(BASELINE_MAXIMO[desporto], Math.max(BASELINE_MINIMO[desporto], amostra.valor));
+  // `limitada` diz ao card que o valor mostrado não é a média crua da amostra:
+  // sem isto o utilizador leria «média de 1.5 na amostra» quando a amostra dava 0.9.
+  return {
+    valor: valor,
+    origem: "amostra",
+    amostra: n,
+    limitada: valor !== amostra.valor,
+    bruto: amostra.valor
+  };
+}
+
+/** Os JOGOS_ANALISADOS jogos mais recentes (ordena por data, nunca inventa). */
+function ultimosJogos(jogos) {
+  return (jogos || [])
+    .slice()
+    .sort((a, b) => new Date(a.data) - new Date(b.data))
+    .slice(-JOGOS_ANALISADOS);
+}
+
 /** Orquestra a análise completa de um jogo (o "Match X-Ray"). */
 async function calcularAnalise(jogo) {
   const girabola = jogo.fonte === "tdb";
@@ -1485,14 +1536,11 @@ async function calcularAnalise(jogo) {
   // card di-lo, em vez de deixar crer que veio da competição.
   const amostraBaseline = baselineDaAmostra([historicoCasa, historicoFora]);
   const referencia = BASELINE_REFERENCIA[desporto];
-  let mediaJogoLiga = referencia;
-  let origemMedia = "referência";
-  if (amostraBaseline.n >= LIMITES_MODELO.jogosBaseline && amostraBaseline.valor !== null) {
-    // Limites de sanidade: 6 jogos não podem definir a média da competição
-    // fora de uma janela plausível (ex.: 0.8 golos por jogo).
-    mediaJogoLiga = Math.min(BASELINE_MAXIMO[desporto], Math.max(BASELINE_MINIMO[desporto], amostraBaseline.valor));
-    origemMedia = "amostra";
-  }
+  const base = mediaCompeticao(amostraBaseline, desporto);
+  const mediaJogoLiga = base.valor;
+  const origemMedia = base.origem;
+  const mediaLimitada = base.limitada;
+  const mediaAmostraBruta = base.bruto;
   const mediaPorEquipa = mediaJogoLiga / 2;
 
   let projeccao = null;
@@ -1533,6 +1581,11 @@ async function calcularAnalise(jogo) {
   const amostraMinima = amostras.length ? Math.min(...amostras) : null;
 
   const partesAviso = ["📊 Estatística baseada nos últimos " + JOGOS_ANALISADOS + " jogos."];
+  if (mediaLimitada && casa && fora) {
+    partesAviso.push("A média dos " + amostraBaseline.n + " jogos da amostra (" +
+      mediaAmostraBruta + " " + unidade + ") ficou fora do intervalo plausível: usados " +
+      mediaJogoLiga + " " + unidade + " por jogo.");
+  }
   if (origemMedia === "referência" && casa && fora) {
     partesAviso.push("Média da competição sem amostra suficiente: usada a referência de " +
       referencia + " " + unidade + " por jogo.");
@@ -1551,7 +1604,8 @@ async function calcularAnalise(jogo) {
     // Valores exactos: é com eles que as probabilidades são recalculadas quando
     // o utilizador muda a linha (sem perder precisão no arredondamento).
     lambdaCasaExacta, lambdaForaExacta, projeccao, projeccaoExacta,
-    mediaJogoLiga, origemMedia, amostraBaseline: amostraBaseline.n, historicoFallback,
+    mediaJogoLiga, origemMedia, mediaLimitada, mediaAmostraBruta,
+    amostraBaseline: amostraBaseline.n, historicoFallback,
     confianca: confiancaDaAmostra(casa, fora, amostraBaseline.n),
     modelo: MODEL_VERSION,
     probabilidades: null, probMais: null, probMenos: null, probPush: null, tipoLinha: null, tendencia: null,
@@ -1892,11 +1946,11 @@ function renderizarCard(analise, opcoes) {
   // Cada número vem com o seu contexto ("em casa"/"fora") e o tamanho da
   // amostra (n=), para o utilizador saber quantos jogos sustentam a estatística.
   const linhaCasaMarcados = analise.baseCasa
-    ? '<span class="valor ciano">' + analise.baseCasa.valor + " " + unidade + "</span>" + chipAmostra(analise.baseCasa.n)
+    ? '<span class="valor ciano">' + analise.baseCasa.valor + " " + unidadeDe(analise.baseCasa.valor, unidade) + "</span>" + chipAmostra(analise.baseCasa.n)
     : '<span class="valor aviso">Dados insuficientes</span>';
 
   const linhaForaSofridos = analise.baseFora
-    ? '<span class="valor ciano">' + analise.baseFora.valor + " " + unidade + "</span>" + chipAmostra(analise.baseFora.n)
+    ? '<span class="valor ciano">' + analise.baseFora.valor + " " + unidadeDe(analise.baseFora.valor, unidade) + "</span>" + chipAmostra(analise.baseFora.n)
     : '<span class="valor aviso">Dados insuficientes</span>';
 
   const formaCasa = analise.casa ? chipAmostra(analise.casa.jogos) : "";
@@ -1982,11 +2036,11 @@ function renderizarCard(analise, opcoes) {
         '<div class="detalhe-linha detalhe-probs">' +
           '<span>Probabilidade calculada:</span>' +
           '<span class="detalhe-valores">' +
-            '<strong class="mais">Mais: ' + analise.probMais + '%</strong>' +
+            '<strong class="mais">Mais: ' + formatarPct(analise.probMais) + '%</strong>' +
             (analise.tipoLinha === "inteira" && typeof analise.probPush === "number"
-              ? '<strong class="push" title="Probabilidade de o total ser exactamente igual à linha">Push: ' + analise.probPush + '%</strong>'
+              ? '<strong class="push" title="Probabilidade de o total ser exactamente igual à linha">Push: ' + formatarPct(analise.probPush) + '%</strong>'
               : "") +
-            '<strong class="menos">Menos: ' + analise.probMenos + '%</strong>' +
+            '<strong class="menos">Menos: ' + formatarPct(analise.probMenos) + '%</strong>' +
           '</span>' +
         '</div>' +
         '<div class="detalhe-linha" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-top: 6px;">' +
@@ -2005,7 +2059,10 @@ function renderizarCard(analise, opcoes) {
   const blocoModelo = analise.projeccao !== null
     ? '<p class="card-modelo">Modelo ' + escaparHtml(analise.modelo || MODEL_VERSION) + " · " +
         (analise.origemMedia === "amostra"
-          ? "média de " + analise.mediaJogoLiga + " " + unidade + "/jogo na amostra (" + analise.amostraBaseline + " jogos)"
+          ? (analise.mediaLimitada
+              ? "média ajustada de " + analise.mediaJogoLiga + " " + unidade + "/jogo (amostra de " +
+                analise.amostraBaseline + " jogos dava " + analise.mediaAmostraBruta + ")"
+              : "média de " + analise.mediaJogoLiga + " " + unidade + "/jogo na amostra (" + analise.amostraBaseline + " jogos)")
           : "referência de " + analise.mediaJogoLiga + " " + unidade + "/jogo (amostra insuficiente)") +
         (analise.historicoFallback && analise.historicoFallback.length
           ? " · histórico de outra competição como reserva"
@@ -2278,10 +2335,10 @@ function desenharCardNoCanvas(analise) {
     ", n=" + b.n + ")";
 
   const marcados = analise.baseCasa
-    ? analise.baseCasa.valor + " " + unidade + " " + sufixo(analise.baseCasa)
+    ? analise.baseCasa.valor + " " + unidadeDe(analise.baseCasa.valor, unidade) + " " + sufixo(analise.baseCasa)
     : "dados insuficientes";
   const sofridos = analise.baseFora
-    ? analise.baseFora.valor + " " + unidade + " " + sufixo(analise.baseFora)
+    ? analise.baseFora.valor + " " + unidadeDe(analise.baseFora.valor, unidade) + " " + sufixo(analise.baseFora)
     : "dados insuficientes";
   const formaCasa = analise.casa
     ? sequencia(analise.casa) + " (n=" + analise.casa.jogos + ")"
@@ -2305,8 +2362,8 @@ function desenharCardNoCanvas(analise) {
     linhas.push([
       pushImagem ? "🎲 Mais / Push / Menos (Poisson)" : "🎲 Mais / Menos (Poisson)",
       pushImagem
-        ? analise.probMais + "% / " + analise.probPush + "% / " + analise.probMenos + "%"
-        : analise.probMais + "% / " + analise.probMenos + "%"
+        ? formatarPct(analise.probMais) + "% / " + formatarPct(analise.probPush) + "% / " + formatarPct(analise.probMenos) + "%"
+        : formatarPct(analise.probMais) + "% / " + formatarPct(analise.probMenos) + "%"
     ]);
   }
 
@@ -2315,10 +2372,10 @@ function desenharCardNoCanvas(analise) {
   // Caixas ligeiramente mais baixas para a quinta linha (probabilidades) caber
   // sem empurrar o aviso legal e o rodapé para fora da moldura de 1350 px.
   const LINHA_ALTURA = 66;
-  const LINHA_PASSO = 72;
-  const Y_LINHAS = 530;
-  const ALTURA_CONCLUSAO = 190;
-  const ALTURA_AVISO = 160;
+  const LINHA_PASSO = 70;
+  const Y_LINHAS = 522;
+  const ALTURA_CONCLUSAO = 182;
+  const ALTURA_AVISO = 156;
 
   let y = Y_LINHAS;
   ctx.font = '400 30px "Inter", sans-serif';
@@ -2413,7 +2470,9 @@ function desenharCardNoCanvas(analise) {
 
   // Rodapé da imagem (abaixo das caixas, dentro da moldura): aviso literal,
   // por cima da marca à esquerda e do domínio à direita. Sem links de casas.
-  const yRodape = Math.max(avisoY + ALTURA_AVISO + 52, A - 78);
+  // Nunca abaixo de A - 62: com 5 linhas o rodapé chegava a sair da moldura
+  // de 1350 px (visto na inspecção do PNG exportado).
+  const yRodape = Math.min(Math.max(avisoY + ALTURA_AVISO + 52, A - 78), A - 62);
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffd591";
