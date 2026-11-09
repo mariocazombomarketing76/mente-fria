@@ -634,6 +634,7 @@ async function principal() {
      an.amostraMinima === null, "amostra total ou aviso de amostra reduzida (min=" + an.amostraMinima + ")");
 
   /* Detalhes do modelo Nível 2 (Poisson + golos esperados) no card */
+  ok(an.modelo === "2.1.0", "análise identifica a versão do modelo (" + an.modelo + ")");
   ok(Number.isInteger(an.probMais) && Number.isInteger(an.probMenos) && an.probMais + an.probMenos === 100,
     "Poisson: probabilidades complementares (Mais " + an.probMais + "% + Menos " + an.probMenos + "% = 100)");
   ok(Number.isFinite(an.lambdaCasa) && Number.isFinite(an.lambdaFora),

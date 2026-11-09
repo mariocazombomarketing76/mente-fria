@@ -40,7 +40,8 @@ mente-fria/
 │   │                          fluxo real (APIs) + imagem partilhada
 │   └── testes-worker.mjs    → 35 verificações do Worker /api, sem rede
 ├── worker/
-│   └── index.mjs            → Worker /api/fonte: allowlist + cache de borda + TTL
+│   ├── index.mjs            → handler /api/fonte (o único export do entrypoint)
+│   └── nucleo.mjs           → allowlist, TTL, chave e limite (testável em Node)
 ├── wrangler.jsonc           → deploy no Cloudflare Workers (produção)
 ├── .assetsignore            → ficheiros do repo que não vão para o site publicado
 ├── vercel.json              → cabeçalhos para um eventual deploy na Vercel
