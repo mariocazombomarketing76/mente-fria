@@ -311,7 +311,9 @@ async function principal() {
   /* Bloco 6 — campo Linha da casa */
   ok(index.includes('id="campo-linha"') && index.includes('id="campo-casa"'),
     "index: campo Linha da casa + seletor Casa");
-  ok(/id="campo-linha"[^>]*step="0\.5"/.test(index), "campo-linha com step 0.5");
+  ok(/id="campo-linha"[^>]*inputmode="decimal"/.test(index) &&
+     !/<input type="number" id="campo-linha"/.test(index),
+    "campo-linha em texto com teclado decimal (aceita a vírgula do card)");
   ok(index.includes("Escreve a linha que vês na casa de apostas. Confirma sempre na casa antes de apostar."),
     "nota do campo com a frase obrigatória");
   ok(index.includes("Linha estatística de referência: ") && index.includes("(não é a linha de nenhuma casa)"),
@@ -891,6 +893,9 @@ async function principal() {
   ok(W.document.getElementById("linha-erro").hidden === false &&
      /quarto/i.test(W.document.getElementById("linha-erro").textContent),
     "aviso explica que a linha de quarto não é suportada");
+  ev("document.getElementById('campo-linha').value = '2,5'; reaplicarLinhaCasa();");
+  ok(ev("ESTADO.analise.linha") === 2.5,
+    "linha escrita com vírgula («2,5») é aceite e aplicada");
 
   ev("document.getElementById('campo-linha').value = ''; reaplicarLinhaCasa();");
   ok(ev("ESTADO.analise.linha") === 2.5 && ev("ESTADO.analise.tipoLinha") === "meio",

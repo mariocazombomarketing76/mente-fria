@@ -178,13 +178,16 @@
         <div class="bloco-linha-topo">
           <label for="campo-linha">Linha da casa <span class="bloco-linha-opcional">(opcional)</span></label>
           <div class="bloco-linha-campos">
-            <input type="number" id="campo-linha" inputmode="decimal" step="0.5" min="0.01"
-                   placeholder="ex.: 2.5" aria-describedby="linha-nota" />
+            <!-- type="text" + inputmode: um <input type="number"> recusa a vírgula
+                 em vários browsers, e a convenção do card é 2,5. O valor é
+                 validado em lerCampoLinha(), que aceita ponto e vírgula. -->
+            <input type="text" id="campo-linha" inputmode="decimal" autocomplete="off"
+                   placeholder="ex.: 2,5" aria-describedby="linha-nota" />
             <select id="campo-casa" aria-label="Casa de onde é a linha"></select>
           </div>
         </div>
         <p class="bloco-linha-nota" id="linha-nota">Escreve a linha que vês na casa de apostas. Confirma sempre na casa antes de apostar.</p>
-        <p class="bloco-linha-erro" id="linha-erro" hidden>Valor inválido: usa um número positivo, inteiro ou de meio ponto (ex.: 2.5 ou 220.5). A usar a linha estatística de referência.</p>
+        <p class="bloco-linha-erro" id="linha-erro" hidden>Valor inválido: usa um número positivo, inteiro ou de meio ponto (ex.: 2,5 ou 220,5). A usar a linha estatística de referência.</p>
       </div>
 
       <div id="card-xray"></div>
@@ -687,7 +690,7 @@ function lerCampoLinha() {
       // modelo não divide a aposta em duas linhas nem liquida meia-vitória.
       erro.textContent = (isFinite(valor) && valor > 0 && !linhaValida(valor))
         ? "Linha de quarto não suportada: para 2.25 ou 2.75 são precisas duas linhas (2 e 2.5). Usa uma linha inteira (2) ou de meio ponto (2.5). A usar a linha estatística de referência."
-        : "Valor inválido: usa um número positivo, inteiro ou de meio ponto (ex.: 2.5 ou 220.5). A usar a linha estatística de referência.";
+        : "Valor inválido: usa um número positivo, inteiro ou de meio ponto (ex.: 2,5 ou 220,5). A usar a linha estatística de referência.";
     }
     return null;
   }
