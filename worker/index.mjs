@@ -206,9 +206,21 @@ export default {
       return json({ erro: "demasiados pedidos" }, 429, { "Retry-After": "60" });
     }
 
+    // Só o parâmetro `u` é reconhecido: um `?extra=` inesperado é recusado
+    // (400) em vez de ignorado em silêncio — assim um cliente que escreva mal
+    // o pedido descobre-o, e nada passa por engano na validação do alvo.
+    const estranhos = Array.from(url.searchParams.keys()).filter((chave) => chave !== "u");
+    if (estranhos.length) {
+      return json({ erro: "parâmetro não reconhecido: " + estranhos[0] }, 400);
+    }
+
     const bruto = url.searchParams.get("u");
+    if (!bruto) return json({ erro: "falta o parâmetro u" }, 400);
+
+    // 400 seria «pedido malformado»; o pedido está bem formado e é o ALVO que
+    // não está na lista — 403 diz exactamente isso.
     const alvo = csv ? validarAlvoCsv(bruto) : validarAlvo(bruto);
-    if (!alvo) return json({ erro: "alvo não autorizado" }, 400);
+    if (!alvo) return json({ erro: "alvo não autorizado" }, 403);
 
     if (csv) {
       return servir(alvo, {

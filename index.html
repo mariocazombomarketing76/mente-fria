@@ -41,7 +41,7 @@
       frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com;
     Para activar o webhook de analytics (n8n), acrescente o domínio em connect-src.
   -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://a.espncdn.com https://r2.thesportsdb.com; connect-src 'self' https://site.api.espn.com https://sports.core.api.espn.com https://www.thesportsdb.com; frame-src 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://a.espncdn.com https://r2.thesportsdb.com; connect-src 'self' https://site.api.espn.com https://www.thesportsdb.com; frame-src 'none'" />
 
   <!-- Tipografia: Inter (texto) + Roboto Mono (números/dados) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -713,16 +713,16 @@ function lerCampoLinha() {
 function rotuloLinha(analise) {
   const lc = analise.linhaInfo;
   if (lc) {
-    return "Linha da " + (lc.casa || "casa") + ": " + lc.valor +
+    return "Linha da " + (lc.casa || "casa") + ": " + formatarLinha(lc.valor) +
       " (introduzida às " + lc.hora + ")";
   }
-  return "Linha estatística de referência: " + analise.linha +
+  return "Linha estatística de referência: " + formatarLinha(analise.linha) +
     " (não é a linha de nenhuma casa)";
 }
 
 /**
  * Reaplica uma linha à análise já calculada, SEM novos pedidos à API:
- * a projecção não muda, mas as probabilidades, a tendência e o selo são
+ * a projeção não muda, mas as probabilidades, a tendência e o selo são
  * recalculados para a linha nova (antes só o texto mudava e as percentagens
  * de Poisson ficavam a pertencer à linha anterior).
  */
@@ -750,7 +750,7 @@ function aplicarLinha(analise, linha, linhaInfo) {
     }
   }
 
-  // A comparação usa a projecção exacta (não a arredondada): coincidir com a
+  // A comparação usa a projeção exacta (não a arredondada): coincidir com a
   // linha por causa do arredondamento a 1 casa não é um empate estatístico.
   const projeccao = Number.isFinite(analise.projeccaoExacta) ? analise.projeccaoExacta : analise.projeccao;
   if (projeccao !== null && Number.isFinite(projeccao)) {
@@ -1237,7 +1237,7 @@ function linhaValida(linha) {
  * λ utilizável: finito, não negativo e dentro do domínio do modelo.
  * A escala depende do desporto: 2-4 golos por jogo no futebol, ~100-130 pontos
  * por equipa na NBA. Um único limite de 40 recusava TODAS as análises de NBA
- * (projecção ficava null) — foi apanhado pela bancada.
+ * (projeção ficava null) — foi apanhado pela bancada.
  */
 function lambdaValido(lambda, desporto) {
   const maximo = desporto === "nba" ? LIMITES_MODELO.lambdaNba : LIMITES_MODELO.lambda;
@@ -1298,14 +1298,47 @@ function arredondarPercentagens(valores) {
   return centesimos.map((c) => c / 100);
 }
 
-/** «1 golo» / «2 golos» — a unidade acompanha o número. */
-function unidadeDe(valor, unidade) {
-  return valor === 1 && unidade === "golos" ? "golo" : unidade;
+/** «1 golo» / «1,0 golos» / «2,5 golos» — singular só com o número escrito «1». */
+function unidadeDe(valor, unidade, casas) {
+  const c = casas == null ? 0 : casas;
+  const texto = c === 0 ? String(valor) : formatarNumero(valor, c);
+  return unidade === "golos" && texto === "1" ? "golo" : unidade;
+}
+
+/** Número + unidade, ambos já formatados: «1 golo», «1,3 golos», «2,5 golos». */
+function comUnidade(valor, unidade, casas) {
+  const c = casas == null ? 0 : casas;
+  const texto = c === 0 ? formatarLinha(valor) : formatarNumero(valor, c);
+  return texto + " " + unidadeDe(texto, unidade, 0);
 }
 
 /** 45.62 → "45,62" (vírgula decimal portuguesa, sempre duas casas). */
 function formatarPct(valor) {
   return (Math.round(valor * 100) / 100).toFixed(2).replace(".", ",");
+}
+
+/**
+ * 1.3 → "1,3" · 224.66 → "224,7" — a vírgula é o separador decimal em
+ * português. O número continua a ser guardado com ponto no estado; só a
+ * apresentação muda (nada de toFixed espalhado pelo card e pelo canvas).
+ */
+function formatarNumero(valor, casas) {
+  const n = Number(valor);
+  if (!Number.isFinite(n)) return "—";
+  const c = casas == null ? 1 : casas;
+  return n.toFixed(c).replace(".", ",");
+}
+
+/** Linha de aposta: inteiro sem casas ("3"), meio ponto com uma ("2,5"). */
+function formatarLinha(valor) {
+  const n = Number(valor);
+  if (!Number.isFinite(n)) return "—";
+  return Number.isInteger(n) ? String(n) : formatarNumero(n, 1);
+}
+
+/** Casas decimais da projeção: pontos inteiros na NBA, 1 casa no futebol. */
+function casasProjecao(desporto) {
+  return desporto === "nba" ? 0 : 1;
 }
 
 /**
@@ -1562,7 +1595,7 @@ async function calcularAnalise(jogo) {
     const lc = forcaAtaqueCasa * forcaDefesaFora * mediaPorEquipa;
     const lf = forcaAtaqueFora * forcaDefesaCasa * mediaPorEquipa;
     // Probabilidades e tendência são calculadas no fim, por aplicarLinha(),
-    // a partir dos valores EXACTOS (a projecção mostrada é arredondada).
+    // a partir dos valores EXACTOS (a projeção mostrada é arredondada).
     if (lambdaValido(lc, desporto) && lambdaValido(lf, desporto)) {
       lambdaCasaExacta = lc;
       lambdaForaExacta = lf;
@@ -1583,12 +1616,12 @@ async function calcularAnalise(jogo) {
   const partesAviso = ["📊 Estatística baseada nos últimos " + JOGOS_ANALISADOS + " jogos."];
   if (mediaLimitada && casa && fora) {
     partesAviso.push("A média dos " + amostraBaseline.n + " jogos da amostra (" +
-      mediaAmostraBruta + " " + unidade + ") ficou fora do intervalo plausível: usados " +
-      mediaJogoLiga + " " + unidade + " por jogo.");
+      formatarNumero(mediaAmostraBruta, 1) + " " + unidade + ") ficou fora do intervalo plausível: usados " +
+      formatarNumero(mediaJogoLiga, 1) + " " + unidade + " por jogo.");
   }
   if (origemMedia === "referência" && casa && fora) {
     partesAviso.push("Média da competição sem amostra suficiente: usada a referência de " +
-      referencia + " " + unidade + " por jogo.");
+      formatarNumero(referencia, 1) + " " + unidade + " por jogo.");
   }
   if (desporto === "nba") {
     partesAviso.push("Modelo de NBA experimental: médias de pontos marcados e sofridos, sem ritmo nem eficiência.");
@@ -1946,11 +1979,11 @@ function renderizarCard(analise, opcoes) {
   // Cada número vem com o seu contexto ("em casa"/"fora") e o tamanho da
   // amostra (n=), para o utilizador saber quantos jogos sustentam a estatística.
   const linhaCasaMarcados = analise.baseCasa
-    ? '<span class="valor ciano">' + analise.baseCasa.valor + " " + unidadeDe(analise.baseCasa.valor, unidade) + "</span>" + chipAmostra(analise.baseCasa.n)
+    ? '<span class="valor ciano">' + comUnidade(analise.baseCasa.valor, unidade, 1) + "</span>" + chipAmostra(analise.baseCasa.n)
     : '<span class="valor aviso">Dados insuficientes</span>';
 
   const linhaForaSofridos = analise.baseFora
-    ? '<span class="valor ciano">' + analise.baseFora.valor + " " + unidadeDe(analise.baseFora.valor, unidade) + "</span>" + chipAmostra(analise.baseFora.n)
+    ? '<span class="valor ciano">' + comUnidade(analise.baseFora.valor, unidade, 1) + "</span>" + chipAmostra(analise.baseFora.n)
     : '<span class="valor aviso">Dados insuficientes</span>';
 
   const formaCasa = analise.casa ? chipAmostra(analise.casa.jogos) : "";
@@ -1969,7 +2002,7 @@ function renderizarCard(analise, opcoes) {
       JOGOS_ANALISADOS + " jogos.</p>"
     : "";
 
-  // Medidor: projecção estatística contra a linha em uso (casa ou referência).
+  // Medidor: projeção estatística contra a linha em uso (casa ou referência).
   const blocoProjecao = (analise.projeccao !== null)
     ? (function () {
         const max = Math.max(analise.projeccao, analise.linha) * 1.4 || 1;
@@ -1987,12 +2020,12 @@ function renderizarCard(analise, opcoes) {
           "</div>" +
           '<div class="projecao-gauge">' +
             '<div class="projecao-topo"><span class="rotulo">' + escaparHtml(rotuloContra) + '</span>' +
-            '<span class="mono">linha ' + analise.linha + "</span></div>" +
+            '<span class="mono">linha ' + formatarLinha(analise.linha) + "</span></div>" +
             '<div class="gauge">' +
               '<span class="gauge-fill" style="width:' + pctProj.toFixed(1) + '%"></span>' +
               '<span class="gauge-marca" style="left:' + pctLinha.toFixed(1) + '%"></span>' +
             "</div>" +
-            '<div class="gauge-legenda"><span>0</span><span class="destaque">' + max.toFixed(1) +
+            '<div class="gauge-legenda"><span>0</span><span class="destaque">' + formatarNumero(max, 1) +
               " " + unidade + "</span></div>" +
           "</div>" +
         "</div>";
@@ -2000,15 +2033,15 @@ function renderizarCard(analise, opcoes) {
     : "";
 
   const sinteseTexto = analise.tendencia
-    ? "Tendência: " + analise.tendencia + " de " + analise.linha + " " + unidade
+    ? "Tendência: " + analise.tendencia + " de " + comUnidade(analise.linha, unidade, 0)
     : "Dados insuficientes para esta análise";
 
   // A explicação tem de descrever o modelo que corre de facto: a fórmula
   // antiga (média marcada + média sofrida) já não corresponde ao cálculo.
   const sinteseSub = analise.projeccao !== null
-    ? "Projecção estatística: " + analise.projeccao + " " + unidade +
+    ? "Projeção estatística: " + formatarNumero(analise.projeccao, casasProjecao(analise.desporto)) + " " + unidade +
       " (expectativa Poisson: ataque da casa × defesa da visitante, ajustada à média de " +
-      analise.mediaJogoLiga + " " + unidade + "/jogo)"
+      formatarNumero(analise.mediaJogoLiga, 1) + " " + unidade + "/jogo)"
     : "A fonte de dados não devolveu histórico suficiente para as duas equipas.";
 
   // Selo grande da tendência (componente visual dominante da conclusão).
@@ -2017,7 +2050,7 @@ function renderizarCard(analise, opcoes) {
     : (analise.tendencia === "Menos" ? "menos" : "neutro");
   const badgeTendencia = analise.tendencia
     ? '<span class="sintese-tipo ' + classeTendencia + '">' +
-      analise.tendencia.toUpperCase() + " de " + analise.linha + " " + unidade + "</span>"
+      analise.tendencia.toUpperCase() + " de " + comUnidade(analise.linha, unidade, 0) + "</span>"
     : '<span class="sintese-tipo sem-dados">DADOS INSUFICIENTES</span>';
 
   // Detalhes do modelo Nível 2: golos esperados por equipa e probabilidade de
@@ -2031,8 +2064,8 @@ function renderizarCard(analise, opcoes) {
   // somar ao «Menos» uma probabilidade que apenas devolve a aposta.
   const blocoDetalhes = temProbabilidades
     ? '<div class="detalhes-estatisticos">' +
-        linhaDetalhe("Golos Esperados (Casa):", analise.lambdaCasa !== null ? analise.lambdaCasa : "N/A") +
-        linhaDetalhe("Golos Esperados (Fora):", analise.lambdaFora !== null ? analise.lambdaFora : "N/A") +
+        linhaDetalhe("Golos Esperados (Casa):", analise.lambdaCasa !== null ? formatarNumero(analise.lambdaCasa, 1) : "N/A") +
+        linhaDetalhe("Golos Esperados (Fora):", analise.lambdaFora !== null ? formatarNumero(analise.lambdaFora, 1) : "N/A") +
         '<div class="detalhe-linha detalhe-probs">' +
           '<span>Probabilidade calculada:</span>' +
           '<span class="detalhe-valores">' +
@@ -2060,10 +2093,10 @@ function renderizarCard(analise, opcoes) {
     ? '<p class="card-modelo">Modelo ' + escaparHtml(analise.modelo || MODEL_VERSION) + " · " +
         (analise.origemMedia === "amostra"
           ? (analise.mediaLimitada
-              ? "média ajustada de " + analise.mediaJogoLiga + " " + unidade + "/jogo (amostra de " +
-                analise.amostraBaseline + " jogos dava " + analise.mediaAmostraBruta + ")"
-              : "média de " + analise.mediaJogoLiga + " " + unidade + "/jogo na amostra (" + analise.amostraBaseline + " jogos)")
-          : "referência de " + analise.mediaJogoLiga + " " + unidade + "/jogo (amostra insuficiente)") +
+              ? "média ajustada de " + formatarNumero(analise.mediaJogoLiga, 1) + " " + unidade + "/jogo (amostra de " +
+                analise.amostraBaseline + " jogos dava " + formatarNumero(analise.mediaAmostraBruta, 1) + ")"
+              : "média de " + formatarNumero(analise.mediaJogoLiga, 1) + " " + unidade + "/jogo na amostra (" + analise.amostraBaseline + " jogos)")
+          : "referência de " + formatarNumero(analise.mediaJogoLiga, 1) + " " + unidade + "/jogo (amostra insuficiente)") +
         (analise.historicoFallback && analise.historicoFallback.length
           ? " · histórico de outra competição como reserva"
           : "") +
@@ -2176,7 +2209,7 @@ function renderizarCard(analise, opcoes) {
 }
 
 /**
- * Faz o número gigante da projecção "contar" até ao valor final.
+ * Faz o número gigante da projeção "contar" até ao valor final.
  * Respeita prefers-reduced-motion (define o valor final de imediato).
  */
 function animarProjecao() {
@@ -2189,7 +2222,7 @@ function animarProjecao() {
 
   const reduzir = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (reduzir || typeof requestAnimationFrame !== "function") {
-    alvo.textContent = final.toFixed(casas);
+    alvo.textContent = formatarNumero(final, casas);
     return;
   }
 
@@ -2198,9 +2231,9 @@ function animarProjecao() {
   const passo = (agora) => {
     const t = Math.min(1, (agora - inicio) / duracao);
     const suave = 1 - Math.pow(1 - t, 3);
-    alvo.textContent = (final * suave).toFixed(casas);
+    alvo.textContent = formatarNumero(final * suave, casas);
     if (t < 1) requestAnimationFrame(passo);
-    else alvo.textContent = final.toFixed(casas);
+    else alvo.textContent = formatarNumero(final, casas);
   };
   requestAnimationFrame(passo);
 }
@@ -2335,10 +2368,10 @@ function desenharCardNoCanvas(analise) {
     ", n=" + b.n + ")";
 
   const marcados = analise.baseCasa
-    ? analise.baseCasa.valor + " " + unidadeDe(analise.baseCasa.valor, unidade) + " " + sufixo(analise.baseCasa)
+    ? comUnidade(analise.baseCasa.valor, unidade, 1) + " " + sufixo(analise.baseCasa)
     : "dados insuficientes";
   const sofridos = analise.baseFora
-    ? analise.baseFora.valor + " " + unidadeDe(analise.baseFora.valor, unidade) + " " + sufixo(analise.baseFora)
+    ? comUnidade(analise.baseFora.valor, unidade, 1) + " " + sufixo(analise.baseFora)
     : "dados insuficientes";
   const formaCasa = analise.casa
     ? sequencia(analise.casa) + " (n=" + analise.casa.jogos + ")"
@@ -2375,7 +2408,6 @@ function desenharCardNoCanvas(analise) {
   const LINHA_PASSO = 70;
   const Y_LINHAS = 522;
   const ALTURA_CONCLUSAO = 182;
-  const ALTURA_AVISO = 156;
 
   let y = Y_LINHAS;
   ctx.font = '400 30px "Inter", sans-serif';
@@ -2424,14 +2456,14 @@ function desenharCardNoCanvas(analise) {
   ctx.fillStyle = "#00d4ff";
   ctx.font = '700 42px "Roboto Mono", monospace';
   const conclusao = analise.tendencia
-    ? "Tendência: " + analise.tendencia + " de " + analise.linha + " " + unidade
+    ? "Tendência: " + analise.tendencia + " de " + comUnidade(analise.linha, unidade, 0)
     : "Dados insuficientes";
   ctx.fillText(conclusao.length > 42 ? conclusao.slice(0, 40) + "…" : conclusao, L / 2, caixaY + 94);
 
-  // Medidor projecção-vs-linha (mesmo componente visual do ecrã).
+  // Medidor projeção-vs-linha (mesmo componente visual do ecrã).
   if (analise.projeccao !== null) {
     const maxG = Math.max(analise.projeccao, analise.linha) * 1.4 || 1;
-    const gx = 150, gw = L - 300, gy = caixaY + 124, gh = 14;
+    const gx = 150, gw = L - 300, gy = caixaY + 120, gh = 14;
     const pctP = Math.min(1, analise.projeccao / maxG);
     const pctL = Math.min(1, analise.linha / maxG);
 
@@ -2445,18 +2477,26 @@ function desenharCardNoCanvas(analise) {
     ctx.fillStyle = "#00d4ff";
     ctx.font = '600 24px "Roboto Mono", monospace';
     ctx.textAlign = "left";
-    ctx.fillText("PROJEÇÃO " + analise.projeccao + " " + unidade, gx, caixaY + 168);
+    ctx.fillText("PROJEÇÃO " + formatarNumero(analise.projeccao, casasProjecao(analise.desporto)) + " " + unidade, gx, caixaY + 158);
     ctx.fillStyle = "#ffa500";
     ctx.textAlign = "right";
     const rotuloLinhaImg = analise.linhaInfo
-      ? "LINHA DA " + String(analise.linhaInfo.casa || "CASA").toUpperCase() + " " + analise.linha
-      : "LINHA REF. " + analise.linha;
-    ctx.fillText(rotuloLinhaImg, gx + gw, caixaY + 168);
+      ? "LINHA DA " + String(analise.linhaInfo.casa || "CASA").toUpperCase() + " " + formatarLinha(analise.linha)
+      : "LINHA REF. " + formatarLinha(analise.linha);
+    ctx.fillText(rotuloLinhaImg, gx + gw, caixaY + 158);
   }
   ctx.textAlign = "left";
 
-  // Aviso de responsabilidade (sempre presente na imagem partilhada)
-  const avisoY = caixaY + ALTURA_CONCLUSAO + 22;
+  // Aviso de responsabilidade (sempre presente na imagem partilhada).
+  // A altura da caixa acompanha o número REAL de linhas: com cinco linhas de
+  // estatísticas o aviso ocupa quatro linhas e, com a altura fixa antiga, a
+  // última saía da caixa e ia contra o rodapé (visto no PNG exportado).
+  ctx.fillStyle = "#ffd591";
+  ctx.font = '400 27px "Inter", sans-serif';
+  const avisoLinhas = quebrarTexto(ctx, analise.aviso, L - 200).slice(0, 4);
+  const ALTURA_AVISO = 42 + Math.max(0, avisoLinhas.length - 1) * 32 + 26;
+  const avisoY = caixaY + ALTURA_CONCLUSAO + 16;
+
   ctx.fillStyle = "rgba(255,165,0,0.10)";
   ctx.fillRect(78, avisoY, L - 156, ALTURA_AVISO);
   ctx.strokeStyle = "rgba(255,165,0,0.4)";
@@ -2464,20 +2504,18 @@ function desenharCardNoCanvas(analise) {
   ctx.strokeRect(78, avisoY, L - 156, ALTURA_AVISO);
 
   ctx.fillStyle = "#ffd591";
-  ctx.font = '400 27px "Inter", sans-serif';
-  const avisoLinhas = quebrarTexto(ctx, analise.aviso, L - 200);
-  avisoLinhas.slice(0, 4).forEach((l, i) => ctx.fillText(l, 104, avisoY + 46 + i * 36));
+  avisoLinhas.forEach((l, i) => ctx.fillText(l, 104, avisoY + 42 + i * 32));
 
   // Rodapé da imagem (abaixo das caixas, dentro da moldura): aviso literal,
   // por cima da marca à esquerda e do domínio à direita. Sem links de casas.
   // Nunca abaixo de A - 62: com 5 linhas o rodapé chegava a sair da moldura
   // de 1350 px (visto na inspecção do PNG exportado).
-  const yRodape = Math.min(Math.max(avisoY + ALTURA_AVISO + 52, A - 78), A - 62);
+  const yRodape = Math.min(Math.max(avisoY + ALTURA_AVISO + 52, A - 78), A - 60);
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#ffd591";
   ctx.font = '500 24px "Inter", sans-serif';
-  ctx.fillText("Estatística, não garantia. +18. Joga com responsabilidade.", L / 2, yRodape - 30);
+  ctx.fillText("Estatística, não garantia. +18. Joga com responsabilidade.", L / 2, yRodape - 28);
 
   ctx.textAlign = "left";
   ctx.fillStyle = "#8b949e";
@@ -2489,6 +2527,18 @@ function desenharCardNoCanvas(analise) {
   ctx.font = '400 20px "Roboto Mono", monospace';
   ctx.fillText(SITE_URL.replace(/^https?:\/\//, ""), L - 78, yRodape);
   ctx.textAlign = "left";
+
+  // Métricas do layout, para a bancada poder provar que nada sai da moldura
+  // nem se sobrepõe (foi assim que o aviso a invadir o rodapé foi apanhado).
+  canvas.__layout = {
+    linhas: linhas.length,
+    fimLinhas: fimLinhas,
+    conclusaoFim: caixaY + ALTURA_CONCLUSAO,
+    avisoY: avisoY,
+    avisoFim: avisoY + ALTURA_AVISO,
+    rodapeY: yRodape,
+    altura: A
+  };
 
   return canvas;
 }

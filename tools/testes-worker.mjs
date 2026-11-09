@@ -131,7 +131,13 @@ ok((await chamar("/api/qualquer")).status === 404, "rota /api desconhecida → 4
 ok((await chamar(alvo(ESPN_OK), { method: "POST" })).status === 405, "POST → 405");
 ok((await chamar(alvo(ESPN_OK), { headers: { Origin: "https://site-malicioso.example" } })).status === 403,
   "origem cruzada → 403");
-ok((await chamar(alvo("https://exemplo.com/x"))).status === 400, "alvo não autorizado → 400");
+ok((await chamar(alvo("https://exemplo.com/x"))).status === 403,
+  "alvo fora da lista → 403 (pedido bem formado, alvo recusado)");
+ok((await chamar("/api/fonte")).status === 400, "sem o parâmetro u → 400");
+ok((await chamar(alvo(ESPN_OK) + "&extra=1")).status === 400,
+  "parâmetro inesperado no nosso endpoint → 400");
+const corpoExtra = await (await chamar(alvo(ESPN_OK) + "&extra=1")).json();
+ok(/parâmetro não reconhecido/.test(corpoExtra.erro || ""), "o 400 diz qual é o parâmetro estranho");
 
 grupo("Cache: miss, hit e stale-if-error");
 respostaFonte = () => new Response(JSON.stringify({ events: [{ idEvent: "7" }] }), { status: 200 });

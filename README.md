@@ -217,8 +217,10 @@ Navegador → (estático) Workers Static Assets
 **O Worker não é um proxy aberto.** Aceita apenas `GET /api/fonte` (JSON desportivo) e
 `GET /api/csv` (exportação CSV da folha de resultados) com um `u` que tem de ser HTTPS, de
 um dos anfitriões conhecidos, num caminho de uma lista fechada e com parâmetros validados
-por padrão (sem repetidos, sem desconhecidos). Recusa origens cruzadas (403), métodos que
-não GET (405) e mais de 60 pedidos/minuto por IP (429).
+por padrão (sem repetidos, sem desconhecidos). O próprio endpoint só aceita o parâmetro
+`u` — qualquer outro devolve 400 e nomeia-o, para um cliente mal escrito não passar em
+silêncio. Recusa origens cruzadas (403), métodos que não GET (405), alvos fora da lista
+(403, e não 400: o pedido está bem formado) e mais de 60 pedidos/minuto por IP (429).
 
 - **Anfitrião final:** o pedido segue redireccionamentos, mas o anfitrião **final** tem de
   continuar na allowlist; caso contrário é 502. Um redireccionamento não abre a porta.
@@ -275,12 +277,19 @@ node testes-worker.mjs        # Worker, SEM rede (allowlist, TTL, cache, CSV, li
    (card, `n=`, selo, casas), mudança de linha sem pedidos, linha inteira com push,
    2,25 recusada, empate na linha, regressão ESPN/NBA;
 5. **imagem partilhada** — canvas 1080×1350 com aviso legal, marca, probabilidades e
-   versão do modelo **dentro** da imagem;
+   versão do modelo **dentro** da imagem, e geometria provada (a caixa do aviso não
+   invade a conclusão, o rodapé cabe na moldura);
 6. **economia de pedidos** — a segunda análise do mesmo dia não repete chamadas.
 
 `tools/testes-worker.mjs` não toca na internet: substitui `fetch` e a Cache API por
 dublês e prova a allowlist (proxy fechado), os TTL, hit/miss, stale-if-error, 502 sem
-cache, 403 de origem cruzada, 405 de método e o limite de 60 pedidos/minuto.
+cache, 403 de origem cruzada e de alvo, 405 de método, 400 de parâmetro e o limite de
+60 pedidos/minuto.
+
+**Verificações por provar.** A chave gratuita da TheSportsDB limita pedidos por IP: quando
+isso acontece, a bancada completa marca o bloco do Girabola como *inconclusivo* (⚠ no
+resumo) em vez de falhar como se fosse uma regressão — mas também não o apresenta como
+aprovado. As contagens do resumo incluem apenas verificações realmente executadas.
 
 Ambos exigem `jsdom` + `canvas` locais (em `tools/`, fora do site publicado).
 
