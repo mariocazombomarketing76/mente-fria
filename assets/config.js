@@ -40,7 +40,12 @@ const MF_CONFIG = {
     { nome: "Bantubet", link: "https://bantubet.co.ao/affiliates/?btag=2532299", licenca: "B20081200360166656754/ISJ/MF/20", ativa: true },
     { nome: "KwanzaBet", link: "http://kwanzabet.ao/affiliates/?btag=2822934", licenca: "9845204240/153/MF/24", ativa: true }
   ],
-  RESULTS_CSV_URL: "https://docs.google.com/spreadsheets/d/1dd2IuvhK8tzg1qlTrryuOkkmsOsoYVVd3cBcC-l8sv4/export?format=csv&gid=0"
+  RESULTS_CSV_URL: "https://docs.google.com/spreadsheets/d/1dd2IuvhK8tzg1qlTrryuOkkmsOsoYVVd3cBcC-l8sv4/export?format=csv&gid=0",
+
+  /* Proxy de dados no Worker (cache partilhada na borda). Deixar como está no
+     site publicado. Uma pré-visualização estática (ficheiro local, Vercel sem
+     Worker) pode pôr "" para falar directamente com as fontes. */
+  API_PROXY: "/api"
 };
 
 /* ------------------------------------------------------------------ *

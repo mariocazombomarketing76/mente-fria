@@ -26,12 +26,18 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "mente-fria",
+  // Worker de dados (só /api/*). O site continua a ser servido como estático.
+  "main": "worker/index.mjs",
   "compatibility_date": "2026-10-23",
   "observability": {
     "enabled": true
   },
   "assets": {
     "directory": ".",
-    "html_handling": "auto-trailing-slash"
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    // Selectivo de propósito: NÃO pôr true/"*" (encaminharia HTML, imagens e
+    // CSS pelo Worker e gastaria os 100k pedidos/dia do plano gratuito).
+    "run_worker_first": ["/api/*"]
   }
 }
