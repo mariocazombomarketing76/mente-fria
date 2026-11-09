@@ -183,7 +183,9 @@ mudar).
    somado ao Menos;
    linhas de quarto (2,25 / 2,75) são **recusadas com aviso**, porque exigem dividir a
    aposta por duas linhas e liquidar meia-vitória.
-   As percentagens são inteiros que somam **exatamente 100** (maior resto).
+   As percentagens têm **duas casas decimais** e somam **exatamente 100,00**
+   (maior resto em centésimos: 28,73 + 25,65 + 45,62). Assim o valor mostrado é o
+   valor calculado, não uma aproximação grosseira.
 5. **Tendência** — comparação da projecção **exata** com a linha (o arredondamento a uma
    casa decimal não cria empates). Mudar a linha no campo «Linha da casa» **recalcula
    probabilidades, tendência e selo sem novos pedidos à API**.
@@ -206,16 +208,26 @@ borda do Worker. O utilizador nunca fica com o ecrã bloqueado por falta de dado
 
 ```
 Navegador → (estático) Workers Static Assets
-          → /api/fonte?u=<url da fonte>  (Worker, só /api/*)
+          → /api/fonte?u=<url da fonte>   (Worker, só /api/*) → ESPN / TheSportsDB
+          → /api/csv?u=<export do Sheets> (Worker)           → Google Sheets
           → cache de borda (TTL por tipo de dado)
-          → ESPN / TheSportsDB
           → normalização e cálculo no navegador
 ```
 
-**O Worker não é um proxy aberto.** Aceita apenas `GET /api/fonte` com um `u` que tem de
-ser HTTPS, de um dos dois anfitriões conhecidos, num caminho de uma lista fechada e com
-parâmetros validados por padrão (sem repetidos, sem desconhecidos). Recusa origens
-cruzadas (403), métodos que não GET (405) e mais de 60 pedidos/minuto por IP (429).
+**O Worker não é um proxy aberto.** Aceita apenas `GET /api/fonte` (JSON desportivo) e
+`GET /api/csv` (exportação CSV da folha de resultados) com um `u` que tem de ser HTTPS, de
+um dos anfitriões conhecidos, num caminho de uma lista fechada e com parâmetros validados
+por padrão (sem repetidos, sem desconhecidos). Recusa origens cruzadas (403), métodos que
+não GET (405) e mais de 60 pedidos/minuto por IP (429).
+
+- **Anfitrião final:** o pedido segue redireccionamentos, mas o anfitrião **final** tem de
+  continuar na allowlist; caso contrário é 502. Um redireccionamento não abre a porta.
+- **Deduplicação:** pedidos simultâneos da mesma chave partilham uma única ida à fonte.
+- **Limite por IP é melhor esforço:** o contador vive na memória de cada *isolate*, não é
+  global. Trava scripts em laço, não faz contabilidade exacta entre centros de dados.
+- **A cache guarda respostas das fontes** (JSON e CSV). Não há cache de análises nem de
+  cartões no servidor: a análise é calculada no dispositivo e o `localStorage` só evita
+  repetir pedidos de uma mesma sessão.
 
 | Tipo de dado | TTL |
 |---|---:|
@@ -244,8 +256,9 @@ cruzadas (403), métodos que não GET (405) e mais de 60 pedidos/minuto por IP (
 
 ```bash
 cd tools && npm ci            # jsdom + canvas (canvas precisa de `npm rebuild canvas`)
-node testes.js                # 281 verificações (usa as APIs reais)
-node testes-worker.mjs        # 35 verificações do Worker, SEM rede
+node testes-offline.js        # sem rede (matemática, baseline, cartões, CSV simulado)
+node testes.js                # bancada completa: junta os testes offline aos que usam APIs reais
+node testes-worker.mjs        # Worker, SEM rede (allowlist, TTL, cache, CSV, limite)
 ```
 
 `tools/testes.js` corre em seis blocos:

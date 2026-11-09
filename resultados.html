@@ -458,8 +458,12 @@ async function obterCsv() {
   try {
     return await pedir(url, "DIRETO");
   } catch (erroDireto) {
-    console.warn("[RESULTADOS] fetch directo falhou, a tentar proxy:", erroDireto.message);
-    return pedir("https://api.allorigins.win/raw?url=" + encodeURIComponent(url), "PROXY");
+    // Reserva: o NOSSO Worker (rota /api/csv, com allowlist própria). Antes
+    // usava-se um proxy público de terceiros, que ficava com o URL da folha.
+    const proxy = String(MF_CONFIG.API_PROXY || "").trim().replace(/\/+$/, "");
+    if (!proxy) throw erroDireto;
+    console.warn("[RESULTADOS] fetch directo falhou, a tentar o Worker:", erroDireto.message);
+    return pedir(proxy + "/csv?u=" + encodeURIComponent(url), "WORKER");
   }
 }
 

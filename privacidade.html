@@ -110,11 +110,22 @@
           Os dados desportivos (jogos do dia, resultados, nomes e escudos das equipas) são consultados em
           tempo real junto de fontes públicas: a <strong>ESPN</strong> (competições internacionais) e a
           <strong>TheSportsDB</strong> (Girabola). O pedido passa pelo <strong>nosso Worker na Cloudflare</strong>
-          (<code>/api</code>), que consulta a fonte e guarda a resposta numa cache de borde por alguns minutos ou
+          (<code>/api</code>), que consulta a fonte e guarda a resposta numa cache de borda por alguns minutos ou
           horas, para não repetir chamadas desnecessárias. Como qualquer servidor, esse Worker recebe o
           endereço IP do pedido durante o processamento; <strong>não o guardamos em base de dados nem o
           associamos a um utilizador</strong>. Se o Worker não estiver disponível, o pedido parte diretamente do
           seu dispositivo para a fonte, ficando sujeito à política de privacidade dessa entidade.
+        </p>
+        <p>
+          A página <strong>Resultados</strong> lê uma folha de cálculo publicada pelo próprio site no
+          <strong>Google Sheets</strong> <em>(docs.google.com)</em>. O pedido é feito diretamente ao Google; se o
+          navegador não o permitir, é o nosso Worker (<code>/api/csv</code>) que o faz, sem guardar o IP. Não há
+          nenhum outro intermediário nem proxy público pelo meio.
+        </p>
+        <p>
+          Para não repetir pedidos, o seu dispositivo guarda cópias das respostas durante alguns minutos ou horas
+          (cache local do navegador, no <code>localStorage</code>). Essas cópias ficam no seu equipamento e
+          desaparecem quando limpa os dados do site no navegador.
         </p>
         <p>
           Não existe base de dados de utilizadores, login, cookies próprios de rastreamento nem perfis
