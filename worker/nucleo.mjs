@@ -28,6 +28,7 @@ export const VERSAO_API = "1.0.0";
 
 const ESPN = "site.api.espn.com";
 const TDB = "www.thesportsdb.com";
+const SHEETS = "docs.google.com";
 
 /* Lista fechada de endpoints. `params` é uma allowlist: qualquer parâmetro
    desconhecido, repetido ou fora do padrão invalida o pedido inteiro. */
@@ -53,6 +54,33 @@ const REGRAS = [
   }
 ];
 
+/* Folha de resultados publicada em CSV. Rota própria porque a resposta não é
+   JSON: o proxy de dados valida JSON e recusaria um CSV. Só a exportação
+   pública de uma folha do Google (formato csv) passa — nada de URLs livres. */
+const REGRA_CSV = {
+  host: SHEETS,
+  caminho: /^\/spreadsheets\/d\/(?:e\/)?[A-Za-z0-9_-]{20,80}\/export$/,
+  params: {
+    format: /^csv$/,
+    gid: /^\d{1,12}$/
+  },
+  // A exportação do Google responde 307 para um anfitrião de conteúdo
+  // (doc-XX-XX-sheets.googleusercontent.com). Só esse domínio é aceite como
+  // destino do redireccionamento; qualquer outro continua a dar 502.
+  finais: [/^[a-z0-9-]+\.googleusercontent\.com$/]
+};
+
+/**
+ * O pedido segue redireccionamentos, mas o anfitrião FINAL tem de estar na
+ * lista da regra. Sem isto, um redireccionamento transformaria a rota num
+ * proxy para qualquer sítio.
+ */
+export function anfitriaoFinalPermitido(regra, hostname) {
+  if (!regra || typeof hostname !== "string") return false;
+  if (hostname === regra.host) return true;
+  return (regra.finais || []).some((padrao) => padrao.test(hostname));
+}
+
 /** Data de hoje em UTC, no formato YYYY-MM-DD. */
 export function hojeUTC(agora) {
   return new Date(agora === undefined ? Date.now() : agora).toISOString().slice(0, 10);
@@ -63,7 +91,7 @@ export function hojeUTC(agora) {
  * Rejeita: outro esquema, outro anfitrião, caminho fora da lista, parâmetro não
  * permitido, parâmetro repetido, valor fora do padrão e credenciais na URL.
  */
-export function validarAlvo(bruto) {
+function validarCom(regras, bruto) {
   if (typeof bruto !== "string" || bruto.length > 600) return null;
 
   let alvo;
@@ -76,7 +104,7 @@ export function validarAlvo(bruto) {
   if (alvo.protocol !== "https:") return null;
   if (alvo.username || alvo.password) return null;
 
-  const regra = REGRAS.find((r) => r.host === alvo.hostname);
+  const regra = regras.find((r) => r.host === alvo.hostname);
   if (!regra) return null;
   if (!regra.caminho.test(alvo.pathname)) return null;
 
@@ -89,6 +117,26 @@ export function validarAlvo(bruto) {
   }
 
   return { url: alvo, regra };
+}
+
+/** Alvo de dados desportivos (JSON). */
+export function validarAlvo(bruto) {
+  return validarCom(REGRAS, bruto);
+}
+
+/** Alvo da folha de resultados (CSV público do Google Sheets). */
+export function validarAlvoCsv(bruto) {
+  return validarCom([REGRA_CSV], bruto);
+}
+
+/** Um corpo só é aceite como CSV se não for uma página de erro disfarçada. */
+export function pareceCsv(texto) {
+  if (typeof texto !== "string") return false;
+  const limpo = texto.replace(/^\uFEFF/, "").trim();
+  if (limpo.length < 8) return false;
+  if (limpo[0] === "<") return false; // HTML de erro/login
+  const primeira = limpo.split(/\r?\n/)[0];
+  return primeira.indexOf(",") > 0;
 }
 
 /**
@@ -127,13 +175,16 @@ export function ttlPara(url, agora) {
   return 43200; // histórico de equipa
 }
 
-/** Chave de cache canónica (sem fragmento, parâmetros por ordem de chegada). */
-export function chaveCache(url) {
+/** Chave de cache canónica, por rota (sem fragmento). */
+export function chaveCache(url, rota) {
   const limpa = new URL(url.href);
   limpa.hash = "";
-  return "https://mente-fria.cache/api/fonte?" + limpa.searchParams.toString() + "&alvo=" +
-    encodeURIComponent(limpa.origin + limpa.pathname);
+  return "https://mente-fria.cache" + (rota || "/api/fonte") + "?" +
+    limpa.searchParams.toString() + "&alvo=" + encodeURIComponent(limpa.origin + limpa.pathname);
 }
+
+/** TTL do CSV publicado: o painel muda pouco, 5 minutos chegam. */
+export const TTL_CSV = 300;
 
 /* ---------------------------------------------------------------------------
    Limite de frequência (melhor esforço: memória do isolate, não é global).

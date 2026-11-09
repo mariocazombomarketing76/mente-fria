@@ -10,7 +10,10 @@
    ========================================================================== */
 
 import worker from "../worker/index.mjs";
-import { validarAlvo, ttlPara, limiteExcedido, VERSAO_API } from "../worker/nucleo.mjs";
+import {
+  validarAlvo, validarAlvoCsv, pareceCsv, ttlPara, chaveCache, limiteExcedido,
+  TTL_CSV, VERSAO_API, anfitriaoFinalPermitido
+} from "../worker/nucleo.mjs";
 
 let total = 0;
 let falhas = 0;
@@ -52,9 +55,21 @@ let respostaFonte = () => new Response(JSON.stringify({ events: [{ idEvent: "1" 
   status: 200,
   headers: { "Content-Type": "application/json" }
 });
-globalThis.fetch = async () => {
+/* As respostas criadas à mão não têm `url` (no runtime real têm). O Worker
+   confirma o anfitrião FINAL do pedido, por isso o dublê preenche-o com o URL
+   pedido — ou com outro, quando o teste simula um redireccionamento. */
+globalThis.fetch = async (url) => {
   chamadasFonte++;
-  return respostaFonte();
+  const resposta = await respostaFonte(String(url));
+  if (!resposta.url) Object.defineProperty(resposta, "url", { value: String(url) });
+  return resposta;
+};
+
+/** Resposta que diz ter vindo de outro endereço (redireccionamento). */
+const respostaDe = (endereco, corpo, init) => {
+  const resposta = new Response(corpo, init || { status: 200 });
+  Object.defineProperty(resposta, "url", { value: endereco });
+  return resposta;
 };
 
 const esperas = [];
@@ -152,6 +167,76 @@ registosLimpos: {
   ok(excedeu, "61.º pedido do mesmo IP na mesma janela é travado");
   ok(limiteExcedido("203.0.113.10", agora) === false, "outro IP não é afectado");
 }
+
+grupo("CSV da folha de resultados (rota /api/csv)");
+const CSV_OK = "https://docs.google.com/spreadsheets/d/1dd2IuvhK8tzg1qlTrryuOkkmsOsoYVVd3cBcC-l8sv4/export?format=csv&gid=0";
+const csvAlvo = (url) => "/api/csv?u=" + encodeURIComponent(url);
+ok(validarAlvoCsv(CSV_OK) !== null, "exportação CSV da folha aceite");
+ok(validarAlvoCsv("https://docs.google.com/spreadsheets/d/1dd2IuvhK8tzg1qlTrryuOkkmsOsoYVVd3cBcC-l8sv4/export?format=xlsx") === null,
+  "formato diferente de csv recusado");
+ok(validarAlvoCsv("https://docs.google.com/spreadsheets/d/abc/export?format=csv") === null,
+  "id de folha implausível recusado");
+ok(validarAlvoCsv("https://docs.google.com/document/d/1dd2IuvhK8tzg1qlTrryuOkkmsOsoYVVd3cBcC-l8sv4/export?format=csv") === null,
+  "outro tipo de documento do Google recusado");
+ok(validarAlvoCsv("https://evil.example/spreadsheets/d/1dd2IuvhK8tzg1qlTrryuOkkmsOsoYVVd3cBcC-l8sv4/export?format=csv") === null,
+  "anfitrião estranho recusado");
+ok(validarAlvoCsv("https://docs.google.com/spreadsheets/d/1dd2IuvhK8tzg1qlTrryuOkkmsOsoYVVd3cBcC-l8sv4/export?format=csv&gid=0&gid=1") === null,
+  "parâmetro gid repetido recusado (nunca é proxy aberto)");
+ok(validarAlvo(CSV_OK) === null, "a rota de dados JSON não aceita o CSV do Google");
+ok(pareceCsv("Data,Jogo,Linha\n2026-10-01,A vs B,2.5") , "CSV real aceite");
+ok(pareceCsv("<!DOCTYPE html><html>erro</html>") === false, "HTML de erro recusado");
+ok(pareceCsv("") === false && pareceCsv("nada") === false, "corpo vazio/lixo recusado");
+ok(TTL_CSV === 300, "TTL do CSV é de 5 minutos");
+const regraCsv = validarAlvoCsv(CSV_OK).regra;
+ok(anfitriaoFinalPermitido(regraCsv, "doc-04-7s-sheets.googleusercontent.com"),
+  "redireccionamento da exportação para googleusercontent é aceite");
+ok(anfitriaoFinalPermitido(regraCsv, "evil.example") === false,
+  "redireccionamento para fora do Google continua recusado");
+ok(anfitriaoFinalPermitido(validarAlvo(ESPN_OK).regra, "evil.example") === false,
+  "a rota de dados nunca aceita outro anfitrião");
+
+respostaFonte = () => new Response("Data,Competição,Jogo,Linha,Tendência,Total real\n2026-10-01,Girabola,A vs B,2.5,Mais,3",
+  { status: 200, headers: { "Content-Type": "text/csv" } });
+const csv1 = await chamar(csvAlvo(CSV_OK));
+const corpoCsv = await csv1.text();
+ok(csv1.status === 200 && csv1.headers.get("content-type").indexOf("text/csv") === 0,
+  "CSV servido como text/csv");
+ok(corpoCsv.indexOf("Data,Competição") === 0, "corpo do CSV chega intacto");
+const csv2 = await chamar(csvAlvo(CSV_OK));
+ok(csv2.headers.get("x-mf-estado") === "hit", "2.º pedido do CSV → hit de cache");
+
+respostaFonte = () => new Response("<!DOCTYPE html><html>precisa de login</html>", { status: 200 });
+const csvMau = await chamar(csvAlvo(CSV_OK.replace("gid=0", "gid=9")));
+ok(csvMau.status === 502, "folha a devolver HTML → 502 (nunca um CSV inventado)");
+
+grupo("Pedidos simultâneos e redireccionamentos");
+const URL_SIMULTANEA = "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?dates=20260901";
+let liberarFonte;
+const esperaFonte = new Promise((resolve) => { liberarFonte = resolve; });
+let chamadasSimultaneas = 0;
+globalThis.fetch = async (url) => {
+  chamadasSimultaneas++;
+  await esperaFonte;
+  const resposta = new Response(JSON.stringify({ events: [] }), { status: 200 });
+  Object.defineProperty(resposta, "url", { value: String(url) });
+  return resposta;
+};
+const pedidos = [chamar(alvo(URL_SIMULTANEA)), chamar(alvo(URL_SIMULTANEA)), chamar(alvo(URL_SIMULTANEA))];
+await new Promise((r) => setTimeout(r, 20));
+ok(chamadasSimultaneas === 1, "3 pedidos iguais em simultâneo → 1 só ida à fonte (" + chamadasSimultaneas + ")");
+liberarFonte();
+const respostas = await Promise.all(pedidos);
+ok(respostas.every((r) => r.status === 200), "os 3 pedidos recebem resposta 200");
+ok(cacheFake.puts > 0, "a resposta foi guardada na cache");
+
+globalThis.fetch = async (url) => {
+  chamadasFonte++;
+  const resposta = respostaDe("https://exemplo-malicioso.example/x", JSON.stringify({ events: [] }), { status: 200 });
+  return resposta;
+};
+const redireccionado = await chamar(alvo(
+  "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?dates=20260801"));
+ok(redireccionado.status === 502, "redireccionamento para fora da allowlist → 502");
 
 console.log("\n" + "=".repeat(58));
 console.log((falhas ? "✗ " : "✓ ") + (total - falhas) + "/" + total + " verificações passaram");
