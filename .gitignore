@@ -9,3 +9,6 @@ node_modules/
 
 # Estado local do Wrangler (dev/preview)
 .wrangler/
+
+# Inspecção visual local (não faz parte do site)
+artefactos/

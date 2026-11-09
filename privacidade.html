@@ -93,24 +93,43 @@
 
         <h2 id="eventos">2. Eventos anónimos de utilização</h2>
         <p>
-          Para perceber o que funciona e melhorar o produto, registamos <strong>eventos anónimos de
-          utilização</strong>, enviados para um webhook próprio de analytics. Os eventos incluem, por exemplo:
-          desporto escolhido (Futebol ou NBA), identificação do jogo seleccionado, geração do card, clique no
-          botão de aposta e clique em «Partilhar no WhatsApp».
+          Para perceber o que funciona e melhorar o produto, o site registra <strong>eventos anónimos de
+          utilização</strong> — por exemplo: desporto escolhido (Futebol ou NBA), jogo selecionado, geração do
+          card, clique num botão de aposta parceira e clique em «Partilhar».
         </p>
         <p>
-          Estes registos <strong>não são associados a qualquer identidade</strong>: não incluem nome, e-mail,
-          IP guardado de forma identificável, identificadores de conta nem dados de aposta. São utilizados
-          apenas de forma agregada, para medir audiência e interesse por competição.
+          Neste momento esses eventos <strong>não são enviados para nenhum servidor</strong>: ficam apenas no
+          registo técnico do próprio navegador (consola de programador) e desaparecem quando a página é
+          fechada. Não há webhook ativo, não há perfis de utilizador e não há qualquer dado associado a uma
+          identidade. Se o envio para um serviço de medição for ativado no futuro, esta política será
+          atualizada antes de o fazer.
         </p>
 
         <h2 id="dados-desportivos">3. Dados desportivos e geração da imagem</h2>
         <p>
-          Os dados desportivos (jogos do dia, resultados, nomes e escudos das equipas) são consultados
-          <strong>em tempo real a partir do seu próprio navegador</strong>, junto de uma fonte externa pública
-          (API da ESPN). O Mente Fria não armazena esse tráfego: o pedido parte do seu dispositivo para a
-          fonte de dados, com o seu endereço IP a ser processado pela entidade externa conforme a política de
-          privacidade dela.
+          Os dados desportivos (jogos do dia, resultados, nomes e escudos das equipas) são consultados em
+          tempo real junto de fontes públicas: a <strong>ESPN</strong> (competições internacionais) e a
+          <strong>TheSportsDB</strong> (Girabola). O pedido passa pelo <strong>nosso Worker na Cloudflare</strong>
+          (<code>/api</code>), que consulta a fonte e guarda a resposta numa cache de borda por alguns minutos ou
+          horas, para não repetir chamadas desnecessárias. Como qualquer servidor, esse Worker recebe o
+          endereço IP do pedido durante o processamento; <strong>não o guardamos em base de dados nem o
+          associamos a um utilizador</strong>. Se o Worker não estiver disponível, o pedido parte diretamente do
+          seu dispositivo para a fonte, ficando sujeito à política de privacidade dessa entidade.
+        </p>
+        <p>
+          A página <strong>Resultados</strong> lê uma folha de cálculo publicada pelo próprio site no
+          <strong>Google Sheets</strong> <em>(docs.google.com)</em>. O pedido é feito diretamente ao Google; se o
+          navegador não o permitir, é o nosso Worker (<code>/api/csv</code>) que o faz, sem guardar o IP. Não há
+          nenhum outro intermediário nem proxy público pelo meio.
+        </p>
+        <p>
+          Para não repetir pedidos, o seu dispositivo guarda cópias das respostas durante alguns minutos ou horas
+          (cache local do navegador, no <code>localStorage</code>). Essas cópias ficam no seu equipamento e
+          desaparecem quando limpa os dados do site no navegador.
+        </p>
+        <p>
+          Não existe base de dados de utilizadores, login, cookies próprios de rastreamento nem perfis
+          comportamentais.
         </p>
         <p>
           A <strong>imagem do Card de Análise é gerada localmente no seu dispositivo</strong>, através da API

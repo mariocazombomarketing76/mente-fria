@@ -12,6 +12,19 @@ const path = require("path");
 const { JSDOM, VirtualConsole } = require("jsdom");
 const { loadImage } = require("canvas");
 
+/* Modo offline: `node tools/testes.js --offline` (ou tools/testes-offline.js).
+   Não corre nenhum grupo que consulte as APIs reais e bloqueia a rede, para
+   que um pedido acidental faça falhar a bancada em vez de passar despercebido. */
+const OFFLINE = process.argv.indexOf("--offline") !== -1 || process.env.MF_OFFLINE === "1";
+let tentativasRede = 0;
+if (OFFLINE) {
+  const redeBloqueada = () => {
+    tentativasRede++;
+    throw new Error("pedido de rede em modo offline");
+  };
+  globalThis.fetch = redeBloqueada;
+}
+
 const RAIZ = path.join(__dirname, "..");
 const ler = (f) => fs.readFileSync(path.join(RAIZ, f), "utf8");
 
@@ -28,6 +41,15 @@ function ok(cond, nome, extra) {
 }
 const grupo = (t) => console.log("\n■ " + t);
 
+/* Verificações que NÃO puderam ser feitas por causa da fonte externa (ex.:
+   TheSportsDB a limitar pedidos). Não contam como falha nem como sucesso: são
+   listadas no fim, para ninguém ler «tudo verde» quando algo ficou por provar. */
+let inconclusivos = 0;
+function inconclusivo(nome) {
+  inconclusivos++;
+  console.log("  ⚠ " + nome);
+}
+
 function esperar(fn, timeout, rotulo) {
   const inicio = Date.now();
   return new Promise((resolve, reject) => {
@@ -39,6 +61,42 @@ function esperar(fn, timeout, rotulo) {
       setTimeout(tentar, 150);
     })();
   });
+}
+
+/** Guarda o card HTML real (preenchido) para inspecção visual. */
+function guardarCardHtml(cartao) {
+  if (!process.env.MF_SALVAR_CARD || !cartao) return;
+  const destino = path.resolve(RAIZ, path.dirname(process.env.MF_SALVAR_CARD), "card-preview.html");
+  fs.mkdirSync(path.dirname(destino), { recursive: true });
+  // A cópia estática não corre a animação do número grande: mostra-se já o
+  // valor final (o que o utilizador vê depois de a contagem terminar), para
+  // a inspecção não ler «0 golos» num cartão que no site diz «1,7 golos».
+  const html = cartao.outerHTML.replace(
+    /(data-alvo="([\d.]+)" data-casas="(\d+)">)0</,
+    (m, inicio, alvo, casas) =>
+      inicio + Number(alvo).toFixed(Number(casas)).replace(".", ",") + "<"
+  );
+  fs.writeFileSync(destino,
+    '<!doctype html><html lang="pt"><head><meta charset="utf-8">' +
+    '<title>Card (inspecção)</title>' +
+    '<link rel="stylesheet" href="../assets/style.css"></head>' +
+    '<body style="background:#0b1220;padding:24px">' + html + "</body></html>");
+  console.log("  · HTML do card: " + path.relative(RAIZ, destino));
+}
+
+/**
+ * A chave gratuita da TheSportsDB ("123") é partilhada e limitada por IP.
+ * Devolve true quando o limite está a afectar esta rede — nesse caso o fluxo
+ * que depende dela fica por provar, em vez de falhar como se fosse regressão.
+ */
+async function fonteTdbLimitada() {
+  try {
+    const r = await fetch("https://www.thesportsdb.com/api/v1/json/123/eventsday.php?d=2026-10-13&s=Soccer&l=5229");
+    const corpo = await r.text();
+    return r.status === 429 || /1015|rate.?limit|too many/i.test(corpo);
+  } catch (e) {
+    return false;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -101,7 +159,7 @@ async function principal() {
   ok(/"compatibility_date": "\d{4}-\d{2}-\d{2}"/.test(wrangler),
     "wrangler.jsonc: data de compatibilidade fixada");
   const assetsIgnore = ler(".assetsignore").split("\n").map((l) => l.trim());
-  const internos = ["README.md", "tools", "_arquivo", "propostas-logo", "wrangler.jsonc", "vercel.json"];
+  const internos = ["README.md", "tools", "worker", "_arquivo", "propostas-logo", "wrangler.jsonc", "vercel.json"];
   const emFalta = internos.filter((f) => !assetsIgnore.includes(f));
   ok(emFalta.length === 0, ".assetsignore: ficheiros internos fora do site publicado",
     "em falta: " + emFalta.join(", "));
@@ -110,6 +168,58 @@ async function principal() {
     ok(ler(f).includes('<script src="assets/config.js"></script>'),
       f + ": carrega assets/config.js antes do script da página");
   });
+
+  /* 1b. MATEMÁTICA OFFLINE (determinística, sem rede) ---------------- */
+  grupo("Poisson e linhas (offline, sem APIs)");
+
+  // Extrai o bloco de matemática do index (de factorial a calcularEquipa) e
+  // avalia-o isolado: os valores ficam provados sem depender da internet.
+  const inicioMat = index.indexOf("function factorial(n)");
+  const fimMat = index.indexOf("function calcularEquipa(jogo");
+  ok(inicioMat > 0 && fimMat > inicioMat, "bloco de matemática localizado no index");
+  const M = new Function(
+    "const LIMITES_MODELO={lambda:40,linha:400,jogosBaseline:6};\n" +
+    index.slice(inicioMat, fimMat) +
+    "\nreturn {calcularProbabilidadePoisson,poissonCdf,poissonProbability,linhaValida,formatarPct,arredondarPercentagens,formatarNumero,formatarLinha,comUnidade};"
+  )();
+
+  // Valores de referência do enunciado (λ = 2.5).
+  const pi2 = M.calcularProbabilidadePoisson(2.5, 2.0);
+  ok(pi2 && pi2.probMenos === 28.73 && pi2.probPush === 25.65 && pi2.probMais === 45.62,
+    "λ=2.5 linha 2.0 → Menos 28,73% / Push 25,65% / Mais 45,62%", JSON.stringify(pi2));
+  ok(Math.abs(pi2.probMais + pi2.probPush + pi2.probMenos - 100) < 0.005,
+    "linha inteira: as três probabilidades somam 100,00 (push NÃO entra no Menos)");
+  const pm25 = M.calcularProbabilidadePoisson(2.5, 2.5);
+  ok(pm25 && pm25.probMenos === 54.38 && pm25.probMais === 45.62 && pm25.probPush === 0,
+    "λ=2.5 linha 2.5 → Menos 54,38% / Mais 45,62% (sem push)", JSON.stringify(pm25));
+  ok(M.formatarPct(45.62) === "45,62" && M.formatarPct(0) === "0,00" && M.formatarPct(100) === "100,00",
+    "formatação com vírgula decimal e duas casas (45,62 / 0,00 / 100,00)");
+  ok(M.formatarNumero(1.3, 1) === "1,3" && M.formatarNumero(224.66, 1) === "224,7" &&
+     M.formatarNumero(1, 1) === "1,0" && M.formatarNumero(0, 1) === "0,0",
+    "números com vírgula e as casas pedidas (1,3 / 224,7 / 1,0 / 0,0)");
+  ok(M.formatarNumero(NaN, 1) === "—", "valor não numérico mostra travessão, nunca NaN");
+  ok(M.formatarLinha(2) === "2" && M.formatarLinha(2.5) === "2,5" && M.formatarLinha(1) === "1",
+    "linha inteira sem casas e meio ponto com uma (2 / 2,5 / 1)");
+  ok(M.comUnidade(1, "golos", 0) === "1 golo" && M.comUnidade(1, "golos", 1) === "1,0 golos" &&
+     M.comUnidade(2.5, "golos", 0) === "2,5 golos" && M.comUnidade(220.5, "pontos", 1) === "220,5 pontos",
+    "concordância número/unidade: «1 golo», «1,0 golos», «2,5 golos», «220,5 pontos»");
+  ok(Math.abs(M.poissonCdf(2, 2.5) * 100 - 54.38) < 0.01, "CDF exacta λ=2.5 até 2 = 54,38%");
+  ok(Math.abs(M.poissonCdf(1, 2.5) * 100 - 28.73) < 0.01, "CDF exacta λ=2.5 até 1 = 28,73%");
+  ok(Math.abs(M.poissonProbability(2, 2.5) * 100 - 25.65) < 0.01, "P(X=2) exacta λ=2.5 = 25,65%");
+  ok(M.calcularProbabilidadePoisson(2.5, 3.5).probMenos === 75.76, "λ=2.5 linha 3.5 → Menos 75,76%");
+
+  // Parâmetros inválidos: recusados, nunca «estimados».
+  ok(M.calcularProbabilidadePoisson(2.5, 2.25) === null, "linha de quarto (2.25) recusada");
+  ok(M.calcularProbabilidadePoisson(2.5, 2.75) === null, "linha de quarto (2.75) recusada");
+  ok(M.calcularProbabilidadePoisson(-1, 2.5) === null, "λ negativo recusado");
+  ok(M.calcularProbabilidadePoisson(NaN, 2.5) === null, "λ não numérico recusado");
+  ok(M.calcularProbabilidadePoisson(Infinity, 2.5) === null, "λ infinito recusado");
+  ok(M.calcularProbabilidadePoisson(500, 2.5) === null, "λ fora do domínio recusado");
+  ok(M.calcularProbabilidadePoisson(2.5, 0) === null, "linha zero recusada");
+  ok(M.calcularProbabilidadePoisson(2.5, 9000) === null, "linha absurda recusada");
+  ok(Number.isFinite(M.poissonProbability(180, 2.5)) && M.poissonProbability(180, 2.5) >= 0,
+    "k=180 não devolve NaN (sem overflow do factorial)");
+  ok(M.poissonCdf(200, 2.5) <= 1 && M.poissonCdf(200, 2.5) > 0.99, "CDF grande satura em 1 sem estourar");
 
   const csp = (index.match(/Content-Security-Policy" content="([^"]+)"/) || [])[1] || "";
   ok(csp.includes("https://r2.thesportsdb.com"), "CSP permite os escudos (img-src r2.thesportsdb.com)");
@@ -201,7 +311,9 @@ async function principal() {
   /* Bloco 6 — campo Linha da casa */
   ok(index.includes('id="campo-linha"') && index.includes('id="campo-casa"'),
     "index: campo Linha da casa + seletor Casa");
-  ok(/id="campo-linha"[^>]*step="0\.5"/.test(index), "campo-linha com step 0.5");
+  ok(/id="campo-linha"[^>]*inputmode="decimal"/.test(index) &&
+     !/<input type="number" id="campo-linha"/.test(index),
+    "campo-linha em texto com teclado decimal (aceita a vírgula do card)");
   ok(index.includes("Escreve a linha que vês na casa de apostas. Confirma sempre na casa antes de apostar."),
     "nota do campo com a frase obrigatória");
   ok(index.includes("Linha estatística de referência: ") && index.includes("(não é a linha de nenhuma casa)"),
@@ -220,7 +332,8 @@ async function principal() {
   ok(resultados.includes("Empate na linha") && resultados.includes("Pendente") &&
      resultados.includes("acertos ÷ (acertos + falhas)"),
     "resultados.html: regras de resultado e taxa de acerto");
-  ok(resultados.includes('rel="sponsored noopener noreferrer"') === false || true, "n/a");
+  ok(resultados.indexOf("btag=") === -1,
+    "resultados.html: sem links de afiliado escritos no código (só via MF_CONFIG)");
   ok(/\/resultados</.test(ler("sitemap.xml")) && ler("sitemap.xml").includes("/resultados"),
     "sitemap.xml: inclui /resultados");
   ok(ler("sitemap.xml").split("<loc>").length - 1 === 5, "sitemap.xml: 5 URLs públicas");
@@ -279,6 +392,104 @@ async function principal() {
   });
 
   /* 2. PAINEL DE RESULTADOS (jsdom + CSV simulado) -------------------- */
+  /* 1b-bis. BASELINE, AMOSTRA E SELEÇÃO DOS 5 JOGOS (offline) -------- */
+  grupo("Baseline e selecção da amostra (offline)");
+
+  // Extrai funções inteiras do index (equilíbrio de chavetas) para as correr
+  // isoladas: nada de rede, nada de DOM.
+  const extrair = (nome) => {
+    const inicio = index.indexOf("function " + nome + "(");
+    if (inicio === -1) throw new Error("função não encontrada: " + nome);
+    let profundidade = 0;
+    for (let k = index.indexOf("{", inicio); k < index.length; k++) {
+      if (index[k] === "{") profundidade++;
+      else if (index[k] === "}") {
+        profundidade--;
+        if (!profundidade) return index.slice(inicio, k + 1);
+      }
+    }
+    throw new Error("função sem fim: " + nome);
+  };
+
+  const A = new Function(
+    "const JOGOS_ANALISADOS=5;\n" +
+    "const LIMITES_MODELO={lambda:40,lambdaNba:300,linha:400,jogosBaseline:6};\n" +
+    "const BASELINE_REFERENCIA={futebol:2.5,nba:220};\n" +
+    "const BASELINE_MINIMO={futebol:1.5,nba:170};\n" +
+    "const BASELINE_MAXIMO={futebol:4.5,nba:270};\n" +
+    ["media", "ultimosJogos", "baselineDaAmostra", "mediaCompeticao", "confiancaDaAmostra"]
+      .map(extrair).join("\n") +
+    "\nreturn {baselineDaAmostra, mediaCompeticao, confiancaDaAmostra, ultimosJogos};"
+  )();
+
+  const jg = (data, casaId, foraId, golosCasa, golosFora) => ({ data, casaId, foraId, golosCasa, golosFora });
+  const histCasa = [
+    jg("2026-09-01", "T1", "T3", 2, 0),
+    jg("2026-09-02", "T1", "T4", 1, 1),
+    jg("2026-09-03", "T1", "T2", 3, 2), // mesmo jogo aparece nos dois históricos
+    jg("2026-09-04", "T5", "T1", 0, 1),
+    jg("2026-09-05", "T6", "T1", 2, 2)
+  ];
+  const histFora = [
+    jg("2026-09-02", "T7", "T2", 1, 0),
+    jg("2026-09-03", "T2", "T8", 0, 2),
+    jg("2026-09-03", "T1", "T2", 3, 2), // duplicado exacto (data + casa + fora)
+    jg("2026-09-04", "T9", "T2", 2, 1),
+    jg("2026-09-05", "T2", "T10", 1, 1)
+  ];
+
+  const amostra = A.baselineDaAmostra([histCasa, histFora]);
+  ok(amostra.n === 9, "baseline deduplica jogos repetidos nos dois históricos (10 → " + amostra.n + ")");
+  ok(amostra.valor === 2.4, "baseline = média dos totais dos jogos únicos (22/9 = " + amostra.valor + ")");
+
+  const semMarcador = A.baselineDaAmostra([[jg("2026-09-06", "T1", "T2", null, 1), jg("2026-09-07", "T1", "T2", NaN, 1)]]);
+  ok(semMarcador.n === 0 && semMarcador.valor === null,
+    "jogos sem marcador numérico não entram na baseline (n=" + semMarcador.n + ")");
+
+  const baseAmostra = A.mediaCompeticao(amostra, "futebol");
+  ok(baseAmostra.origem === "amostra" && baseAmostra.valor === 2.4 && baseAmostra.amostra === 9,
+    "9 jogos chegam: média vem da amostra (" + baseAmostra.valor + ")");
+  const baseCurta = A.mediaCompeticao({ n: 5, valor: 3.4 }, "futebol");
+  ok(baseCurta.origem === "referência" && baseCurta.valor === 2.5,
+    "5 jogos (< 6) → referência de 2.5 e o card avisa (" + baseCurta.origem + ")");
+  const limitada = A.mediaCompeticao({ n: 6, valor: 0.9 }, "futebol");
+  ok(limitada.valor === 1.5 && limitada.limitada === true && limitada.bruto === 0.9,
+    "amostra implausível (0.9) limitada ao mínimo de 1.5 golos e assinalada como limitada");
+  ok(A.mediaCompeticao({ n: 7, valor: 2.7 }, "futebol").limitada === false,
+    "amostra dentro dos limites não é marcada como limitada");
+  ok(A.mediaCompeticao({ n: 6, valor: 9 }, "futebol").valor === 4.5,
+    "amostra implausível (9) limitada ao máximo de 4.5 golos");
+  ok(A.mediaCompeticao({ n: 6, valor: 320 }, "nba").valor === 270 &&
+     A.mediaCompeticao({ n: 2, valor: 230 }, "nba").valor === 220,
+    "NBA: limites 170–270 e referência 220 sem amostra");
+  ok(A.mediaCompeticao(null, "futebol").valor === 2.5, "sem históricos → referência, nunca NaN");
+
+  // Selecção dos 5 jogos: mais recentes, por ordem, sem alterar a origem.
+  const sete = [
+    jg("2026-09-04", "X", "Y", 1, 0), jg("2026-09-01", "X", "Y", 0, 0),
+    jg("2026-09-07", "X", "Y", 2, 2), jg("2026-09-03", "X", "Y", 1, 1),
+    jg("2026-09-05", "X", "Y", 3, 0), jg("2026-09-02", "X", "Y", 0, 1),
+    jg("2026-09-06", "X", "Y", 1, 2)
+  ];
+  const cinco = A.ultimosJogos(sete);
+  ok(cinco.length === 5, "selecciona exactamente 5 jogos (" + cinco.length + ")");
+  ok(cinco.map((j) => j.data).join() === "2026-09-03,2026-09-04,2026-09-05,2026-09-06,2026-09-07",
+    "são os 5 MAIS RECENTES, por ordem (" + cinco.map((j) => j.data.slice(5)).join(" ") + ")");
+  ok(sete[0].data === "2026-09-04", "não altera a lista original (ordenou uma cópia)");
+  ok(A.ultimosJogos([]).length === 0 && A.ultimosJogos(null).length === 0,
+    "lista vazia devolve lista vazia (sem erro)");
+
+  const confCheia = A.confiancaDaAmostra(
+    { jogos: 5, jogosEmCasa: 5 }, { jogos: 5, jogosFora: 4 }, 9);
+  ok(confCheia.nivel === "média" && confCheia.minimo === 4,
+    "confiança olha ao conjunto mais fraco (mínimo " + confCheia.minimo + " → " + confCheia.nivel + ")");
+  ok(A.confiancaDaAmostra({ jogos: 5, jogosEmCasa: 5 }, { jogos: 5, jogosFora: 5 }, 10).nivel === "alta",
+    "5 jogos em casa e 5 fora → confiança alta");
+  ok(A.confiancaDaAmostra({ jogos: 2, jogosEmCasa: 1 }, { jogos: 3, jogosFora: 1 }, 3).nivel === "baixa",
+    "amostra curta → confiança baixa");
+  ok(A.confiancaDaAmostra(null, null, 0).nivel === "sem dados",
+    "sem equipas → «sem dados», nunca inventa confiança");
+
   grupo("Resultados (jsdom + CSV simulado)");
 
   const csvFixture = [
@@ -356,6 +567,9 @@ async function principal() {
   domRes.window.close();
 
   /* 3. FLUXO REAL NUM BROWSER VIRTUAL -------------------------------- */
+  if (OFFLINE) {
+    console.log("\n■ Fluxo real, imagem e ESPN (omitidos: consultam APIs reais; correr sem --offline)");
+  } else {
   grupo("Fluxo real (jsdom + APIs públicas)");
 
   const errosPagina = [];
@@ -506,8 +720,22 @@ async function principal() {
   const jogos = ev("ESTADO.jogos");
   ok(jogos.length > 0, "passo 2 lista jogos reais do dia (" + jogos.length + " jogos)");
 
+  // A chave gratuita da TheSportsDB é partilhada e limitada por IP: quando
+  // responde 429/1015 a lista sai só com as ligas da ESPN. Nesse caso o fluxo
+  // do Girabola fica POR PROVAR (inconclusivo), em vez de falhar por culpa de
+  // um limite externo — mas também não é apresentado como aprovado.
+  const tdbLimitada = await fonteTdbLimitada();
+
   const girabola = jogos.find((j) => j.liga === "Girabola");
-  ok(!!girabola, "existe jogo da Girabola na lista");
+  if (!girabola) {
+    if (tdbLimitada) {
+      inconclusivo("TheSportsDB limitou os pedidos desta rede (429/1015): fluxo da Girabola, card de futebol e imagem NÃO verificados nesta execução.");
+    } else {
+      ok(false, "existe jogo da Girabola na lista");
+    }
+  }
+
+  if (girabola) {
   if (girabola) {
     ok(girabola.fonte === "tdb", "jogo da Girabola marcado com fonte 'tdb'");
     ok(/[zZ]$/.test(girabola.dataISO), "hora da Girabola em ISO com fuso (UTC→Luanda): " + girabola.dataISO);
@@ -555,7 +783,16 @@ async function principal() {
   const pedidosAnalise = pedidos - pedidosAntes;
 
   const an = ev("ESTADO.analise");
-  ok(an && an.casa && an.fora, "histórico das duas equipas carregado (pedido em " + pedidosAnalise + " pedidos)");
+  if (!an) {
+    const limitadaAgora = await fonteTdbLimitada();
+    if (limitadaAgora) {
+      inconclusivo("Histórico do Girabola indisponível (TheSportsDB limitou pedidos): verificações do card, da linha e da imagem ficam por provar nesta execução.");
+    } else {
+      ok(false, "histórico das duas equipas carregado (análise não concluída em " + pedidosAnalise + " pedidos)");
+    }
+  }
+  if (an) {
+  ok(an.casa && an.fora, "histórico das duas equipas carregado (pedido em " + pedidosAnalise + " pedidos)");
   ok(an.casa.jogos >= 2 && an.fora.jogos >= 2,
     "cada equipa tem jogos reais concluídos (casa n=" + an.casa.jogos + " · fora n=" + an.fora.jogos + ")");
   ok(an.baseCasa && an.baseCasa.n >= 2, "média da casa com amostra (n=" + (an.baseCasa && an.baseCasa.n) + ")");
@@ -576,7 +813,12 @@ async function principal() {
   ok(card.includes("Aposta com responsabilidade."), "aviso legal visível no card");
   ok(card.includes("Girabola"), "card identifica a competição (Girabola)");
   ok(card.includes("n="), "card mostra o tamanho da amostra (n=)");
-  ok(/(MAIS|MENOS|EMPATE NA LINHA) de 2\.5 golos/.test(card), "selo da tendência no card");
+  ok(/(MAIS|MENOS|EMPATE NA LINHA) de 2,5 golos/.test(card),
+    "selo da tendência no card, com a linha na convenção portuguesa (2,5)");
+  ok(!/de 2\.5 golos/.test(card), "o card não mostra a linha com ponto decimal");
+  ok(/Projeção estatística: \d+,\d golos/.test(card),
+    "projeção no card com vírgula decimal (\"1,5 golos\", nunca \"1.5\")");
+  ok(!/Projeção estatística: \d+\.\d/.test(card), "nenhuma projeção com ponto decimal no card");
   ok(card.includes('rel="sponsored noopener noreferrer"'),
     'card: opções de aposta com rel="sponsored noopener noreferrer"');
   ok(card.includes("btag=2532299") && card.includes("btag=2822934"),
@@ -592,15 +834,21 @@ async function principal() {
      an.amostraMinima === null, "amostra total ou aviso de amostra reduzida (min=" + an.amostraMinima + ")");
 
   /* Detalhes do modelo Nível 2 (Poisson + golos esperados) no card */
-  ok(Number.isInteger(an.probMais) && Number.isInteger(an.probMenos) && an.probMais + an.probMenos === 100,
+  ok(an.modelo === "2.1.0", "análise identifica a versão do modelo (" + an.modelo + ")");
+  ok(typeof an.probMais === "number" && typeof an.probMenos === "number" &&
+     Math.abs(an.probMais + an.probMenos - 100) < 0.005,
     "Poisson: probabilidades complementares (Mais " + an.probMais + "% + Menos " + an.probMenos + "% = 100)");
   ok(Number.isFinite(an.lambdaCasa) && Number.isFinite(an.lambdaFora),
     "golos esperados por equipa (" + an.lambdaCasa + " + " + an.lambdaFora + ")");
   ok(card.includes("detalhes-estatisticos") && card.includes("Golos Esperados (Casa)") &&
      card.includes("Golos Esperados (Fora)"), "card mostra os golos esperados das duas equipas");
-  ok(card.includes("Probabilidade calculada") && card.includes("Mais: " + an.probMais + "%") &&
-     card.includes("Menos: " + an.probMenos + "%"),
-    "card mostra as probabilidades Mais/Menos calculadas (" + an.probMais + "% / " + an.probMenos + "%)");
+  const pct = (v) => (Math.round(v * 100) / 100).toFixed(2).replace(".", ",");
+  ok(card.includes("Probabilidade calculada") && card.includes("Mais: " + pct(an.probMais) + "%") &&
+     card.includes("Menos: " + pct(an.probMenos) + "%"),
+    "card mostra as probabilidades com duas casas (" + pct(an.probMais) + "% / " + pct(an.probMenos) + "%)");
+
+  // Inspecção visual: o card real, tal como o utilizador o vê.
+  guardarCardHtml(W.document.querySelector("#card-analise"));
 
   const classeEsperada = an.tendencia === "Mais" ? "mais" : (an.tendencia === "Menos" ? "menos" : "neutro");
   ok(W.document.querySelector(".sintese-tipo").className === "sintese-tipo " + classeEsperada,
@@ -608,16 +856,50 @@ async function principal() {
   ok(/\.sintese-tipo\.neutro\s*\{/.test(ler("assets/style.css")),
     "CSS tem a classe neutro do empate na linha");
 
-  // Empate na linha: escrever a linha da casa igual à projecção tem de manter o empate
-  // (o antigo >= transformava-o em "Mais").
-  ev("document.getElementById('campo-linha').value = '" + an.projeccao + "'; reaplicarLinhaCasa();");
+  // Empate na linha: a projecção real tem 1 casa decimal (ex.: 2.4) e não é uma
+  // linha válida, por isso força-se o valor EXACTO igual à linha (2.5).
+  ev("ESTADO.analise.projeccao = 2.5; ESTADO.analise.projeccaoExacta = 2.5; " +
+     "document.getElementById('campo-linha').value = '2.5'; reaplicarLinhaCasa();");
   ok(ev("ESTADO.analise.tendencia") === "Empate na linha",
-    "linha igual à projecção: tendência fica «Empate na linha» (" + ev("ESTADO.analise.tendencia") + ")");
+    "projecção exacta igual à linha: tendência fica «Empate na linha» (" + ev("ESTADO.analise.tendencia") + ")");
   const seloEmpate = W.document.querySelector(".sintese-tipo");
   ok(seloEmpate.className === "sintese-tipo neutro" && /^EMPATE NA LINHA de /.test(seloEmpate.textContent),
     "selo do empate na linha com a classe neutro", seloEmpate.textContent);
+
+  // Mudar a linha tem de RECALCULAR as probabilidades (antes só mudava o texto).
+  const probsAntes = ev("[ESTADO.analise.probMais, ESTADO.analise.probMenos]");
+  const pedidosAntesLinha = pedidos;
+  ev("ESTADO.analise.projeccao = 2.3; ESTADO.analise.projeccaoExacta = 2.3; " +
+     "document.getElementById('campo-linha').value = '3.5'; reaplicarLinhaCasa();");
+  ok(ev("ESTADO.analise.probMenos") > probsAntes[1],
+    "linha 2.5 → 3.5 recalcula Menos para cima (" + probsAntes[1] + "% → " + ev("ESTADO.analise.probMenos") + "%)");
+  ok(ev("ESTADO.analise.tendencia") === "Menos", "linha 3.5 com projecção 2.3 → tendência Menos");
+  ok(pedidos === pedidosAntesLinha, "mudar a linha NÃO faz novos pedidos à API (" + (pedidos - pedidosAntesLinha) + ")");
+  ok(W.document.getElementById("card-analise").innerHTML.indexOf("Mais: " + pct(ev("ESTADO.analise.probMais")) + "%") !== -1,
+    "card redesenhado com as probabilidades da linha nova");
+
+  // Linha inteira: existe push e as três somam 100.
+  ev("document.getElementById('campo-linha').value = '2'; reaplicarLinhaCasa();");
+  ok(ev("ESTADO.analise.tipoLinha") === "inteira" && ev("ESTADO.analise.probPush") >= 0,
+    "linha inteira (2): push calculado (" + ev("ESTADO.analise.probPush") + "%)");
+  ok(Math.abs(ev("ESTADO.analise.probMais + ESTADO.analise.probPush + ESTADO.analise.probMenos") - 100) < 0.005,
+    "linha inteira: Mais + Push + Menos = 100,00");
+  ok(W.document.querySelector(".detalhe-probs .push") !== null,
+    "card mostra o Push quando a linha é inteira");
+
+  // Linha de quarto: recusada com aviso, sem inventar probabilidades.
+  ev("document.getElementById('campo-linha').value = '2.25'; reaplicarLinhaCasa();");
+  ok(ev("ESTADO.analise.linha") === 2.5, "2.25 recusada: volta à referência de 2.5");
+  ok(W.document.getElementById("linha-erro").hidden === false &&
+     /quarto/i.test(W.document.getElementById("linha-erro").textContent),
+    "aviso explica que a linha de quarto não é suportada");
+  ev("document.getElementById('campo-linha').value = '2,5'; reaplicarLinhaCasa();");
+  ok(ev("ESTADO.analise.linha") === 2.5,
+    "linha escrita com vírgula («2,5») é aceite e aplicada");
+
   ev("document.getElementById('campo-linha').value = ''; reaplicarLinhaCasa();");
-  ok(ev("ESTADO.analise.linha") === 2.5, "limpar a linha volta à referência de 2.5 golos");
+  ok(ev("ESTADO.analise.linha") === 2.5 && ev("ESTADO.analise.tipoLinha") === "meio",
+    "limpar a linha volta à referência de 2.5 golos (meio ponto)");
 
   /* 3. IMAGEM PARTILHADA --------------------------------------------- */
   grupo("Imagem partilhada (canvas 1080×1350)");
@@ -627,6 +909,12 @@ async function principal() {
     const canvas = W.__ultimoCanvas;
     ok(W.__textosCanvas.includes("Estatística, não garantia. +18. Joga com responsabilidade."),
       "imagem: rodapé com «Estatística, não garantia. +18. Joga com responsabilidade.»");
+    ok(W.__textosCanvas.some((t) => /Mais \/ Menos \(Poisson\)/.test(t)) &&
+       W.__textosCanvas.some((t) => /% \/ [\d.,]+%/.test(t)),
+      "imagem: probabilidades Poisson também no cartão exportado",
+      W.__textosCanvas.filter((t) => t.indexOf("%") !== -1).join(" | "));
+    ok(W.__textosCanvas.some((t) => /modelo \d+\.\d+\.\d+/.test(t)),
+      "imagem: versão do modelo visível no cartão exportado");
     ok(W.__textosCanvas.includes("Mente Fria · Golo Ao Vivo Angola"),
       "imagem: rodapé com a marca «Mente Fria · Golo Ao Vivo Angola»");
     ok(canvas && canvas.width === 1080 && canvas.height === 1350, "canvas 1080×1350");
@@ -639,6 +927,25 @@ async function principal() {
     ok(claros > 300, "há texto desenhado na zona inferior (aviso legal): " + claros + " px claros");
     const png = canvas.toDataURL("image/png");
     ok(png.length > 30000, "PNG gerado (" + Math.round(png.length / 1024) + " KB em base64)");
+
+    // Geometria: o aviso tem de caber na caixa e o rodapé na moldura.
+    const lay = canvas.__layout || {};
+    ok(lay.linhas >= 4, "imagem: cartão com " + lay.linhas + " linhas (estatísticas, forma e Poisson)");
+    ok(lay.conclusaoFim <= lay.avisoY,
+      "imagem: caixa da conclusão não invade a do aviso (" + lay.conclusaoFim + " ≤ " + lay.avisoY + ")");
+    ok(lay.avisoFim <= lay.rodapeY - 20,
+      "imagem: aviso legal termina antes do rodapé (" + lay.avisoFim + " ≤ " + (lay.rodapeY - 20) + ")");
+    ok(lay.rodapeY <= lay.altura - 62,
+      "imagem: rodapé dentro da moldura (" + lay.rodapeY + " ≤ " + (lay.altura - 62) + ")");
+
+    // Inspecção visual opcional: guarda o PNG exportado e uma página com o card
+    // HTML, para se poder olhar para os dois (não altera o resultado dos testes).
+    if (process.env.MF_SALVAR_CARD) {
+      const destino = path.resolve(RAIZ, process.env.MF_SALVAR_CARD);
+      fs.mkdirSync(path.dirname(destino), { recursive: true });
+      fs.writeFileSync(destino, Buffer.from(png.split(",")[1], "base64"));
+      console.log("  · PNG do cartão: " + process.env.MF_SALVAR_CARD);
+    }
   } catch (e) {
     ok(false, "canvas desenhado sem erros", e.message);
   }
@@ -650,6 +957,9 @@ async function principal() {
   await esperar(() => ev("ESTADO.analise !== null"), 45000, "segunda análise");
   const segunda = pedidos - pedidosAntes2;
   ok(segunda <= 4, "cache funciona: 2ª análise gasta ≤ 4 pedidos (" + segunda + ")");
+
+  }
+  }
 
   /* 4. REGRESSÃO ESPN ------------------------------------------------- */
   grupo("Regressão da fonte ESPN");
@@ -677,7 +987,9 @@ async function principal() {
     ok(cart.includes("Aposta com responsabilidade."), "card NBA renderiza com o aviso legal");
     ok(cart.includes("pontos"), "card NBA usa a unidade 'pontos'");
     const pjogos = ev("ESTADO.analise.casa ? ESTADO.analise.casa.jogos : 0");
-    ok(true, "análise ESPN/NBA concluída (jogos da casa: " + pjogos + ")");
+    const projNba = ev("ESTADO.analise.projeccao");
+    ok(Number.isFinite(projNba) && pjogos > 0,
+      "análise ESPN/NBA concluída com projecção numérica (" + projNba + " pontos, n=" + pjogos + ")");
   }
 
   ok(errosPagina.length === 0, "sem erros de runtime no browser virtual",
@@ -685,11 +997,20 @@ async function principal() {
   ok(pedidos < 70, "economia de pedidos de rede na sessão toda (" + pedidos + ")");
 
   dom.window.close();
+  }
+
+  if (OFFLINE) {
+    grupo("Fronteira de rede (modo offline)");
+    ok(tentativasRede === 0, "nenhum pedido de rede tentado no modo offline (" + tentativasRede + ")");
+  }
 
   /* --------------------------------------------------------------- */
   console.log("\n" + "=".repeat(58));
   console.log((falhas ? "✗ " : "✓ ") + (total - falhas) + "/" + total + " verificações passaram");
   if (falhas) console.log("   " + falhas + " FALHA(S)");
+  if (inconclusivos) {
+    console.log("   ⚠ " + inconclusivos + " verificação(ões) por provar (fonte externa indisponível)");
+  }
   console.log("=".repeat(58));
   process.exit(falhas ? 1 : 0);
 }

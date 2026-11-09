@@ -1489,6 +1489,29 @@ body {
 .sintese-tipo.neutro { background: var(--cinza-empate); color: var(--bg); border-color: var(--cinza-empate); }
 .sintese-tipo.sem-dados { background: rgba(139, 148, 158, .12); color: var(--texto-suave); border-color: var(--linha-forte); }
 
+/* Detalhes do modelo (golos esperados + probabilidades). Em ecrãs estreitos a
+   linha de probabilidades passa a duas linhas em vez de comprimir os valores. */
+.detalhes-estatisticos {
+  margin: 12px 18px 0;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, .05);
+  border-radius: 8px;
+  font-size: .85rem;
+}
+.detalhe-linha { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.detalhe-linha:last-child { margin-bottom: 0; }
+.detalhe-linha > span:first-child { color: var(--texto-suave); }
+.detalhe-linha strong { color: var(--texto); font-family: var(--fonte-dados); }
+.detalhe-valores { display: inline-flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.detalhe-probs .detalhe-valores strong.mais { color: #4ade80; }
+.detalhe-probs .detalhe-valores strong.menos { color: #f87171; }
+.detalhe-probs .detalhe-valores strong.push { color: var(--cinza-empate); }
+.card-modelo { margin: 8px 18px 0; color: var(--texto-suave); font-size: 11.5px; line-height: 1.45; }
+@media (max-width: 480px) {
+  .detalhe-probs { flex-direction: column; align-items: flex-start; }
+  .detalhe-probs .detalhe-valores { justify-content: flex-start; }
+}
+
 /* CTA mais imponente */
 .btn-cta { padding: 16px 20px; font-size: 15px; }
 .btn-cta:hover { transform: translateY(-2px); box-shadow: 0 16px 34px -16px rgba(255, 165, 0, .85); }

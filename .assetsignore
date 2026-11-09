@@ -8,6 +8,8 @@ vercel.json
 wrangler.jsonc
 README.md
 tools
+node_modules
+worker
 _arquivo
 propostas-logo
 *.patch
