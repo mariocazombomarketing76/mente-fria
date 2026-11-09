@@ -184,7 +184,7 @@
           </div>
         </div>
         <p class="bloco-linha-nota" id="linha-nota">Escreve a linha que vês na casa de apostas. Confirma sempre na casa antes de apostar.</p>
-        <p class="bloco-linha-erro" id="linha-erro" hidden>Valor inválido: escreve apenas um número positivo (ex.: 2.5 ou 220.5). A usar a linha estatística de referência.</p>
+        <p class="bloco-linha-erro" id="linha-erro" hidden>Valor inválido: usa um número positivo, inteiro ou de meio ponto (ex.: 2.5 ou 220.5). A usar a linha estatística de referência.</p>
       </div>
 
       <div id="card-xray"></div>
@@ -328,6 +328,21 @@ const ESCALA_BARRA = { futebol: 4, nba: 130 };
 
 /* Quantos jogos recentes entram no cálculo das médias. */
 const JOGOS_ANALISADOS = 5;
+
+/* Versão do motor estatístico. Subir sempre que a metodologia ou os resultados
+   mudarem (não é preciso subir por uma correcção puramente visual). */
+const MODEL_VERSION = "2.1.0";
+
+/* Limites de sanidade. Fora destes valores o cálculo é RECUSADO (nunca
+   estimado): uma Poisson com λ=400 ou uma linha de 9000 golos não é
+   interpretável e só produziria números com aparência de rigor. */
+const LIMITES_MODELO = { lambda: 40, lambdaNba: 300, linha: 400, jogosBaseline: 6 };
+
+/* Média de golos/pontos por jogo da competição. Só é usada a referência fixa
+   quando a amostra real não chega; nesse caso o card di-lo explicitamente. */
+const BASELINE_REFERENCIA = { futebol: 2.5, nba: 220 };
+const BASELINE_MINIMO = { futebol: 1.5, nba: 170 };
+const BASELINE_MAXIMO = { futebol: 4.5, nba: 270 };
 
 /* Fonte pública do Girabola — a ESPN não publica a liga angolana, por isso o
    Campeonato Nacional vem da TheSportsDB (gratuita, sem chave, CORS aberto). */
@@ -485,17 +500,21 @@ function iniciaisEquipa(nome) {
 }
 
 /**
- * Pedido HTTP com timeout de 8s (AbortController) e tratamento de erro.
- * Nunca lança excepção para o chamador sem contexto: devolve dados ou lança
- * um Error já com mensagem legível.
+ * Pedido HTTP directo, com timeout de 8s (AbortController).
+ * O erro leva o código HTTP em `.status` para o chamador poder distinguir
+ * "o proxy não existe" (404) de "a fonte falhou agora" (5xx/429).
  */
-async function pedirJson(url, timeoutMs) {
+async function pedirJsonDireto(url, timeoutMs) {
   const controlador = new AbortController();
   const temporizador = setTimeout(() => controlador.abort(), timeoutMs || 8000);
 
   try {
     const resposta = await fetch(url, { signal: controlador.signal });
-    if (!resposta.ok) throw new Error("Resposta inválida da fonte de dados (" + resposta.status + ")");
+    if (!resposta.ok) {
+      const erroHttp = new Error("Resposta inválida da fonte de dados (" + resposta.status + ")");
+      erroHttp.status = resposta.status;
+      throw erroHttp;
+    }
     return await resposta.json();
   } catch (erro) {
     if (erro.name === "AbortError") throw new Error("A fonte de dados demorou demasiado a responder (timeout de 8s).");
@@ -505,13 +524,68 @@ async function pedirJson(url, timeoutMs) {
   }
 }
 
-/* Cache em memória: evita repetir pedidos ao longo da sessão. */
-const cache = new Map();
+/* ---------------------------------------------------------------------------
+   PROXY PARTILHADO (/api/fonte) — Worker na Cloudflare.
+   As fontes desportivas são pedidas ao Worker, que as guarda em cache na
+   borda: muitos utilizadores do mesmo jogo passam a partilhar uma só chamada
+   à API gratuita. O proxy é uma comodidade, não uma dependência: se não
+   existir (pré-visualização estática, Vercel, ficheiro aberto localmente) o
+   primeiro erro desliga-o e os pedidos seguem directamente para a fonte.
+   Só estes dois anfitriões passam pelo proxy; o Worker rejeita o resto.
+   ------------------------------------------------------------------------ */
+const API_PROXY = String((MF_CONFIG && MF_CONFIG.API_PROXY) || "").trim().replace(/\/+$/, "");
+const HOSTS_PROXY = ["site.api.espn.com", "www.thesportsdb.com"];
+let proxyIndisponivel = API_PROXY === "";
+
+function urlViaProxy(url) {
+  if (proxyIndisponivel || !API_PROXY) return null;
+  try {
+    const alvo = new URL(url, location.href);
+    if (HOSTS_PROXY.indexOf(alvo.hostname) === -1) return null;
+    return API_PROXY + "/fonte?u=" + encodeURIComponent(alvo.href);
+  } catch (erro) {
+    return null;
+  }
+}
+
+async function pedirJson(url, timeoutMs) {
+  const viaProxy = urlViaProxy(url);
+  if (viaProxy) {
+    try {
+      return await pedirJsonDireto(viaProxy, timeoutMs);
+    } catch (erroProxy) {
+      // Só se desliga quando o proxy claramente não está publicado. Um 5xx ou
+      // um 429 da fonte não é motivo para abandonar a cache partilhada.
+      const codigo = erroProxy.status;
+      if (codigo === 404 || codigo === 405 || codigo === 501 || codigo === undefined) {
+        proxyIndisponivel = true;
+        console.warn("[PROXY] /api/fonte indisponível (" + erroProxy.message + "); a pedir directamente à fonte.");
+      } else {
+        console.warn("[PROXY] a fonte falhou através do proxy (" + codigo + "); pedido directo para esta chamada.");
+      }
+    }
+  }
+  return pedirJsonDireto(url, timeoutMs);
+}
+
+/* Cache em memória da sessão, COM expiração: antes guardava para sempre, pelo
+   que uma resposta obtida ao abrir o site nunca era renovada até recarregar.
+   A chave é o URL completo (já inclui desporto/liga/data), por isso mudar de
+   modalidade não obriga a limpar nada. */
+const CACHE_SESSAO_MS = 10 * 60 * 1000;
+const CACHE_MAXIMO = 200;
+const cache = new Map(); // url → { dados, expira }
 
 async function pedirJsonComCache(url) {
-  if (cache.has(url)) return cache.get(url);
+  const agora = Date.now();
+  const guardado = cache.get(url);
+  if (guardado) {
+    if (guardado.expira > agora) return guardado.dados;
+    cache.delete(url); // expirado: liberta a entrada antes de pedir de novo
+  }
   const dados = await pedirJson(url);
-  cache.set(url, dados);
+  if (cache.size >= CACHE_MAXIMO) cache.delete(cache.keys().next().value); // FIFO, limite de memória
+  cache.set(url, { dados: dados, expira: Date.now() + CACHE_SESSAO_MS });
   return dados;
 }
 
@@ -605,9 +679,16 @@ function lerCampoLinha() {
   const bruto = String(campo.value || "").trim();
   if (!bruto) { if (erro) erro.hidden = true; return null; }
 
-  const valor = Number(bruto);
-  if (!isFinite(valor) || valor <= 0) {
-    if (erro) erro.hidden = false;
+  const valor = Number(bruto.replace(",", "."));
+  if (!isFinite(valor) || valor <= 0 || valor > LIMITES_MODELO.linha || !linhaValida(valor)) {
+    if (erro) {
+      erro.hidden = false;
+      // Linha de quarto (2.25 / 2.75) é rejeitada com uma razão concreta: o
+      // modelo não divide a aposta em duas linhas nem liquida meia-vitória.
+      erro.textContent = (isFinite(valor) && valor > 0 && !linhaValida(valor))
+        ? "Linha de quarto não suportada: para 2.25 ou 2.75 são precisas duas linhas (2 e 2.5). Usa uma linha inteira (2) ou de meio ponto (2.5). A usar a linha estatística de referência."
+        : "Valor inválido: usa um número positivo, inteiro ou de meio ponto (ex.: 2.5 ou 220.5). A usar a linha estatística de referência.";
+    }
     return null;
   }
   if (erro) erro.hidden = true;
@@ -640,9 +721,49 @@ function rotuloLinha(analise) {
 }
 
 /**
- * Reaplica a linha da casa à análise já calculada (sem novos pedidos à API):
- * a projecção não muda, apenas a linha contra a qual é comparada.
+ * Reaplica uma linha à análise já calculada, SEM novos pedidos à API:
+ * a projecção não muda, mas as probabilidades, a tendência e o selo são
+ * recalculados para a linha nova (antes só o texto mudava e as percentagens
+ * de Poisson ficavam a pertencer à linha anterior).
  */
+function aplicarLinha(analise, linha, linhaInfo) {
+  analise.linha = linha;
+  analise.linhaInfo = linhaInfo || null;
+
+  // Limpar o que depende da linha antes de recalcular: nada de valores antigos.
+  analise.probabilidades = null;
+  analise.probMais = null;
+  analise.probMenos = null;
+  analise.probPush = null;
+  analise.tipoLinha = null;
+
+  const lambdaCasa = analise.lambdaCasaExacta;
+  const lambdaFora = analise.lambdaForaExacta;
+  if (analise.desporto === "futebol" && Number.isFinite(lambdaCasa) && Number.isFinite(lambdaFora)) {
+    const probs = calcularProbabilidadePoisson(lambdaCasa + lambdaFora, linha);
+    if (probs) {
+      analise.probabilidades = probs;
+      analise.probMais = probs.probMais;
+      analise.probMenos = probs.probMenos;
+      analise.probPush = probs.probPush;
+      analise.tipoLinha = probs.tipoLinha;
+    }
+  }
+
+  // A comparação usa a projecção exacta (não a arredondada): coincidir com a
+  // linha por causa do arredondamento a 1 casa não é um empate estatístico.
+  const projeccao = Number.isFinite(analise.projeccaoExacta) ? analise.projeccaoExacta : analise.projeccao;
+  if (projeccao !== null && Number.isFinite(projeccao)) {
+    if (projeccao > linha + 1e-9) analise.tendencia = "Mais";
+    else if (projeccao < linha - 1e-9) analise.tendencia = "Menos";
+    else analise.tendencia = "Empate na linha";
+  } else {
+    analise.tendencia = null;
+  }
+
+  return analise;
+}
+
 function reaplicarLinhaCasa() {
   const lc = lerCampoLinha();
   ESTADO.linhaCasa = lc;
@@ -650,13 +771,7 @@ function reaplicarLinhaCasa() {
   const analise = ESTADO.analise;
   if (!analise) return;
 
-  analise.linha = lc ? lc.valor : OVER_UNDER_LINE[analise.desporto];
-  analise.linhaInfo = lc;
-  if (analise.projeccao !== null) {
-    if (analise.projeccao > analise.linha) analise.tendencia = "Mais";
-    else if (analise.projeccao < analise.linha) analise.tendencia = "Menos";
-    else analise.tendencia = "Empate na linha";
-  }
+  aplicarLinha(analise, lc ? lc.valor : OVER_UNDER_LINE[analise.desporto], lc);
   renderizarCard(analise, { semScroll: true });
 }
 
@@ -952,25 +1067,49 @@ function valorResultado(concorrente) {
   return isNaN(numero) ? null : numero;
 }
 
+/* Estados da ESPN que NUNCA contam como resultado, mesmo com state "post":
+   um jogo cancelado/adiado também aparece como "post" e traz 0-0 no marcador.
+   Foi por isso que o filtro antigo (só state === "post") aceitava jogos que
+   nunca se jogaram. */
+const TIPO_NAO_JOGADO = /CANCEL|POSTPON|SUSPEND|ABANDON|FORFEIT|AWARDED|RAIN|DELAY|NOT_PLAYED|NO_PLAY/i;
+
+/** true só quando o evento está concluído E foi efectivamente jogado. */
+function estadoTerminado(tipo) {
+  if (!tipo || tipo.state !== "post") return false;
+  if (TIPO_NAO_JOGADO.test(String(tipo.name || ""))) return false;
+  if (tipo.completed === false) return false;
+  return true;
+}
+
 /** Lê o resultado de um evento terminado. Devolve null se não for utilizável. */
 function resultadoDoEvento(evento) {
+  if (!evento) return null;
   const competicao = (evento.competitions && evento.competitions[0]) || {};
-  const estado = competicao.status && competicao.status.type && competicao.status.type.state;
-  if (estado !== "post") return null;
+  const tipo = (competicao.status && competicao.status.type) || (evento.status && evento.status.type) || null;
+  if (!estadoTerminado(tipo)) return null;
 
   const concorrentes = competicao.competitors || [];
   const casa = concorrentes.find((c) => c.homeAway === "home");
   const fora = concorrentes.find((c) => c.homeAway === "away");
   if (!casa || !fora) return null;
 
+  const idCasa = String((casa.team && casa.team.id) || casa.id || "");
+  const idFora = String((fora.team && fora.team.id) || fora.id || "");
+  if (!idCasa || !idFora) return null;
+
+  const data = competicao.date || evento.date;
+  if (!data || isNaN(new Date(data).getTime())) return null;
+
   const golosCasa = valorResultado(casa);
   const golosFora = valorResultado(fora);
   if (golosCasa === null || golosFora === null) return null;
+  if (golosCasa < 0 || golosFora < 0 || golosCasa > 300 || golosFora > 300) return null;
 
   return {
-    data: competicao.date || evento.date,
-    casaId: String(casa.team && casa.team.id || casa.id),
-    foraId: String(fora.team && fora.team.id || fora.id),
+    id: String(evento.id || ""),
+    data: data,
+    casaId: idCasa,
+    foraId: idFora,
     golosCasa: golosCasa,
     golosFora: golosFora
   };
@@ -981,13 +1120,17 @@ function resultadoDoEvento(evento) {
  * Tenta, por ordem: época em curso (sem parâmetro), época actual e as duas
  * anteriores (com ?season=). Escolhe o conjunto com mais jogos concluídos.
  */
+const COMPETICOES_COM_RESERVA = ["soccer/uefa.champions", "soccer/caf.champions"];
+
 async function ultimosJogosEquipa(desporto, ligaSlug, equipaId) {
   const anoAtual = new Date().getFullYear();
 
-  // Liga do jogo primeiro; se a competição não expuser o histórico da equipa
-  // (ex: Champions League), tenta as ligas domésticas conhecidas.
+  // Liga do jogo primeiro. Só para competições continentais se admite o
+  // campeonato doméstico como reserva — e o card di-lo. Antes, QUALQUER liga
+  // de futebol caía em silêncio para Premier League/La Liga: as médias podiam
+  // vir de outra competição sem o utilizador saber.
   const ligas = [ligaSlug];
-  if (desporto === "futebol") {
+  if (desporto === "futebol" && COMPETICOES_COM_RESERVA.indexOf(ligaSlug) !== -1) {
     ["soccer/eng.1", "soccer/esp.1"].forEach((liga) => {
       if (ligas.indexOf(liga) === -1) ligas.push(liga);
     });
@@ -998,7 +1141,19 @@ async function ultimosJogosEquipa(desporto, ligaSlug, equipaId) {
   const sufixos = ["", "?season=" + anoAtual, "?season=" + (anoAtual - 1), "?season=" + (anoAtual + 1)];
 
   let melhores = [];
+  let ligaEscolhida = null;
+  let temporadaEscolhida = null;
   let erroPrincipal = null;
+
+  // Os metadados viajam com a lista (propriedades no array) para a análise
+  // poder avisar quando o histórico veio de outra competição ou de outra época.
+  const finalizar = () => {
+    const finais = melhores.slice(-JOGOS_ANALISADOS);
+    finais.liga = ligaEscolhida;
+    finais.temporada = temporadaEscolhida;
+    finais.fallback = !!ligaEscolhida && ligaEscolhida !== ligaSlug;
+    return finais;
+  };
 
   for (const liga of ligas) {
     for (const sufixo of sufixos) {
@@ -1008,11 +1163,16 @@ async function ultimosJogosEquipa(desporto, ligaSlug, equipaId) {
         const concluidos = ((dados && dados.events) || [])
           .map(resultadoDoEvento)
           .filter(Boolean)
-          .filter((j) => j.data)
           .sort((a, b) => new Date(a.data) - new Date(b.data));
 
-        if (concluidos.length > melhores.length) melhores = concluidos;
-        if (melhores.length >= JOGOS_ANALISADOS) return melhores.slice(-JOGOS_ANALISADOS);
+        // Só substitui por um conjunto MAIOR: empate no tamanho mantém o
+        // primeiro encontrado (época em curso à frente das anteriores).
+        if (concluidos.length > melhores.length) {
+          melhores = concluidos;
+          ligaEscolhida = liga;
+          temporadaEscolhida = sufixo ? sufixo.split("=")[1] : "atual";
+        }
+        if (melhores.length >= JOGOS_ANALISADOS) return finalizar();
       } catch (erro) {
         if (!erroPrincipal) erroPrincipal = erro.message;
       }
@@ -1023,7 +1183,7 @@ async function ultimosJogosEquipa(desporto, ligaSlug, equipaId) {
     console.warn("[DADOS] sem histórico para a equipa " + equipaId + ":", erroPrincipal);
   }
 
-  return melhores.slice(-JOGOS_ANALISADOS);
+  return finalizar();
 }
 
 /** Sequência "3V 1E 1D" (futebol) / "4V 1D" (NBA). */
@@ -1039,7 +1199,18 @@ function sequencia(equipa) {
 }
 
 // ============================================================================
-// FUNÇÕES AUXILIARES: MATEMÁTICA E POISSON (Modelo Nível 2 Corrigido)
+// MATEMÁTICA E POISSON (modelo 2.1.0)
+//
+// Regras da linha, que antes estavam erradas na linha inteira:
+//   • meio ponto (2.5): Menos = P(0..2), Mais = P(3+) — não há push.
+//   • inteira (2.0):    Menos = P(0..1), Push = P(2), Mais = P(3+).
+//     A versão anterior somava P(2) ao «Menos» e chamava-lhe 100% − P(≤2):
+//     o push era apresentado como tendência de Menos.
+//   • quarto (2.25/2.75): NÃO suportada — exige dividir a aposta por duas
+//     linhas e liquidar meia-vitória; o card recusa-a (ver lerCampoLinha).
+//
+// As percentagens são inteiros que somam exactamente 100 em cada linha
+// (maior resto), para que «Mais + Menos» (ou «Mais + Push + Menos») feche.
 // ============================================================================
 function factorial(n) {
   if (n === 0 || n === 1) return 1;
@@ -1048,20 +1219,107 @@ function factorial(n) {
   return result;
 }
 
-function poissonProbability(k, lambda) {
-  return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
+/** log(n!) por soma acumulada — evita o overflow de n! a partir de 171. */
+function logFactorial(n) {
+  if (!Number.isInteger(n) || n < 0) return NaN;
+  let soma = 0;
+  for (let i = 2; i <= n; i++) soma += Math.log(i);
+  return soma;
 }
 
-function calcularProbabilidadePoisson(lambdaTotal, linha) {
-  const maxGolosMenos = Math.floor(linha);
-  let probMenos = 0;
-  for (let k = 0; k <= maxGolosMenos; k++) {
-    probMenos += poissonProbability(k, lambdaTotal);
+/** true para linhas representáveis: positivas, finitas e múltiplas de 0.5. */
+function linhaValida(linha) {
+  return typeof linha === "number" && isFinite(linha) && linha > 0 &&
+    linha <= LIMITES_MODELO.linha && Math.abs(linha * 2 - Math.round(linha * 2)) < 1e-9;
+}
+
+/**
+ * λ utilizável: finito, não negativo e dentro do domínio do modelo.
+ * A escala depende do desporto: 2-4 golos por jogo no futebol, ~100-130 pontos
+ * por equipa na NBA. Um único limite de 40 recusava TODAS as análises de NBA
+ * (projecção ficava null) — foi apanhado pela bancada.
+ */
+function lambdaValido(lambda, desporto) {
+  const maximo = desporto === "nba" ? LIMITES_MODELO.lambdaNba : LIMITES_MODELO.lambda;
+  return typeof lambda === "number" && isFinite(lambda) && lambda >= 0 && lambda <= maximo;
+}
+
+/**
+ * P(X = k) numa Poisson de média λ, em escala logarítmica.
+ * Mantém a assinatura antiga (usada pelos testes) mas deixa de dividir por k!:
+ * a partir de k=171 o factorial deixa de ser representável em double e a
+ * fórmula clássica devolvia NaN/0 por overflow.
+ */
+function poissonProbability(k, lambda) {
+  if (!Number.isInteger(k) || k < 0) return NaN;
+  if (!lambdaValido(lambda)) return NaN;
+  if (lambda === 0) return k === 0 ? 1 : 0;
+  if (k > 300) return 0; // probabilidade < 1e-100 neste domínio
+  return Math.exp(k * Math.log(lambda) - lambda - logFactorial(k));
+}
+
+/** P(X ≤ kMax) pela recorrência p_k = p_(k−1) · λ / k (estável, sem factorial). */
+function poissonCdf(kMax, lambda) {
+  if (!lambdaValido(lambda)) return NaN;
+  if (!Number.isFinite(kMax) || kMax < 0) return 0;
+  const limite = Math.min(Math.floor(kMax), 300);
+  let termo = Math.exp(-lambda);
+  let soma = termo;
+  for (let k = 1; k <= limite; k++) {
+    termo *= lambda / k;
+    soma += termo;
   }
-  const probMais = 1 - probMenos;
+  return Math.min(1, soma);
+}
+
+/** Converte probabilidades (0..1) em percentagens inteiras que somam 100. */
+function arredondarPercentagens(valores) {
+  const bruto = valores.map((v) => (isFinite(v) && v > 0 ? v * 100 : 0));
+  const inteiros = bruto.map(Math.floor);
+  let resto = 100 - inteiros.reduce((a, b) => a + b, 0);
+  const ordem = bruto
+    .map((v, i) => ({ i: i, fracao: v - Math.floor(v) }))
+    .filter((o) => bruto[o.i] > 0)
+    .sort((a, b) => b.fracao - a.fracao);
+  for (let j = 0; resto > 0 && j < ordem.length; j++) { inteiros[ordem[j].i]++; resto--; }
+  // Resto negativo só é possível com entradas > 100 no total: devolve-se ao maior.
+  if (resto < 0) {
+    const maior = inteiros.indexOf(Math.max.apply(null, inteiros));
+    inteiros[maior] += resto;
+  }
+  return inteiros;
+}
+
+/**
+ * Probabilidades de Mais/Menos(/Push) por Poisson.
+ * Devolve null quando λ ou a linha não são utilizáveis — o chamador mostra
+ * «dados insuficientes» em vez de inventar uma percentagem.
+ */
+function calcularProbabilidadePoisson(lambdaTotal, linha) {
+  if (!lambdaValido(lambdaTotal)) return null;
+  if (!linhaValida(linha)) return null;
+
+  const inteira = Number.isInteger(linha);
+  let pMais, pPush, pMenos;
+
+  if (inteira) {
+    pMenos = linha === 0 ? 0 : poissonCdf(linha - 1, lambdaTotal);
+    pPush = poissonProbability(linha, lambdaTotal);
+    pMais = Math.max(0, 1 - pMenos - pPush);
+  } else {
+    pMenos = poissonCdf(Math.floor(linha), lambdaTotal);
+    pPush = 0;
+    pMais = Math.max(0, 1 - pMenos);
+  }
+
+  const pct = arredondarPercentagens([pMais, pPush, pMenos]);
   return {
-    probMais: Math.round(probMais * 100),
-    probMenos: Math.round(probMenos * 100)
+    probMais: pct[0],
+    probPush: pct[1],
+    probMenos: pct[2],
+    tipoLinha: inteira ? "inteira" : "meio",
+    linha: linha,
+    lambda: lambdaTotal
   };
 }
 
@@ -1157,6 +1415,46 @@ function sparkline(equipa, nome) {
     '<span class="p-max">máx. ' + max + "</span></span></div>";
 }
 
+/**
+ * Média de golos/pontos por jogo nos históricos JÁ carregados (sem pedidos
+ * novos): é o dado real da competição que substitui a referência fixa de 2.5.
+ * Deduplica jogos que aparecem na lista das duas equipas.
+ */
+function baselineDaAmostra(historicos) {
+  const vistos = Object.create(null);
+  const totais = [];
+  (historicos || []).forEach((lista) => (lista || []).forEach((jogo) => {
+    const chave = (jogo.data || "") + "|" + jogo.casaId + "|" + jogo.foraId;
+    if (vistos[chave]) return;
+    vistos[chave] = true;
+    if (Number.isFinite(jogo.golosCasa) && Number.isFinite(jogo.golosFora)) {
+      totais.push(jogo.golosCasa + jogo.golosFora);
+    }
+  }));
+  return { n: totais.length, valor: totais.length ? media(totais) : null };
+}
+
+/**
+ * Suficiência da amostra, a partir dos QUATRO conjuntos que importam (jogos
+ * da casa, jogos da casa em casa, jogos da visitante, jogos da visitante
+ * fora) — antes só se olhava para as duas médias já escolhidas. Mede
+ * quantidade/qualidade de dados, NÃO a probabilidade de acertar.
+ */
+function confiancaDaAmostra(casa, fora, observacoes) {
+  if (!casa || !fora) {
+    return { nivel: "sem dados", minimo: 0, observacoes: observacoes || 0, conjuntos: [] };
+  }
+  const conjuntos = [
+    { rotulo: "jogos da casa (todos)", n: casa.jogos },
+    { rotulo: "jogos da casa em casa", n: casa.jogosEmCasa },
+    { rotulo: "jogos da visitante (todos)", n: fora.jogos },
+    { rotulo: "jogos da visitante fora", n: fora.jogosFora }
+  ];
+  const minimo = Math.min.apply(null, conjuntos.map((c) => c.n));
+  const nivel = minimo >= JOGOS_ANALISADOS ? "alta" : (minimo >= 3 ? "média" : "baixa");
+  return { nivel: nivel, minimo: minimo, observacoes: observacoes || 0, conjuntos: conjuntos };
+}
+
 /** Orquestra a análise completa de um jogo (o "Match X-Ray"). */
 async function calcularAnalise(jogo) {
   const girabola = jogo.fonte === "tdb";
@@ -1170,20 +1468,37 @@ async function calcularAnalise(jogo) {
   const casa = calcularEquipa(jogo, jogo.casa.id, historicoCasa);
   const fora = calcularEquipa(jogo, jogo.fora.id, historicoFora);
 
+  // Competições de onde veio o histórico, quando não é a do jogo (reserva
+  // explícita do ESPN para competições continentais). Vai para o card.
+  const historicoFallback = [historicoCasa, historicoFora]
+    .filter((h) => h && h.fallback)
+    .map((h) => h.liga);
+
   const linhaInfo = ESTADO.linhaCasa;
   const linha = linhaInfo ? linhaInfo.valor : OVER_UNDER_LINE[ESTADO.desporto];
   const unidade = UNIDADE[ESTADO.desporto];
+  const desporto = ESTADO.desporto;
 
-  // CORREÇÃO CRÍTICA: Usar a média por equipa (ex: 2.5/2 = 1.25) para cálculos de força
-  const mediaJogoLiga = ESTADO.desporto === 'futebol' ? 2.5 : 220.0;
+  // Média por equipa a partir dos dados REAIS da amostra (as duas equipas,
+  // jogos deduplicados). A referência fixa (2.5 golos / 220 pontos) só entra
+  // quando há menos de LIMITES_MODELO.jogosBaseline jogos — e nesse caso o
+  // card di-lo, em vez de deixar crer que veio da competição.
+  const amostraBaseline = baselineDaAmostra([historicoCasa, historicoFora]);
+  const referencia = BASELINE_REFERENCIA[desporto];
+  let mediaJogoLiga = referencia;
+  let origemMedia = "referência";
+  if (amostraBaseline.n >= LIMITES_MODELO.jogosBaseline && amostraBaseline.valor !== null) {
+    // Limites de sanidade: 6 jogos não podem definir a média da competição
+    // fora de uma janela plausível (ex.: 0.8 golos por jogo).
+    mediaJogoLiga = Math.min(BASELINE_MAXIMO[desporto], Math.max(BASELINE_MINIMO[desporto], amostraBaseline.valor));
+    origemMedia = "amostra";
+  }
   const mediaPorEquipa = mediaJogoLiga / 2;
 
   let projeccao = null;
-  let tendencia = null;
-  let probMais = null;
-  let probMenos = null;
-  let lambdaCasa = null;
-  let lambdaFora = null;
+  let projeccaoExacta = null;
+  let lambdaCasaExacta = null;
+  let lambdaForaExacta = null;
 
   if (casa && fora) {
     const gf_casa = casa.jogosEmCasa >= 2 ? casa.mediaMarcadosEmCasa : casa.mediaMarcados;
@@ -1196,20 +1511,19 @@ async function calcularAnalise(jogo) {
     const forcaAtaqueFora = gf_fora / mediaPorEquipa;
     const forcaDefesaFora = ga_fora / mediaPorEquipa;
 
-    lambdaCasa = forcaAtaqueCasa * forcaDefesaFora * mediaPorEquipa;
-    lambdaFora = forcaAtaqueFora * forcaDefesaCasa * mediaPorEquipa;
-    projeccao = Math.round((lambdaCasa + lambdaFora) * 10) / 10;
-
-    if (ESTADO.desporto === 'futebol') {
-      const probs = calcularProbabilidadePoisson(lambdaCasa + lambdaFora, linha);
-      probMais = probs.probMais;
-      probMenos = probs.probMenos;
+    const lc = forcaAtaqueCasa * forcaDefesaFora * mediaPorEquipa;
+    const lf = forcaAtaqueFora * forcaDefesaCasa * mediaPorEquipa;
+    // Probabilidades e tendência são calculadas no fim, por aplicarLinha(),
+    // a partir dos valores EXACTOS (a projecção mostrada é arredondada).
+    if (lambdaValido(lc, desporto) && lambdaValido(lf, desporto)) {
+      lambdaCasaExacta = lc;
+      lambdaForaExacta = lf;
+      projeccaoExacta = lc + lf;
+      projeccao = Math.round(projeccaoExacta * 10) / 10;
+    } else {
+      // Dados corrompidos: recusa o cálculo em vez de o apresentar.
+      projeccao = null;
     }
-
-    // CORREÇÃO UI: Usar "Empate na linha" para alinhar com a terminologia existente da app
-    if (projeccao > linha) tendencia = "Mais";
-    else if (projeccao < linha) tendencia = "Menos";
-    else tendencia = "Empate na linha";
   }
 
   const baseCasa = casa ? escolherMedia(casa.mediaMarcadosEmCasa, casa.jogosEmCasa, casa.mediaMarcados, casa.jogos, "em casa", "geral") : null;
@@ -1218,16 +1532,34 @@ async function calcularAnalise(jogo) {
   const amostras = [baseCasa, baseFora].filter(Boolean).map((b) => b.n);
   const amostraMinima = amostras.length ? Math.min(...amostras) : null;
 
-  const aviso = "📊 Estatística baseada nos últimos " + JOGOS_ANALISADOS + " jogos. Tendência, não garantia. Aposta com responsabilidade.";
+  const partesAviso = ["📊 Estatística baseada nos últimos " + JOGOS_ANALISADOS + " jogos."];
+  if (origemMedia === "referência" && casa && fora) {
+    partesAviso.push("Média da competição sem amostra suficiente: usada a referência de " +
+      referencia + " " + unidade + " por jogo.");
+  }
+  if (desporto === "nba") {
+    partesAviso.push("Modelo de NBA experimental: médias de pontos marcados e sofridos, sem ritmo nem eficiência.");
+  }
+  partesAviso.push("Tendência, não garantia. Aposta com responsabilidade.");
+  const aviso = partesAviso.join(" ");
 
-  return {
-    jogo, desporto: ESTADO.desporto, unidade, linha, linhaInfo, casa, fora, baseCasa, baseFora, amostraMinima,
+  const analise = {
+    jogo, desporto, unidade, linha, linhaInfo, casa, fora, baseCasa, baseFora, amostraMinima,
     // Zero golos esperados é um valor válido: só null (sem dados) fica null.
-    lambdaCasa: lambdaCasa === null ? null : Math.round(lambdaCasa * 10) / 10,
-    lambdaFora: lambdaFora === null ? null : Math.round(lambdaFora * 10) / 10,
-    projeccao, probMais, probMenos, tendencia, aviso,
+    lambdaCasa: lambdaCasaExacta === null ? null : Math.round(lambdaCasaExacta * 10) / 10,
+    lambdaFora: lambdaForaExacta === null ? null : Math.round(lambdaForaExacta * 10) / 10,
+    // Valores exactos: é com eles que as probabilidades são recalculadas quando
+    // o utilizador muda a linha (sem perder precisão no arredondamento).
+    lambdaCasaExacta, lambdaForaExacta, projeccao, projeccaoExacta,
+    mediaJogoLiga, origemMedia, amostraBaseline: amostraBaseline.n, historicoFallback,
+    confianca: confiancaDaAmostra(casa, fora, amostraBaseline.n),
+    modelo: MODEL_VERSION,
+    probabilidades: null, probMais: null, probMenos: null, probPush: null, tipoLinha: null, tendencia: null,
+    aviso,
     geradoEm: new Date().toISOString()
   };
+
+  return aplicarLinha(analise, linha, linhaInfo);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1241,15 +1573,44 @@ async function calcularAnalise(jogo) {
    cache, pelo que analisar vários jogos da mesma ronda não repete pedidos.
 --------------------------------------------------------------------------- */
 
+/* A TheSportsDB publica o estado em strStatus ("Match Finished", "Not Started",
+   "Postponed", "1H", "HT"…). Um marcador preenchido, por si só, não prova que o
+   jogo acabou: o filtro antigo aceitava qualquer evento com números. */
+const TDB_TERMINADO = /(finished|full[- ]?time|\bft\b|aet|after extra|penalt|walkover)/i;
+const TDB_NAO_JOGADO = /(postpon|cancel|abandon|suspend|awarded|not played|deferred|\bht\b|\d+[hs]\b)/i;
+
 /** Lê o resultado de um evento terminado da TheSportsDB (null se não for válido). */
 function resultadoTdb(evento) {
+  if (!evento) return null;
+
+  const estado = String(evento.strStatus || "").trim();
+  if (TDB_NAO_JOGADO.test(estado)) return null;
+
+  const temMarcador = [evento.intHomeScore, evento.intAwayScore]
+    .every((v) => v !== null && v !== undefined && String(v).trim() !== "");
+  if (!temMarcador) return null;
+
+  // Com estado declarado, só passa o que diz "terminado". Sem estado, exige-se
+  // que o jogo tenha começado há mais de 2 horas (margem para prolongamento).
+  if (estado) {
+    if (!TDB_TERMINADO.test(estado)) return null;
+  } else {
+    const inicio = new Date(isoTdb(evento) || "").getTime();
+    if (isNaN(inicio) || inicio > Date.now() - 2 * 60 * 60 * 1000) return null;
+  }
+
   const golosCasa = parseInt(evento.intHomeScore, 10);
   const golosFora = parseInt(evento.intAwayScore, 10);
-  if (isNaN(golosCasa) || isNaN(golosFora)) return null;
+  if (!Number.isInteger(golosCasa) || !Number.isInteger(golosFora)) return null;
+  if (golosCasa < 0 || golosFora < 0 || golosCasa > 300 || golosFora > 300) return null;
   if (!evento.idHomeTeam || !evento.idAwayTeam) return null;
 
+  const data = isoTdb(evento);
+  if (!data || isNaN(new Date(data).getTime())) return null;
+
   return {
-    data: isoTdb(evento) || (evento.dateEvent || "") + "T12:00:00Z",
+    id: String(evento.idEvent || ""),
+    data: data,
     casaId: String(evento.idHomeTeam),
     foraId: String(evento.idAwayTeam),
     golosCasa: golosCasa,
@@ -1279,6 +1640,34 @@ async function contextoGirabola() {
 }
 
 /**
+ * Eventos de um bloco de rondas. Uma cache por temporada+ronda: as rondas já
+ * terminadas não mudam (7 dias), a ronda em curso muda ao fim do dia (1 hora).
+ */
+async function eventosDasRondas(temporada, primeira, quantidade, rondaAtual) {
+  const rondas = [];
+  for (let r = primeira; r > primeira - quantidade && r >= 1; r--) rondas.push(r);
+
+  const respostas = await Promise.all(rondas.map((r) =>
+    fetchWithCache("girabola_ronda_" + temporada + "_" + r,
+      API_TDB + "eventsround.php?id=" + TDB_LIGA_GIRABOLA +
+        "&r=" + r + "&s=" + encodeURIComponent(temporada),
+      r === rondaAtual ? 1 : 168)
+      .then((d) => (d && d.events) || [])
+      .catch((erro) => {
+        console.warn("[DADOS] falha na ronda " + r + " do Girabola:", erro.message);
+        return [];
+      })
+  ));
+  return respostas.reduce((acc, lista) => acc.concat(lista), []);
+}
+
+/** Quantos jogos válidos da equipa existem num conjunto de eventos (sem pedidos). */
+function contarValidosTdb(eventos, equipaId) {
+  return (eventos || []).map(resultadoTdb).filter(Boolean)
+    .filter((j) => j.casaId === equipaId || j.foraId === equipaId).length;
+}
+
+/**
  * Últimos JOGOS_ANALISADOS jogos concluídos de uma equipa na Girabola.
  * Devolve o mesmo formato de ultimosJogosEquipa() — e, como ela, devolve
  * apenas o que a fonte realmente registou (sem jogos = lista vazia).
@@ -1302,22 +1691,16 @@ async function historicoGirabola(jogo, equipaId) {
   let eventos = [];
 
   if (ronda && temporada) {
-    // Últimas 6 rondas (inclui a ronda em curso, caso já haja resultados).
-    const rondas = [];
-    for (let r = ronda; r > ronda - (JOGOS_ANALISADOS + 1) && r >= 1; r--) rondas.push(r);
-
-    const respostas = await Promise.all(rondas.map((r) =>
-      // Rondas já terminadas não mudam; a ronda em curso muda ao fim do dia.
-      fetchWithCache("girabola_ronda_" + temporada + "_" + r,
-        API_TDB + "eventsround.php?id=" + TDB_LIGA_GIRABOLA +
-          "&r=" + r + "&s=" + encodeURIComponent(temporada))
-        .then((d) => (d && d.events) || [])
-        .catch((erro) => {
-          console.warn("[DADOS] falha na ronda " + r + " do Girabola:", erro.message);
-          return [];
-        })
-    ));
-    eventos = respostas.reduce((acc, lista) => acc.concat(lista), []);
+    // Últimas rondas que cobrem os jogos pedidos (inclui a ronda em curso).
+    eventos = await eventosDasRondas(temporada, ronda, JOGOS_ANALISADOS + 1, ronda);
+    // Amostra curta (jogos adiados dentro do intervalo): alarga-se para trás em
+    // vez de aceitar 3 jogos quando a fonte tem 5. A selecção final é sempre
+    // cronológica — é o critério 6.2, não a ronda.
+    if (contarValidosTdb(eventos, equipaId) < JOGOS_ANALISADOS) {
+      eventos = eventos.concat(
+        await eventosDasRondas(temporada, ronda - (JOGOS_ANALISADOS + 1), 4, ronda)
+      );
+    }
   } else {
     // Última reserva: primeira página da época (a fonte devolve 15 eventos).
     const ano = anoInicioEpoca();
@@ -1331,10 +1714,19 @@ async function historicoGirabola(jogo, equipaId) {
     eventos = respostas.reduce((acc, lista) => acc.concat(lista), []);
   }
 
+  // Deduplica (rondas podem sobrepor-se) e escolhe os 5 MAIS RECENTES por data
+  // efectiva do jogo — não por "a fonte devolveu mais registos nesta época".
+  const vistos = Object.create(null);
   return eventos
     .map(resultadoTdb)
     .filter(Boolean)
     .filter((j) => j.casaId === equipaId || j.foraId === equipaId)
+    .filter((j) => {
+      const chave = j.id || (j.data + "|" + j.casaId + "|" + j.foraId);
+      if (vistos[chave]) return false;
+      vistos[chave] = true;
+      return true;
+    })
     .sort((a, b) => new Date(a.data) - new Date(b.data))
     .slice(-JOGOS_ANALISADOS);
 }
@@ -1557,9 +1949,12 @@ function renderizarCard(analise, opcoes) {
     ? "Tendência: " + analise.tendencia + " de " + analise.linha + " " + unidade
     : "Dados insuficientes para esta análise";
 
+  // A explicação tem de descrever o modelo que corre de facto: a fórmula
+  // antiga (média marcada + média sofrida) já não corresponde ao cálculo.
   const sinteseSub = analise.projeccao !== null
     ? "Projecção estatística: " + analise.projeccao + " " + unidade +
-      " (média marcada pela casa + média sofrida pela visitante)"
+      " (expectativa Poisson: ataque da casa × defesa da visitante, ajustada à média de " +
+      analise.mediaJogoLiga + " " + unidade + "/jogo)"
     : "A fonte de dados não devolveu histórico suficiente para as duas equipas.";
 
   // Selo grande da tendência (componente visual dominante da conclusão).
@@ -1575,22 +1970,47 @@ function renderizarCard(analise, opcoes) {
   // Mais/Menos por Poisson. Só o futebol tem Poisson (na NBA os campos são null)
   // e as análises antigas guardadas no browser não trazem estes valores.
   const temProbabilidades = typeof analise.probMais === "number" && typeof analise.probMenos === "number";
+  const linhaDetalhe = (rotulo, valor) =>
+    '<div class="detalhe-linha"><span>' + rotulo + '</span><strong>' + valor + '</strong></div>';
+
+  // Numa linha inteira (2, 3…) existe push: mostrá-lo é obrigatório para não
+  // somar ao «Menos» uma probabilidade que apenas devolve a aposta.
   const blocoDetalhes = temProbabilidades
-    ? '<div class="detalhes-estatisticos" style="margin-top: 12px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.85rem;">' +
-        '<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">' +
-          '<span>Golos Esperados (Casa):</span>' +
-          '<strong>' + (analise.lambdaCasa !== null ? analise.lambdaCasa : "N/A") + '</strong>' +
-        '</div>' +
-        '<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">' +
-          '<span>Golos Esperados (Fora):</span>' +
-          '<strong>' + (analise.lambdaFora !== null ? analise.lambdaFora : "N/A") + '</strong>' +
-        '</div>' +
-        '<div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-top: 6px;">' +
+    ? '<div class="detalhes-estatisticos">' +
+        linhaDetalhe("Golos Esperados (Casa):", analise.lambdaCasa !== null ? analise.lambdaCasa : "N/A") +
+        linhaDetalhe("Golos Esperados (Fora):", analise.lambdaFora !== null ? analise.lambdaFora : "N/A") +
+        '<div class="detalhe-linha detalhe-probs">' +
           '<span>Probabilidade calculada:</span>' +
-          '<strong style="color: #4ade80;">Mais: ' + analise.probMais + '%</strong>' +
-          '<strong style="color: #f87171;">Menos: ' + analise.probMenos + '%</strong>' +
+          '<span class="detalhe-valores">' +
+            '<strong class="mais">Mais: ' + analise.probMais + '%</strong>' +
+            (analise.tipoLinha === "inteira" && typeof analise.probPush === "number"
+              ? '<strong class="push" title="Probabilidade de o total ser exactamente igual à linha">Push: ' + analise.probPush + '%</strong>'
+              : "") +
+            '<strong class="menos">Menos: ' + analise.probMenos + '%</strong>' +
+          '</span>' +
+        '</div>' +
+        '<div class="detalhe-linha" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 6px; margin-top: 6px;">' +
+          '<span>Amostra:</span>' +
+          '<span class="detalhe-valores">' +
+            '<strong>casa ' + (analise.casa ? analise.casa.jogos : 0) + '</strong>' +
+            '<strong>visitante ' + (analise.fora ? analise.fora.jogos : 0) + '</strong>' +
+            '<strong>confiança ' + escaparHtml(analise.confianca && analise.confianca.nivel || "—") + '</strong>' +
+          '</span>' +
         '</div>' +
       '</div>'
+    : "";
+
+  // Origem da média e versão do modelo: o utilizador vê de onde vêm os números
+  // em vez de os receber como se fossem sempre dados completos da competição.
+  const blocoModelo = analise.projeccao !== null
+    ? '<p class="card-modelo">Modelo ' + escaparHtml(analise.modelo || MODEL_VERSION) + " · " +
+        (analise.origemMedia === "amostra"
+          ? "média de " + analise.mediaJogoLiga + " " + unidade + "/jogo na amostra (" + analise.amostraBaseline + " jogos)"
+          : "referência de " + analise.mediaJogoLiga + " " + unidade + "/jogo (amostra insuficiente)") +
+        (analise.historicoFallback && analise.historicoFallback.length
+          ? " · histórico de outra competição como reserva"
+          : "") +
+      "</p>"
     : "";
 
   // Cores das equipas (opção "identidade visual por jogo") + espírito desportivo.
@@ -1657,6 +2077,7 @@ function renderizarCard(analise, opcoes) {
         '<p class="sintese-sub">' + escaparHtml(sinteseSub) + "</p>" +
       "</div>" +
       blocoDetalhes +
+      blocoModelo +
 
       '<p class="aviso-card">' + escaparHtml(analise.aviso) + "</p>" +
       '<p class="card-credito">Match X-Ray by Mente Fria · Golo Ao Vivo Angola</p>' +
@@ -1876,10 +2297,25 @@ function desenharCardNoCanvas(analise) {
     ["📉 Forma de fora: " + etiquetaFora, formaFora]
   ];
 
+  // Probabilidades no cartão EXPORTADO: o ecrã mostra Poisson e a imagem não,
+  // o que dava duas versões diferentes da mesma análise na mesma partilha.
+  const temProbsImagem = typeof analise.probMais === "number" && typeof analise.probMenos === "number";
+  const pushImagem = analise.tipoLinha === "inteira" && typeof analise.probPush === "number";
+  if (temProbsImagem) {
+    linhas.push([
+      pushImagem ? "🎲 Mais / Push / Menos (Poisson)" : "🎲 Mais / Menos (Poisson)",
+      pushImagem
+        ? analise.probMais + "% / " + analise.probPush + "% / " + analise.probMenos + "%"
+        : analise.probMais + "% / " + analise.probMenos + "%"
+    ]);
+  }
+
   // Layout vertical calculado a partir do número de linhas, para garantir que
   // as caixas não se sobrepõem nem saem da moldura (último texto a A - 70).
-  const LINHA_ALTURA = 76;
-  const LINHA_PASSO = 84;
+  // Caixas ligeiramente mais baixas para a quinta linha (probabilidades) caber
+  // sem empurrar o aviso legal e o rodapé para fora da moldura de 1350 px.
+  const LINHA_ALTURA = 66;
+  const LINHA_PASSO = 72;
   const Y_LINHAS = 530;
   const ALTURA_CONCLUSAO = 190;
   const ALTURA_AVISO = 160;
@@ -1913,7 +2349,7 @@ function desenharCardNoCanvas(analise) {
   // Linha usada no cálculo (casa + hora quando aplicável; senão referência).
   ctx.fillStyle = "#8b949e";
   ctx.font = '400 22px "Inter", sans-serif';
-  ctx.fillText(rotuloLinha(analise).slice(0, 84), 78, fimLinhas + 17);
+  ctx.fillText((rotuloLinha(analise) + " · modelo " + (analise.modelo || MODEL_VERSION)).slice(0, 88), 78, fimLinhas + 17);
 
   // Conclusão
   const caixaY = fimLinhas + 30;
@@ -2146,7 +2582,9 @@ async function escolherDesporto(desporto) {
   });
 
   painelJogos.hidden = false;
-  cache.clear(); // evita reutilizar respostas de outro desporto
+  // A cache da sessão é indexada pelo URL completo (que inclui o desporto) e
+  // expira sozinha: limpar tudo ao mudar de modalidade deitava fora histórico
+  // que continua válido.
 
   // Fundo do ecrã passa a mostrar o desporto escolhido.
   document.body.className = desporto === "nba" ? "fundo-nba" : "fundo-futebol";
@@ -2235,13 +2673,9 @@ async function escolherJogo(jogo) {
     // Linha escrita enquanto o cálculo decorria: aplica-se antes de desenhar.
     ESTADO.linhaCasa = lerCampoLinha();
     if (ESTADO.linhaCasa) {
-      analise.linha = ESTADO.linhaCasa.valor;
-      analise.linhaInfo = ESTADO.linhaCasa;
-      if (analise.projeccao !== null) {
-        if (analise.projeccao > analise.linha) analise.tendencia = "Mais";
-        else if (analise.projeccao < analise.linha) analise.tendencia = "Menos";
-        else analise.tendencia = "Empate na linha";
-      }
+      // Linha escrita enquanto o cálculo decorria: recalcular probabilidades,
+      // tendência e selo para ELA (antes só o texto mudava).
+      aplicarLinha(analise, ESTADO.linhaCasa.valor, ESTADO.linhaCasa);
     }
     ESTADO.analise = analise;
     renderizarCard(analise);
@@ -2302,7 +2736,8 @@ if (campoLinhaEl) {
     const erro = el("linha-erro");
     if (!erro) return;
     // Só acende o aviso quando há texto inválido (vazio = linha de referência).
-    erro.hidden = !(bruto && !(isFinite(Number(bruto)) && Number(bruto) > 0));
+    const n = Number(bruto.replace(",", "."));
+    erro.hidden = !(bruto && !(isFinite(n) && n > 0 && n <= LIMITES_MODELO.linha && linhaValida(n)));
   });
 }
 const campoCasaEl = el("campo-casa");
