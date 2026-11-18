@@ -971,6 +971,15 @@ async function principal() {
     "texto da IA aparece na caixa");
   ok(caixaIa.textContent.split("+18 | Joga com responsabilidade | Análise gerada com apoio de IA | Não é garantia de resultado.").length === 2,
     "rodapé legal exactamente uma vez no texto mostrado");
+  ok(caixaIa.querySelectorAll("p").length === 2,
+    "três blocos do servidor aparecem como parágrafos separados + rodapé (2 <p> neste texto de teste curto)");
+  const TEXTO_3_BLOCOS = "Contexto: Um. Dois.\n\nO que os números dizem: Três. Quatro.\n\nCuidado: Cinco. Seis.";
+  W.fetch = async () => ({ ok: true, status: 200, json: async () => ({ texto: TEXTO_3_BLOCOS, fonte: "ia" }) });
+  btnIa.click();
+  await esperarAte(() => btnIa.disabled === false);
+  ok(caixaIa.querySelectorAll("p").length === 4 && /O que os números dizem/.test(caixaIa.querySelectorAll("p")[1].textContent),
+    "texto com 3 parágrafos → 3 <p> + rodapé, cada bloco no seu parágrafo",
+    caixaIa.innerHTML.slice(0, 160));
   ok(btnIa.disabled === false && /Gerar outra vez/.test(btnIa.textContent),
     "botão volta a estar activo depois da resposta");
 

@@ -79,7 +79,25 @@ export function temExpressaoProibida(texto) {
 export function semRodape(texto) {
   return String(texto || "")
     .replace(/\s*\+18\s*\|[^\n]*/gi, " ")
-    .replace(/\s+/g, " ")
+    // Limpa espaços mas PRESERVA as quebras de linha: são a separação dos três
+    // blocos. Colapsar tudo numa linha era o que juntava os parágrafos.
+    .replace(/[ \t]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * Garante os três blocos em parágrafos separados. O modelo às vezes escreve
+ * «... Contexto: ... O que os números dizem: ... Cuidado: ...» numa só linha;
+ * o card desenharia tudo seguido. Aqui quebra-se antes de cada rótulo.
+ */
+export function estruturarBlocos(texto) {
+  return String(texto || "")
+    .replace(/\s*(O que os números dizem\s*:)/gi, "\n\n$1")
+    .replace(/\s*(Cuidado\s*:)/gi, "\n\n$1")
+    .replace(/^\s+/, "")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
@@ -169,6 +187,7 @@ export function montarPrompt(dados) {
     "- Entre 90 e 120 palavras no total. Conta as palavras antes de responder:",
     "  se o texto tiver menos de 90, desenvolve as frases até lá chegar.",
     "- Cada parágrafo tem de ter pelo menos duas frases completas.",
+    "- Escreve cada rótulo no início de uma linha e deixa UMA linha em branco entre os três parágrafos.",
     "- Texto corrido. Sem markdown, sem listas, sem emojis, sem aspas.",
     "- Proibido usar: garantido, garantida, certeza, aposta segura, dica certa, lucro, lucros, maiores probabilidades, ganhar, vitória certa.",
     "- Não dês conselhos de aposta, não prometas resultados e não digas que algo é fácil ou seguro.",
@@ -298,7 +317,7 @@ export function extrairTexto(resposta) {
 }
 
 /** Pede o texto à Workers AI. Devolve a string crua (pode ser inválida). */
-async function pedirIaBruta(env, prompt) {
+async function pedirIa(env, prompt) {
   const resposta = await env.AI.run(MODELO_IA, {
     messages: [
       { role: "system", content: "Escreves análises desportivas curtas em português de Angola, sem promessas de resultado." },
@@ -308,11 +327,7 @@ async function pedirIaBruta(env, prompt) {
     temperature: 0.4
   });
   if (!resposta) throw new Error("resposta vazia");
-  // Forma observada, só para diagnóstico (chaves + amostra curta).
-  const forma = typeof resposta === "string"
-    ? "string"
-    : Object.keys(resposta).join(",") + " :: " + JSON.stringify(resposta).slice(0, 400);
-  return { texto: extrairTexto(resposta), forma: forma };
+  return extrairTexto(resposta);
 }
 
 /* ------------------------------------------------------------------ */
@@ -352,18 +367,12 @@ export async function onRequestPost(context) {
     return json({ texto: guardado.texto, fonte: "cache" });
   }
 
-  let formaDaResposta = null;
   try {
-    const bruta = await pedirIaBruta(env, montarPrompt(dados));
-    formaDaResposta = bruta.forma;
-    const cru = limparResposta(bruta.texto);
+    const cru = estruturarBlocos(limparResposta(await pedirIa(env, montarPrompt(dados))));
     if (!textoAceitavel(cru)) {
-      // DIAGNÓSTICO TEMPORÁRIO: com X-MF-Debug: 1 devolve o texto bruto para
-      // calibrar o prompt. Sai antes do fecho desta entrega.
-      const extra = request.headers.get("X-MF-Debug") === "1"
-        ? { bruto: cru, forma: formaDaResposta }
-        : {};
-      return json(Object.assign({ texto: TEXTO_MODELO, fonte: "fallback", motivo: motivoRecusa(cru) }, extra));
+      // `motivo` explica a recusa (curto/longo/proibido/sem-blocos) sem expor
+      // o texto do modelo: é diagnóstico, não conteúdo público.
+      return json({ texto: TEXTO_MODELO, fonte: "fallback", motivo: motivoRecusa(cru) });
     }
     const texto = comRodape(cru);
     if (cacheIa.size > 200) cacheIa.clear();

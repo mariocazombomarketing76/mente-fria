@@ -10,7 +10,7 @@
    ========================================================================== */
 
 import worker from "../worker/index.mjs";
-import { TEXTO_MODELO, RODAPE, MODELO_IA, montarPrompt, textoAceitavel, temExpressaoProibida } from "../functions/api/resumo.js";
+import { TEXTO_MODELO, RODAPE, MODELO_IA, montarPrompt, textoAceitavel, temExpressaoProibida, estruturarBlocos, motivoRecusa } from "../functions/api/resumo.js";
 import {
   validarAlvo, validarAlvoCsv, pareceCsv, ttlPara, chaveCache, limiteExcedido,
   TTL_CSV, VERSAO_API, anfitriaoFinalPermitido
@@ -294,6 +294,9 @@ const corpoBom = await bom.json();
 ok(bom.status === 200 && corpoBom.fonte === "ia", "AI válida → 200 com fonte «ia»");
 ok(corpoBom.texto.indexOf(TEXTO_IA.slice(0, 40)) === 0, "texto da IA devolvido ao cliente");
 ok(corpoBom.texto.split(RODAPE).length === 2, "rodapé legal aparece exactamente uma vez");
+ok((corpoBom.texto.match(/\n\n/g) || []).length === 3,
+  "texto devolvido em 3 parágrafos + rodapé (o modelo escreveu tudo numa linha)",
+  JSON.stringify(corpoBom.texto.slice(0, 120)));
 ok(modeloId === MODELO_IA && modeloId === "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
   "modelo pedido: llama-3.3-70b-instruct-fp8-fast");
 ok(!/llama-3-8b|gemma-4/.test(modeloId),
@@ -315,6 +318,9 @@ const proibida = await chamarResumo(Object.assign({}, DADOS_IA, { casa: "Petro d
 const corpoProibida = await proibida.json();
 ok(corpoProibida.fonte === "fallback" && corpoProibida.texto === TEXTO_MODELO,
   "texto com expressão proibida («garantido») → texto-modelo");
+ok(corpoProibida.motivo === "expressao-proibida", "fallback diz o motivo (" + corpoProibida.motivo + ")");
+ok(corpoProibida.bruto === undefined && corpoProibida.forma === undefined,
+  "resposta não expõe texto bruto do modelo (diagnóstico só com o motivo)");
 
 const iaCurta = ambienteIa(async () => ({ response: "Contexto: jogo curto. O que os números dizem: pouco. Cuidado: sempre." }));
 const curta = await chamarResumo(Object.assign({}, DADOS_IA, { casa: "Sagrada Esperança" }), iaCurta);
@@ -354,6 +360,11 @@ ok(montarPrompt(DADOS_COMPLETOS).indexOf("não disponível") === -1 &&
    montarPrompt(DADOS_COMPLETOS).includes("média") === false,
   "prompt completo não tem campos em falta");
 ok(textoAceitavel(TEXTO_IA), "texto de teste dentro das regras (3 blocos, 90–120 palavras, sem proibições)");
+ok(estruturarBlocos("Contexto: A. O que os números dizem: B. Cuidado: C.") ===
+   "Contexto: A.\n\nO que os números dizem: B.\n\nCuidado: C.",
+  "estruturarBlocos separa os três rótulos em parágrafos");
+ok(motivoRecusa("Contexto: muito curto.") .indexOf("curto") === 0, "motivoRecusa explica texto curto");
+ok(motivoRecusa(TEXTO_IA) === "ok", "motivoRecusa aceita o texto conforme");
 ok(temExpressaoProibida("É uma certeza") && !temExpressaoProibida("há incerteza no jogo"),
   "lista negra apanha «certeza» mas não «incerteza»");
 

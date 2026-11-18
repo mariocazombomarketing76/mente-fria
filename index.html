@@ -1996,7 +1996,11 @@ function iaTemExpressaoProibida(texto) {
 function iaSemRodape(texto) {
   return String(texto || "")
     .replace(/\s*\+18\s*\|[^\n]*/gi, " ")
-    .replace(/\s+/g, " ")
+    // Preservar \n: é o que separa os três parágrafos. Colapsar tudo numa
+    // linha mostraria o texto corrido, apesar de o servidor o ter separado.
+    .replace(/[ \t]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
