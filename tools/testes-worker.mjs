@@ -10,7 +10,7 @@
    ========================================================================== */
 
 import worker from "../worker/index.mjs";
-import { TEXTO_MODELO, RODAPE, montarPrompt, textoAceitavel, temExpressaoProibida } from "../functions/api/resumo.js";
+import { TEXTO_MODELO, RODAPE, MODELO_IA, montarPrompt, textoAceitavel, temExpressaoProibida } from "../functions/api/resumo.js";
 import {
   validarAlvo, validarAlvoCsv, pareceCsv, ttlPara, chaveCache, limiteExcedido,
   TTL_CSV, VERSAO_API, anfitriaoFinalPermitido
@@ -294,7 +294,9 @@ const corpoBom = await bom.json();
 ok(bom.status === 200 && corpoBom.fonte === "ia", "AI válida → 200 com fonte «ia»");
 ok(corpoBom.texto.indexOf(TEXTO_IA.slice(0, 40)) === 0, "texto da IA devolvido ao cliente");
 ok(corpoBom.texto.split(RODAPE).length === 2, "rodapé legal aparece exactamente uma vez");
-ok(modeloId === "@cf/meta/llama-3-8b-instruct", "modelo pedido: llama-3-8b-instruct");
+ok(modeloId === MODELO_IA && modeloId === "@cf/google/gemma-4-26b-a4b-it",
+  "modelo pedido: gemma-4-26b-a4b-it (o llama-3-8b está descontinuado desde 30/05/2026)");
+ok(!/llama-3-8b/.test(modeloId), "não usa o modelo descontinuado pela Cloudflare");
 ok(promptRecebido.includes("Atlético Petróleos") && promptRecebido.includes("1,7") &&
    promptRecebido.includes("2,5") && promptRecebido.includes("Menos"),
   "prompt leva os números do motor (1,7 / 2,5 / tendência)");

@@ -18,7 +18,12 @@
      • falha da IA/quota/binding ausente → fallback (o card nunca fica vazio).
    ========================================================================== */
 
-const MODELO_IA = "@cf/meta/llama-3-8b-instruct";
+/* O modelo pedido no plano original (@cf/meta/llama-3-8b-instruct) foi
+   descontinuado pela Cloudflare em 30/05/2026: a chamada falha de imediato e o
+   card cai sempre no texto-modelo. Usa-se o substituto actual recomendado para
+   modelos pequenos — bom em português, barato e com retenção zero.
+   Trocar de modelo é mudar esta linha. */
+export const MODELO_IA = "@cf/google/gemma-4-26b-a4b-it";
 const MAX_PEDIDO = 4000;          // caracteres de JSON aceites
 const PALAVRAS_MIN = 90;
 const PALAVRAS_MAX = 120;
