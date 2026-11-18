@@ -161,17 +161,25 @@ export function montarPrompt(dados) {
     linhas.join("\n"),
     "",
     "ESTRUTURA OBRIGATÓRIA — exactamente 3 parágrafos, cada um a começar pelo rótulo:",
-    "Contexto: ...",
-    "O que os números dizem: ...",
-    "Cuidado: ...",
+    "Contexto: ... (30 a 35 palavras)",
+    "O que os números dizem: ... (35 a 40 palavras)",
+    "Cuidado: ... (30 a 35 palavras)",
     "",
     "REGRAS:",
-    "- Entre 90 e 120 palavras no total.",
+    "- Entre 90 e 120 palavras no total. Conta as palavras antes de responder:",
+    "  se o texto tiver menos de 90, desenvolve as frases até lá chegar.",
+    "- Cada parágrafo tem de ter pelo menos duas frases completas.",
     "- Texto corrido. Sem markdown, sem listas, sem emojis, sem aspas.",
     "- Proibido usar: garantido, garantida, certeza, aposta segura, dica certa, lucro, lucros, maiores probabilidades, ganhar, vitória certa.",
     "- Não dês conselhos de aposta, não prometas resultados e não digas que algo é fácil ou seguro.",
     "- Não inventes jogadores, lesões, treinadores, classificações, históricos nem números novos.",
-    "- Não escrevas o rodapé legal: o site acrescenta-o."
+    "- Não escrevas o rodapé legal: o site acrescenta-o.",
+    "",
+    "EXEMPLO DO TOM (não copies o conteúdo):",
+    "«Contexto: O jogo opõe duas equipas em momentos diferentes e o histórico recente " +
+      "pesa mais do que a tabela. A equipa da casa joga no seu reduto, onde os números " +
+      "têm sido mais estáveis do que fora.»",
+    "Responde apenas com os três parágrafos, sem introdução nem despedida."
   ].join("\n");
 }
 
