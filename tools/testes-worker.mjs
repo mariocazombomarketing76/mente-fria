@@ -294,9 +294,10 @@ const corpoBom = await bom.json();
 ok(bom.status === 200 && corpoBom.fonte === "ia", "AI válida → 200 com fonte «ia»");
 ok(corpoBom.texto.indexOf(TEXTO_IA.slice(0, 40)) === 0, "texto da IA devolvido ao cliente");
 ok(corpoBom.texto.split(RODAPE).length === 2, "rodapé legal aparece exactamente uma vez");
-ok(modeloId === MODELO_IA && modeloId === "@cf/google/gemma-4-26b-a4b-it",
-  "modelo pedido: gemma-4-26b-a4b-it (o llama-3-8b está descontinuado desde 30/05/2026)");
-ok(!/llama-3-8b/.test(modeloId), "não usa o modelo descontinuado pela Cloudflare");
+ok(modeloId === MODELO_IA && modeloId === "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+  "modelo pedido: llama-3.3-70b-instruct-fp8-fast");
+ok(!/llama-3-8b|gemma-4/.test(modeloId),
+  "não usa o llama-3-8b (descontinuado) nem o gemma-4 (raciocínio consome o orçamento)");
 ok(promptRecebido.includes("Atlético Petróleos") && promptRecebido.includes("1,7") &&
    promptRecebido.includes("2,5") && promptRecebido.includes("Menos"),
   "prompt leva os números do motor (1,7 / 2,5 / tendência)");

@@ -18,12 +18,13 @@
      • falha da IA/quota/binding ausente → fallback (o card nunca fica vazio).
    ========================================================================== */
 
-/* O modelo pedido no plano original (@cf/meta/llama-3-8b-instruct) foi
-   descontinuado pela Cloudflare em 30/05/2026: a chamada falha de imediato e o
-   card cai sempre no texto-modelo. Usa-se o substituto actual recomendado para
-   modelos pequenos — bom em português, barato e com retenção zero.
+/* O modelo do plano original (@cf/meta/llama-3-8b-instruct) foi descontinuado
+   pela Cloudflare em 30/05/2026. O gemma-4, testado a seguir, é um modelo de
+   raciocínio: gasta o orçamento de tokens a «pensar» e devolve content vazio
+   (o raciocínio vem em reasoning_content). Fica o Llama 3.3 70B fp8: instruct
+   simples, bom em português, retenção zero, sem raciocínio separado.
    Trocar de modelo é mudar esta linha. */
-export const MODELO_IA = "@cf/google/gemma-4-26b-a4b-it";
+export const MODELO_IA = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const MAX_PEDIDO = 4000;          // caracteres de JSON aceites
 const PALAVRAS_MIN = 90;
 const PALAVRAS_MAX = 120;

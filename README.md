@@ -257,12 +257,15 @@ silêncio. Recusa origens cruzadas (403), métodos que não GET (405), alvos for
 ## ✨ Análise jornalística com IA (`POST /api/resumo`)
 
 O botão «✨ Gerar Análise com IA», no card, pede um texto curto à **Workers AI**
-(modelo `@cf/google/gemma-4-26b-a4b-it`, binding `AI`). A chave nunca chega ao
+(modelo `@cf/meta/llama-3.3-70b-instruct-fp8-fast`, binding `AI`). A chave nunca chega ao
 navegador: o pedido passa pelo Worker, que fala com a IA.
 
 > **Nota sobre o modelo.** O plano inicial previa `@cf/meta/llama-3-8b-instruct`,
-> mas a Cloudflare descontinuou-o em **30/05/2026** — a chamada devolve erro e o
-> card ficaria sempre no texto-modelo. O modelo está numa única constante
+> mas a Cloudflare descontinuou-o em **30/05/2026** (a chamada devolve erro e o
+> card ficaria sempre no texto-modelo). O `gemma-4-26b-a4b-it`, também testado,
+> é um modelo de **raciocínio**: gasta o orçamento de tokens a pensar e devolve
+> `content` vazio. Fica o `llama-3.3-70b-instruct-fp8-fast` — instruct simples,
+> bom em português, retenção zero. O modelo está numa única constante
 > (`MODELO_IA`, em `functions/api/resumo.js`), por isso trocá-lo é uma linha.
 
 - **O texto não inventa números.** O prompt leva apenas o que o motor calculou
