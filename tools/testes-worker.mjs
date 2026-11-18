@@ -10,6 +10,7 @@
    ========================================================================== */
 
 import worker from "../worker/index.mjs";
+import { TEXTO_MODELO, RODAPE, montarPrompt, textoAceitavel, temExpressaoProibida } from "../functions/api/resumo.js";
 import {
   validarAlvo, validarAlvoCsv, pareceCsv, ttlPara, chaveCache, limiteExcedido,
   TTL_CSV, VERSAO_API, anfitriaoFinalPermitido
@@ -243,6 +244,115 @@ globalThis.fetch = async (url) => {
 const redireccionado = await chamar(alvo(
   "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?dates=20260801"));
 ok(redireccionado.status === 502, "redireccionamento para fora da allowlist → 502");
+
+/* ------------------------------------------------------------------ */
+grupo("Resumo com IA (POST /api/resumo)");
+
+const DADOS_IA = {
+  casa: "Atlético Petróleos", fora: "Kabuscorp", liga: "Girabola", unidade: "golos",
+  lambdaCasa: 1.7, lambdaFora: 0.2, projecao: 1.7, linha: 2.5, tendencia: "Menos"
+};
+
+/* Texto que cumpre as regras: 3 blocos, 90–120 palavras, sem promessas. */
+const TEXTO_IA =
+  "Contexto: O Atlético Petróleos recebe o Kabuscorp num jogo em que o momento pesa " +
+  "mais do que a classificação. A equipa da casa tem marcado com regularidade e a " +
+  "visitante tem sofrido fora. O que os números dizem: O modelo aponta para cerca de " +
+  "1,7 golos no total, com a casa a concentrar quase toda a produção esperada. A linha " +
+  "de referência está em 2,5 golos e a tendência calculada é para menos, o que traduz " +
+  "um jogo mais fechado do que a média sugere. Cuidado: Um jogo tem detalhes que nenhum " +
+  "número capta, como expulsões ou lesões de última hora. Esta leitura é uma tendência " +
+  "baseada nos últimos jogos e pode falhar.";
+
+let ipIa = 0;
+const chamarResumo = (dados, env, init) => {
+  ipIa++;
+  const pedido = new Request("https://mente-fria.goloaovivo.workers.dev/api/resumo",
+    init || {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113." + ipIa },
+      body: JSON.stringify(dados || DADOS_IA)
+    });
+  return worker.fetch(pedido, env || ambiente, contexto);
+};
+const ambienteIa = (run) => Object.assign({}, ambiente, { AI: { run: run } });
+
+const semIa = await chamarResumo(DADOS_IA, ambiente);
+const corpoSemIa = await semIa.json();
+ok(semIa.status === 200 && corpoSemIa.fonte === "sem-ia" && corpoSemIa.texto === TEXTO_MODELO,
+  "sem binding AI → texto-modelo (o card nunca fica vazio)");
+
+let promptRecebido = "";
+let modeloId = "";
+let vezesIa = 0;
+const iaBoa = ambienteIa(async (modelo, opcoes) => {
+  vezesIa++; modeloId = modelo; promptRecebido = opcoes.messages[1].content;
+  return { response: TEXTO_IA };
+});
+const bom = await chamarResumo(DADOS_IA, iaBoa);
+const corpoBom = await bom.json();
+ok(bom.status === 200 && corpoBom.fonte === "ia", "AI válida → 200 com fonte «ia»");
+ok(corpoBom.texto.indexOf(TEXTO_IA.slice(0, 40)) === 0, "texto da IA devolvido ao cliente");
+ok(corpoBom.texto.split(RODAPE).length === 2, "rodapé legal aparece exactamente uma vez");
+ok(modeloId === "@cf/meta/llama-3-8b-instruct", "modelo pedido: llama-3-8b-instruct");
+ok(promptRecebido.includes("Atlético Petróleos") && promptRecebido.includes("1,7") &&
+   promptRecebido.includes("2,5") && promptRecebido.includes("Menos"),
+  "prompt leva os números do motor (1,7 / 2,5 / tendência)");
+ok(promptRecebido.includes("Contexto:") && promptRecebido.includes("O que os números dizem:") &&
+   promptRecebido.includes("Cuidado:"), "prompt exige os três blocos");
+ok(/não inventes|nao inventes/i.test(promptRecebido) && /90 e 120 palavras/.test(promptRecebido),
+  "prompt proíbe números inventados e fixa 90–120 palavras");
+
+const repetido = await chamarResumo(DADOS_IA, iaBoa);
+ok((await repetido.json()).fonte === "cache" && vezesIa === 1,
+  "mesmo jogo repetido → cache, sem gastar neurónios outra vez");
+
+const iaProibida = ambienteIa(async () => ({ response: TEXTO_IA + " É um resultado garantido." }));
+const proibida = await chamarResumo(Object.assign({}, DADOS_IA, { casa: "Petro de Luanda" }), iaProibida);
+const corpoProibida = await proibida.json();
+ok(corpoProibida.fonte === "fallback" && corpoProibida.texto === TEXTO_MODELO,
+  "texto com expressão proibida («garantido») → texto-modelo");
+
+const iaCurta = ambienteIa(async () => ({ response: "Contexto: jogo curto. O que os números dizem: pouco. Cuidado: sempre." }));
+const curta = await chamarResumo(Object.assign({}, DADOS_IA, { casa: "Sagrada Esperança" }), iaCurta);
+ok((await curta.json()).texto === TEXTO_MODELO, "texto fora de 90–120 palavras → texto-modelo");
+
+const iaQuebrada = ambienteIa(async () => { throw new Error("quota esgotada (3040)"); });
+const quebrada = await chamarResumo(Object.assign({}, DADOS_IA, { casa: "1º de Agosto" }), iaQuebrada);
+ok(quebrada.status === 200 && (await quebrada.json()).texto === TEXTO_MODELO,
+  "IA em erro/quota → 200 com texto-modelo (nunca 500 no card)");
+
+const invalido = await chamarResumo(Object.assign({}, DADOS_IA, { projecao: "abc" }), ambiente);
+ok(invalido.status === 400, "projecao não numérica → 400");
+const semEquipa = await chamarResumo({ casa: "", fora: "Kabuscorp", projecao: 1.7, linha: 2.5, tendencia: "Menos" }, ambiente);
+ok(semEquipa.status === 400, "equipa em falta → 400");
+const cruzado = await chamarResumo(DADOS_IA, ambiente, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", "Origin": "https://outro-site.example", "CF-Connecting-IP": "198.51.100.7" },
+  body: JSON.stringify(DADOS_IA)
+});
+ok(cruzado.status === 403, "origem cruzada → 403");
+ok((await chamarResumo(DADOS_IA, ambiente, { method: "GET", headers: { "CF-Connecting-IP": "198.51.100.8" } })).status === 405,
+  "GET /api/resumo → 405 (só POST)");
+
+let limite = 0;
+for (let i = 0; i < 7; i++) {
+  const r = await chamarResumo(DADOS_IA, ambiente, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "CF-Connecting-IP": "198.51.100.99" },
+    body: JSON.stringify(DADOS_IA)
+  });
+  limite = r.status;
+}
+ok(limite === 429, "mais de 6 pedidos/minuto do mesmo IP → 429");
+
+const DADOS_COMPLETOS = Object.assign({ casaMarcados: 1.3, foraSofridos: 1.0 }, DADOS_IA);
+ok(montarPrompt(DADOS_COMPLETOS).indexOf("não disponível") === -1 &&
+   montarPrompt(DADOS_COMPLETOS).includes("média") === false,
+  "prompt completo não tem campos em falta");
+ok(textoAceitavel(TEXTO_IA), "texto de teste dentro das regras (3 blocos, 90–120 palavras, sem proibições)");
+ok(temExpressaoProibida("É uma certeza") && !temExpressaoProibida("há incerteza no jogo"),
+  "lista negra apanha «certeza» mas não «incerteza»");
 
 console.log("\n" + "=".repeat(58));
 console.log((falhas ? "✗ " : "✓ ") + (total - falhas) + "/" + total + " verificações passaram");

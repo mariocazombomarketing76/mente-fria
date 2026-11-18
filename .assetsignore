@@ -10,6 +10,7 @@ README.md
 tools
 node_modules
 worker
+functions
 _arquivo
 propostas-logo
 *.patch

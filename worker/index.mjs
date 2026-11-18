@@ -10,12 +10,16 @@
      GET /api/estado        → diagnóstico (versão, tipo de cache)
      GET /api/fonte?u=…     → JSON das fontes desportivas (ESPN, TheSportsDB)
      GET /api/csv?u=…       → CSV da folha de resultados publicada no Google
+     POST /api/resumo       → texto jornalístico do card (Workers AI)
    ========================================================================== */
 
 import {
   VERSAO_API, validarAlvo, validarAlvoCsv, pareceCsv, ttlPara, chaveCache,
   limiteExcedido, TTL_CSV, anfitriaoFinalPermitido
 } from "./nucleo.mjs";
+// O mesmo ficheiro serve de Pages Function: aqui só o chamamos. Assim a lógica
+// da IA vive num sítio (functions/api/resumo.js) e funciona no Worker actual.
+import { onRequestPost as resumoIa } from "../functions/api/resumo.js";
 
 const CABECALHO_GUARDADO = "x-mf-guardado";
 
@@ -194,6 +198,13 @@ export default {
 
     if (url.pathname === "/api/estado") {
       return json({ ok: true, versao: VERSAO_API, cache: "borda (por centro de dados)" });
+    }
+
+    // Texto do card: é o único endpoint que aceita POST (e o único que gasta
+    // neurónios da conta), por isso tem limite próprio dentro do handler.
+    if (url.pathname === "/api/resumo") {
+      if (request.method !== "POST") return json({ erro: "método não permitido" }, 405, { Allow: "POST" });
+      return resumoIa({ request: request, env: env, ctx: ctx, next: null });
     }
 
     const csv = url.pathname === "/api/csv";

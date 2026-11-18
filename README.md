@@ -254,6 +254,36 @@ silêncio. Recusa origens cruzadas (403), métodos que não GET (405), alvos for
 
 ---
 
+## ✨ Análise jornalística com IA (`POST /api/resumo`)
+
+O botão «✨ Gerar Análise com IA», no card, pede um texto curto à **Workers AI**
+(modelo `@cf/meta/llama-3-8b-instruct`, binding `AI`). A chave nunca chega ao
+navegador: o pedido passa pelo Worker, que fala com a IA.
+
+- **O texto não inventa números.** O prompt leva apenas o que o motor calculou
+  (médias, λ casa/fora, projeção, linha, tendência) e proíbe acrescentar outros.
+- **Três blocos:** «Contexto», «O que os números dizem», «Cuidado».
+- **Lista negra validada duas vezes** — servidor e cliente. Se o modelo escrever
+  «garantido», «certeza», «aposta segura», «dica certa», «lucro», «maiores
+  probabilidades», «ganhar» ou «vitória certa», o card mostra o texto-modelo em
+  vez de o publicar.
+- **Rodapé obrigatório**, acrescentado pelo código uma única vez:
+  `+18 | Joga com responsabilidade | Análise gerada com apoio de IA | Não é garantia de resultado.`
+- **Nunca fica vazio:** binding ausente, quota esgotada, erro do modelo, texto
+  fora de 90–120 palavras ou com expressões proibidas → texto-modelo genérico.
+- **Custo controlado:** 6 pedidos/minuto por IP (melhor esforço, por *isolate*) e
+  cache em memória de 6 h por conjunto de números — repetir o mesmo jogo não
+  gasta neurónios outra vez.
+- **Sem binding AI** a rota responde 200 com o texto-modelo (`fonte: "sem-ia"`),
+  por isso o site funciona antes de a IA estar autorizada na conta.
+
+O código vive em `functions/api/resumo.js` (formato Pages Function, com
+`onRequestPost`). O site publica-se como **Worker**, por isso `worker/index.mjs`
+importa e serve essa mesma função em `/api/resumo` — um único sítio com a lógica.
+Se algum dia o projeto passar a Pages, o ficheiro continua válido.
+
+---
+
 ## 🧪 Testes
 
 ```bash
@@ -284,7 +314,9 @@ node testes-worker.mjs        # Worker, SEM rede (allowlist, TTL, cache, CSV, li
 `tools/testes-worker.mjs` não toca na internet: substitui `fetch` e a Cache API por
 dublês e prova a allowlist (proxy fechado), os TTL, hit/miss, stale-if-error, 502 sem
 cache, 403 de origem cruzada e de alvo, 405 de método, 400 de parâmetro e o limite de
-60 pedidos/minuto.
+60 pedidos/minuto. O `/api/resumo` é testado com um duplo da Workers AI: prompt (números
+e blocos), rodapé único, cache, lista negra, texto curto, quota em erro, pedido inválido,
+origem cruzada, método e limite de 6 pedidos/minuto.
 
 **Verificações por provar.** A chave gratuita da TheSportsDB limita pedidos por IP: quando
 isso acontece, a bancada completa marca o bloco do Girabola como *inconclusivo* (⚠ no

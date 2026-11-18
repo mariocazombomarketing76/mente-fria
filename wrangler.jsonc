@@ -29,6 +29,9 @@
   // Worker de dados (só /api/*). O site continua a ser servido como estático.
   "main": "worker/index.mjs",
   "compatibility_date": "2026-10-23",
+  // Workers AI: usado apenas por POST /api/resumo (texto do card). Sem este
+  // binding a rota responde com o texto-modelo — o site nunca fica sem texto.
+  "ai": { "binding": "AI" },
   "observability": {
     "enabled": true
   },

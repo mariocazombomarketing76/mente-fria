@@ -381,7 +381,8 @@ const ESTADO = {
   jogos: [],           // jogos do dia já carregados (alimenta os filtros)
   filtro: "todas",     // competição seleccionada nos filtros
   linhaCasa: null,     // linha escrita à mão na casa: { valor, casa, hora }
-  pedido: 0            // contador para ignorar respostas de pedidos antigos
+  pedido: 0,           // contador para ignorar respostas de pedidos antigos
+  resumoIA: null       // texto da análise com IA: { chave, texto }
 };
 
 /* Atalhos de DOM. */
@@ -1953,6 +1954,134 @@ function blocoCasasCard() {
 
 /** Desenha o Card de Análise (Match X-Ray) — versão desportiva (v4.2).
  *  opcoes.semScroll: re-render por mudança de linha (não salta a página). */
+/* ==========================================================================
+   ANÁLISE JORNALÍSTICA COM IA
+
+   O texto vem de POST /api/resumo (Worker + Workers AI). Aqui só se pede,
+   se valida e se mostra — o motor estatístico não é tocado: os números que
+   seguem para a IA são exactamente os que o card já mostra.
+
+   A lista negra é validada DUAS vezes (servidor e cliente): se o modelo
+   escorregar para uma promessa de resultado, o card cai no texto-modelo em vez
+   de a publicar.
+   ========================================================================== */
+const IA_RODAPE = "+18 | Joga com responsabilidade | Análise gerada com apoio de IA | Não é garantia de resultado.";
+const IA_TEXTO_MODELO =
+  "O modelo estatístico analisa o histórico recente de ambas as equipas. " +
+  "O ataque da equipa da casa mede forças com a defesa visitante, resultando na " +
+  "projeção de golos/pontos esperados. Lembra-te que esta é uma tendência " +
+  "estatística baseada nos últimos jogos e não uma previsão absoluta. Gere a tua " +
+  "banca com consciência. " + IA_RODAPE;
+
+const IA_EXPRESSOES_PROIBIDAS = [
+  "garantido", "garantida", "garantidos", "garantidas",
+  "certeza", "aposta segura", "dica certa",
+  "lucro", "lucros", "maiores probabilidades", "ganhar", "vitoria certa"
+];
+
+function iaNormalizar(texto) {
+  return String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Verdadeiro se o texto tiver uma expressão da lista negra do projecto. */
+function iaTemExpressaoProibida(texto) {
+  const alvo = iaNormalizar(texto);
+  return IA_EXPRESSOES_PROIBIDAS.some(function (termo) {
+    const limpo = iaNormalizar(termo).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp("(^|[^a-z0-9])" + limpo + "([^a-z0-9]|$)").test(alvo);
+  });
+}
+
+/** Tira o rodapé (a IA às vezes repete-o) e devolve o corpo limpo. */
+function iaSemRodape(texto) {
+  return String(texto || "")
+    .replace(/\s*\+18\s*\|[^\n]*/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Um único rodapé, no fim. */
+function iaComRodape(texto) {
+  const corpo = iaSemRodape(texto);
+  return corpo ? corpo + "\n\n" + IA_RODAPE : IA_RODAPE;
+}
+
+/** Chave do texto: se o jogo ou a linha mudarem, o texto deixa de valer. */
+function iaChave(analise, jogo) {
+  return [jogo.casa.nome, jogo.fora.nome, analise.desporto, analise.linha].join("|");
+}
+
+/** Texto da IA é conteúdo não fidedigno: escapar e transformar em parágrafos. */
+function iaParagrafos(texto) {
+  return String(texto || "")
+    .split(/\n{2,}/)
+    .map(function (bloco) {
+      return "<p>" + escaparHtml(bloco).replace(/\n/g, "<br>") + "</p>";
+    })
+    .join("");
+}
+
+function mostrarResumoIa(texto, nota) {
+  const caixa = el("caixa-analise-ia");
+  if (!caixa) return;
+  caixa.innerHTML = iaParagrafos(texto) +
+    (nota ? '<p class="ia-fonte">' + escaparHtml(nota) + "</p>" : "");
+  caixa.style.display = "block";
+}
+
+async function gerarResumoIa(analise, jogo, botao) {
+  if (!botao || botao.disabled) return;
+  botao.disabled = true;
+  botao.textContent = "A analisar com IA...";
+  mostrarResumoIa("A escrever a análise com base nos números do card…");
+
+  let texto = IA_TEXTO_MODELO;
+  let nota = "Texto-modelo: a IA não respondeu agora. Os números do card não mudaram.";
+
+  try {
+    const controlo = new AbortController();
+    const temporizador = setTimeout(function () { controlo.abort(); }, 20000);
+    const resposta = await fetch("/api/resumo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        casa: jogo.casa.nome,
+        fora: jogo.fora.nome,
+        liga: jogo.liga || "",
+        unidade: analise.desporto === "nba" ? "pontos" : "golos",
+        lambdaCasa: analise.lambdaCasa,
+        lambdaFora: analise.lambdaFora,
+        projecao: analise.projeccao,
+        linha: analise.linha,
+        tendencia: analise.tendencia,
+        casaMarcados: analise.baseCasa ? analise.baseCasa.valor : null,
+        foraSofridos: analise.baseFora ? analise.baseFora.valor : null
+      }),
+      signal: controlo.signal
+    });
+    clearTimeout(temporizador);
+    if (!resposta.ok) throw new Error("HTTP " + resposta.status);
+
+    const dados = await resposta.json();
+    const recebido = typeof dados.texto === "string" ? dados.texto.trim() : "";
+    if (recebido && !iaTemExpressaoProibida(recebido)) {
+      texto = recebido;
+      nota = dados.fonte === "ia" ? "" : "Texto-modelo: a IA não respondeu agora. Os números do card não mudaram.";
+    }
+  } catch (erro) {
+    texto = IA_TEXTO_MODELO;
+  }
+
+  texto = iaComRodape(texto);
+  ESTADO.resumoIA = { chave: iaChave(analise, jogo), texto: texto };
+  mostrarResumoIa(texto, nota);
+  botao.disabled = false;
+  botao.textContent = nota ? "✨ Tentar outra vez" : "✨ Gerar outra vez";
+  if (typeof trackEvent === "function") {
+    trackEvent("gerar_resumo_ia", { jogo: jogo.casa.nome + " vs " + jogo.fora.nome, resultado: nota ? "modelo" : "ia" });
+  }
+}
+
 function renderizarCard(analise, opcoes) {
   const jogo = analise.jogo;
   const unidade = analise.unidade;
@@ -2090,6 +2219,15 @@ function renderizarCard(analise, opcoes) {
       '</div>'
     : "";
 
+  // Botão + caixa da análise com IA, logo abaixo das probabilidades. Só faz
+  // sentido onde há Poisson (futebol): na NBA não há golos esperados nem prob.
+  const blocoIa = temProbabilidades && analise.projecao !== null
+    ? '<div class="ia-bloco">' +
+        '<button type="button" class="btn-gerar-ia" id="btn-gerar-ia">✨ Gerar Análise com IA</button>' +
+        '<div class="caixa-analise-ia" id="caixa-analise-ia" aria-live="polite" style="display:none;"></div>' +
+      "</div>"
+    : "";
+
   // Origem da média e versão do modelo: o utilizador vê de onde vêm os números
   // em vez de os receber como se fossem sempre dados completos da competição.
   const blocoModelo = analise.projeccao !== null
@@ -2170,6 +2308,7 @@ function renderizarCard(analise, opcoes) {
         '<p class="sintese-sub">' + escaparHtml(sinteseSub) + "</p>" +
       "</div>" +
       blocoDetalhes +
+      blocoIa +
       blocoModelo +
 
       '<p class="aviso-card">' + escaparHtml(analise.aviso) + "</p>" +
@@ -2187,6 +2326,16 @@ function renderizarCard(analise, opcoes) {
   activarFallbackEscudos(cardXray);
   animarProjecao();
   // Eventos do card
+  const botaoIa = el("btn-gerar-ia");
+  if (botaoIa) {
+    const guardado = ESTADO.resumoIA;
+    if (guardado && guardado.chave === iaChave(analise, jogo)) {
+      // A linha mudou → o card redesenha; um texto ainda válido reaparece.
+      mostrarResumoIa(guardado.texto);
+      botaoIa.textContent = "✨ Gerar outra vez";
+    }
+    botaoIa.addEventListener("click", function () { gerarResumoIa(analise, jogo, botaoIa); });
+  }
   el("btn-partilhar").addEventListener("click", partilharWhatsApp);
   el("btn-partilhar-facebook").addEventListener("click", partilharFacebook);
   el("btn-refazer").addEventListener("click", () => {

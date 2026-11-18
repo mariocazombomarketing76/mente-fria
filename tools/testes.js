@@ -283,10 +283,13 @@ async function principal() {
   ok(ler("termos.html").includes("criada com inteligência artificial"),
     "Termos: personagem virtual explicada no corpo do documento");
 
-  /* Bloco 3 — linguagem: nenhuma frase que prometa vantagem nas páginas públicas */
+  /* Bloco 3 — linguagem: nenhuma frase que prometa vantagem nas páginas públicas.
+     Compara-se o HTML visível: o <script> contém, por necessidade, a lista negra
+     da análise com IA (as palavras que valida e recusa). */
   const proibidas = /maiores probabilidades|melhorar as tuas hipóteses|aposta certa|palpite certo|garantido|ganhar dinheiro|aposta segura/i;
+  const apenasHtml = (html) => html.replace(/<script[\s\S]*?<\/script>/gi, " ");
   ["index.html", "resultados.html", "termos.html", "privacidade.html", "jogo-responsavel.html"].forEach((f) => {
-    ok(!proibidas.test(ler(f)), f + ": sem frases que prometam vantagem");
+    ok(!proibidas.test(apenasHtml(ler(f))), f + ": sem frases que prometam vantagem");
   });
   ok(index.includes("mostra-te os números para decidires com mais informação"),
     "index: texto reescrito para «mais informação para decidir»");
@@ -791,7 +794,19 @@ async function principal() {
       ok(false, "histórico das duas equipas carregado (análise não concluída em " + pedidosAnalise + " pedidos)");
     }
   }
-  if (an) {
+  // A fonte pode devolver a análise sem amostra das duas equipas (rondas
+  // vazias ou limite da chave gratuita). Isso não é uma regressão nossa: fica
+  // por provar, e as verificações que dependem dela não correm às cegas.
+  const amostraCompleta = !!(an && an.casa && an.fora);
+  if (an && !amostraCompleta) {
+    const limitadaAgora = await fonteTdbLimitada();
+    if (limitadaAgora) {
+      inconclusivo("Histórico do Girabola incompleto (TheSportsDB limitou pedidos): verificações do card, da linha, da IA e da imagem ficam por provar nesta execução.");
+    } else {
+      ok(false, "histórico das duas equipas carregado (análise sem amostra das duas equipas)");
+    }
+  }
+  if (amostraCompleta) {
   ok(an.casa && an.fora, "histórico das duas equipas carregado (pedido em " + pedidosAnalise + " pedidos)");
   ok(an.casa.jogos >= 2 && an.fora.jogos >= 2,
     "cada equipa tem jogos reais concluídos (casa n=" + an.casa.jogos + " · fora n=" + an.fora.jogos + ")");
@@ -901,6 +916,98 @@ async function principal() {
   ok(ev("ESTADO.analise.linha") === 2.5 && ev("ESTADO.analise.tipoLinha") === "meio",
     "limpar a linha volta à referência de 2.5 golos (meio ponto)");
 
+  /* 2b. ANÁLISE COM IA ------------------------------------------------- */
+  grupo("Análise com IA (botão + caixa no card)");
+
+  const esperarAte = async (condicao, limite) => {
+    const inicio = Date.now();
+    while (Date.now() - inicio < (limite || 2000)) {
+      if (condicao()) return true;
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    return false;
+  };
+
+  const btnIa = W.document.getElementById("btn-gerar-ia");
+  const caixaIa = W.document.getElementById("caixa-analise-ia");
+  ok(btnIa !== null && /Gerar Análise com IA/.test(btnIa.textContent),
+    "card tem o botão «Gerar Análise com IA»");
+  ok(caixaIa !== null && caixaIa.style.display === "none",
+    "caixa da análise começa escondida (display:none)");
+
+  const fetchOriginal = W.fetch;
+  let corpoIa = null;
+  let pedidoIa = null;
+
+  const TEXTO_IA_CLIENTE =
+    "Contexto: O Atlético Petróleos recebe o Kabuscorp num jogo em que o momento pesa " +
+    "mais do que a classificação. O que os números dizem: O modelo aponta para cerca de " +
+    "1,7 golos e uma linha de 2,5, com tendência para menos. Cuidado: Um jogo tem " +
+    "detalhes que nenhum número capta. Esta leitura é uma tendência e pode falhar.";
+
+  W.fetch = async (url, init) => {
+    pedidoIa = { url: url, init: init };
+    corpoIa = JSON.parse(init.body);
+    return { ok: true, status: 200, json: async () => ({ texto: TEXTO_IA_CLIENTE, fonte: "ia" }) };
+  };
+
+  btnIa.click();
+  ok(btnIa.disabled === true && /A analisar com IA/.test(btnIa.textContent),
+    "clique desactiva o botão e mostra «A analisar com IA...»");
+
+  await esperarAte(() => btnIa.disabled === false);
+  ok(pedidoIa && pedidoIa.url === "/api/resumo" && pedidoIa.init.method === "POST",
+    "pedido POST para /api/resumo");
+  const esperadoIa = {
+    casa: ev("ESTADO.jogo.casa.nome"), fora: ev("ESTADO.jogo.fora.nome"),
+    lambdaCasa: ev("ESTADO.analise.lambdaCasa"), lambdaFora: ev("ESTADO.analise.lambdaFora"),
+    projecao: ev("ESTADO.analise.projeccao"), linha: ev("ESTADO.analise.linha"),
+    tendencia: ev("ESTADO.analise.tendencia")
+  };
+  ok(corpoIa && Object.keys(esperadoIa).every((k) => corpoIa[k] === esperadoIa[k]),
+    "payload leva os números exactos do motor (sem os recalcular)",
+    JSON.stringify({ enviado: corpoIa, esperado: esperadoIa }));
+  ok(caixaIa.style.display === "block" && /Contexto:/.test(caixaIa.textContent),
+    "texto da IA aparece na caixa");
+  ok(caixaIa.textContent.split("+18 | Joga com responsabilidade | Análise gerada com apoio de IA | Não é garantia de resultado.").length === 2,
+    "rodapé legal exactamente uma vez no texto mostrado");
+  ok(btnIa.disabled === false && /Gerar outra vez/.test(btnIa.textContent),
+    "botão volta a estar activo depois da resposta");
+
+  // Lista negra no cliente: mesmo que o servidor deixe passar, o card não publica.
+  W.fetch = async () => ({ ok: true, status: 200, json: async () => ({ texto: TEXTO_IA_CLIENTE + " Resultado garantido.", fonte: "ia" }) });
+  btnIa.click();
+  await esperarAte(() => btnIa.disabled === false);
+  ok(/O modelo estatístico analisa/.test(caixaIa.textContent) && !/garantido/i.test(caixaIa.textContent),
+    "texto com expressão proibida é substituído pelo texto-modelo no cliente");
+
+  // Fonte em baixo / quota: o card nunca fica vazio.
+  W.fetch = async () => { throw new Error("rede em baixo"); };
+  btnIa.click();
+  await esperarAte(() => btnIa.disabled === false);
+  ok(/O modelo estatístico analisa/.test(caixaIa.textContent) && caixaIa.style.display === "block",
+    "falha de rede → texto-modelo visível (card nunca vazio)");
+
+  W.fetch = async () => ({ ok: false, status: 429, json: async () => ({ erro: "demasiados pedidos" }) });
+  btnIa.click();
+  await esperarAte(() => btnIa.disabled === false);
+  ok(/O modelo estatístico analisa/.test(caixaIa.textContent),
+    "limite de pedidos (429) → texto-modelo");
+
+  // Conteúdo gerado é tratado como não fidedigno: escapar sempre.
+  W.fetch = async () => ({ ok: true, status: 200, json: async () => ({ texto: "<img src=x onerror=alert(1)> Contexto: teste.", fonte: "ia" }) });
+  btnIa.click();
+  await esperarAte(() => btnIa.disabled === false);
+  ok(caixaIa.querySelector("img") === null && /&lt;img/.test(caixaIa.innerHTML),
+    "HTML vindo da IA é escapado, nunca interpretado");
+
+  // O texto não sobrevive a mudar a linha (é outra análise).
+  W.fetch = fetchOriginal;
+  ev("document.getElementById('campo-linha').value = '3.5'; reaplicarLinhaCasa();");
+  ok(W.document.getElementById("caixa-analise-ia").style.display === "none",
+    "mudar a linha esconde o texto antigo (outra análise)");
+  ev("document.getElementById('campo-linha').value = ''; reaplicarLinhaCasa();");
+
   /* 3. IMAGEM PARTILHADA --------------------------------------------- */
   grupo("Imagem partilhada (canvas 1080×1350)");
   try {
@@ -992,8 +1099,15 @@ async function principal() {
       "análise ESPN/NBA concluída com projecção numérica (" + projNba + " pontos, n=" + pjogos + ")");
   }
 
-  ok(errosPagina.length === 0, "sem erros de runtime no browser virtual",
-    errosPagina.slice(0, 3).join(" | "));
+  // Com a fonte limitada, o site mostra (correctamente) o aviso de erro de
+  // rede; isso não é um erro de runtime nosso. Sem limite, continua a falhar.
+  if (errosPagina.length && tdbLimitada &&
+      errosPagina.every((e) => /Erro ao buscar dados/.test(e))) {
+    inconclusivo("Erro de rede esperado: a TheSportsDB limitou os pedidos desta rede (" + errosPagina.length + " ocorrência(s)).");
+  } else {
+    ok(errosPagina.length === 0, "sem erros de runtime no browser virtual",
+      errosPagina.slice(0, 3).join(" | "));
+  }
   ok(pedidos < 70, "economia de pedidos de rede na sessão toda (" + pedidos + ")");
 
   dom.window.close();
