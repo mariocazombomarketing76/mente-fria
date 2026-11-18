@@ -181,7 +181,7 @@ export function montarPrompt(dados) {
     "ESTRUTURA OBRIGATÓRIA — exactamente 3 parágrafos, cada um a começar pelo rótulo:",
     "Contexto: ... (30 a 35 palavras)",
     "O que os números dizem: ... (35 a 40 palavras)",
-    "Cuidado: ... (30 a 35 palavras)",
+    "Cuidado: ... (30 a 35 palavras) — aqui fala da incerteza: factores que os números não captam (lesões, expulsões, motivação, arbitragem) e o facto de ser tendência, não previsão. NÃO repitas os números neste bloco.",
     "",
     "REGRAS:",
     "- Entre 90 e 120 palavras no total. Conta as palavras antes de responder:",
