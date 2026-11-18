@@ -104,6 +104,18 @@ export function limparResposta(texto) {
     .trim();
 }
 
+/** Porque é que o texto foi recusado (diagnóstico, sem expor o texto). */
+export function motivoRecusa(texto) {
+  const corpo = semRodape(texto);
+  if (!corpo) return "vazio";
+  const palavras = contarPalavras(corpo);
+  if (palavras < PALAVRAS_MIN) return "curto (" + palavras + " palavras)";
+  if (palavras > PALAVRAS_MAX) return "longo (" + palavras + " palavras)";
+  if (temExpressaoProibida(corpo)) return "expressao-proibida";
+  if (!normalizar(corpo).includes("numeros dizem")) return "sem-blocos";
+  return "ok";
+}
+
 /** O texto da IA cumpre as regras do projecto? */
 export function textoAceitavel(texto) {
   const corpo = semRodape(texto);
@@ -312,7 +324,10 @@ export async function onRequestPost(context) {
   try {
     const cru = limparResposta(await pedirIa(env, montarPrompt(dados)));
     if (!textoAceitavel(cru)) {
-      return json({ texto: TEXTO_MODELO, fonte: "fallback" });
+      // DIAGNÓSTICO TEMPORÁRIO: com X-MF-Debug: 1 devolve o texto bruto para
+      // calibrar o prompt. Sai antes do fecho desta entrega.
+      const extra = request.headers.get("X-MF-Debug") === "1" ? { bruto: cru } : {};
+      return json(Object.assign({ texto: TEXTO_MODELO, fonte: "fallback", motivo: motivoRecusa(cru) }, extra));
     }
     const texto = comRodape(cru);
     if (cacheIa.size > 200) cacheIa.clear();
