@@ -269,8 +269,27 @@ function mesmaOrigem(request, url) {
   try { return new URL(origem).origin === url.origin; } catch (erro) { return false; }
 }
 
+/**
+ * A Workers AI não devolve sempre a mesma forma: modelos antigos dão
+ * { response }, os mais recentes podem dar { choices: [...] } (formato
+ * OpenAI) ou { result: … }. Extrair de todas evita «texto vazio» quando o
+ * modelo mudou de família.
+ */
+export function extrairTexto(resposta) {
+  if (resposta === null || resposta === undefined) return "";
+  if (typeof resposta === "string") return resposta;
+  if (typeof resposta.response === "string" && resposta.response) return resposta.response;
+  if (Array.isArray(resposta.choices) && resposta.choices.length) {
+    const escolha = resposta.choices[0] || {};
+    const conteudo = escolha.message ? escolha.message.content : escolha.text;
+    if (typeof conteudo === "string" && conteudo) return conteudo;
+  }
+  if (resposta.result !== undefined) return extrairTexto(resposta.result);
+  return "";
+}
+
 /** Pede o texto à Workers AI. Devolve a string crua (pode ser inválida). */
-async function pedirIa(env, prompt) {
+async function pedirIaBruta(env, prompt) {
   const resposta = await env.AI.run(MODELO_IA, {
     messages: [
       { role: "system", content: "Escreves análises desportivas curtas em português de Angola, sem promessas de resultado." },
@@ -280,8 +299,11 @@ async function pedirIa(env, prompt) {
     temperature: 0.4
   });
   if (!resposta) throw new Error("resposta vazia");
-  // O runtime devolve { response } para modelos de texto; alguns devolvem string.
-  return typeof resposta === "string" ? resposta : String(resposta.response || "");
+  // Forma observada, só para diagnóstico (chaves + amostra curta).
+  const forma = typeof resposta === "string"
+    ? "string"
+    : Object.keys(resposta).join(",") + " :: " + JSON.stringify(resposta).slice(0, 400);
+  return { texto: extrairTexto(resposta), forma: forma };
 }
 
 /* ------------------------------------------------------------------ */
@@ -321,12 +343,17 @@ export async function onRequestPost(context) {
     return json({ texto: guardado.texto, fonte: "cache" });
   }
 
+  let formaDaResposta = null;
   try {
-    const cru = limparResposta(await pedirIa(env, montarPrompt(dados)));
+    const bruta = await pedirIaBruta(env, montarPrompt(dados));
+    formaDaResposta = bruta.forma;
+    const cru = limparResposta(bruta.texto);
     if (!textoAceitavel(cru)) {
       // DIAGNÓSTICO TEMPORÁRIO: com X-MF-Debug: 1 devolve o texto bruto para
       // calibrar o prompt. Sai antes do fecho desta entrega.
-      const extra = request.headers.get("X-MF-Debug") === "1" ? { bruto: cru } : {};
+      const extra = request.headers.get("X-MF-Debug") === "1"
+        ? { bruto: cru, forma: formaDaResposta }
+        : {};
       return json(Object.assign({ texto: TEXTO_MODELO, fonte: "fallback", motivo: motivoRecusa(cru) }, extra));
     }
     const texto = comRodape(cru);
